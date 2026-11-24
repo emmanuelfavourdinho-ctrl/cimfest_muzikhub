@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { cn } from 'cn';
+import { cn } from '@/lib/cn';
 import { ArrowLeft, Flag, Gauge, Layers, LogOut, Megaphone, ScrollText, ShieldCheck, Trophy, Users, UsersRound, Wallet } from 'lucide-react';
 import { BrandMark } from '@/components/layout/BrandMark';
 import { Button } from '@/components/ui/button';

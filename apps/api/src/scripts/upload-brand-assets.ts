@@ -1,7 +1,7 @@
 /**
  * One-off: uploads the approved landing-page photographs to Cloudinary and writes a
  * manifest the web app reads. Safe to re-run (never overwrites). NEVER deletes the
- * local originals in apps/web/public/assets/landing/ — remove those by hand only after
+ * local originals in brand-originals/landing/ (moved out of the deployed public/ folder) — remove those by hand only after
  * the hosted images are verified.
  *
  *   npm run brand:upload -w @muzikhub/api
@@ -11,7 +11,7 @@ import { join } from 'node:path';
 import { v2 as cloudinary } from 'cloudinary';
 import { env } from '../config/env.js';
 
-const LANDING_DIR = join(import.meta.dirname, '../../../web/public/assets/landing');
+const LANDING_DIR = join(import.meta.dirname, '../../../../brand-originals/landing');
 const MANIFEST = join(import.meta.dirname, '../../../web/src/features/home/hero-photos.json');
 const FOLDER = `${env.CLOUDINARY_FOLDER}/brand/landing`;
 

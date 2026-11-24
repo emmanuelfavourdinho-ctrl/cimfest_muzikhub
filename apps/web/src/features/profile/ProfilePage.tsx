@@ -1,5 +1,5 @@
 import { Link, useParams, useSearchParams } from 'react-router';
-import { cn } from 'cn';
+import { cn } from '@/lib/cn';
 import { Check, MapPin, Pencil, Plus } from 'lucide-react';
 import { CAREER_STAGES, CREATIVE_ROLES, GENRES, PRIMARY_USES, type PublicProfile } from '@muzikhub/shared';
 import { ResponsiveImage } from '@/components/media/Media';

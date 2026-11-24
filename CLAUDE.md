@@ -1229,14 +1229,13 @@ The plan was approved on 2026-11-24, and phases 1–4 are **implemented** (see `
 
 MuzikHub must maintain a strict and consistent visual identity throughout the entire platform.
 
-The established brand palette is:
+**Approved palette (2026-11-24): olive-black and lime — "the studio at night".** It replaces the earlier Deep Forest / Emerald / Mint / Off White palette.
 
-- Deep Forest.
-- Emerald.
-- Mint.
-- Off White.
-
-These are the approved brand directions.
+- **Surfaces:** olive-black base, raised and overlay surfaces a step lighter, the darkest olive for the footer, and one warm off-white "paper" surface for editorial sections.
+- **Signal (lime):** primary actions, active states, play and progress, and at most one headline accent. It must cover well under 10% of a screen, except a single final call-to-action band. Never use lime as text on the paper surface (it fails contrast); there it is only a fill with dark text.
+- **Text:** near-white primary, muted secondary and tertiary. Tertiary text is never placed on chip surfaces.
+- **Source of truth:** colour values live only in `apps/web/src/styles/palette.css` (swapping that file changes the palette). `apps/web/src/index.css` maps them to roles (`surface-*`, `signal`, `text-1/2/3`, `paper`, `hairline` …) and defines the type scale, spacing, radii, elevation and motion. `apps/web/src/design/tokens.ts` gives them typed names. Contrast for every pair is recorded in `docs/ARCHITECTURE.md` §7c.
+- **No hex values, magic pixel sizes or one-off shadows in components.** The old `forest-*`, `emerald`, `mint`, `sage` names still exist as aliases of the olive palette until the platform screens are redesigned.
 
 Do not independently introduce unrelated primary color systems.
 
@@ -1345,14 +1344,14 @@ Do not claim to have inspected a prototype, design file or README if it is not a
 
 If something is inaccessible, report that limitation.
 
-## 20.6 Landing-page photography (confirmed 2026-11-24)
+## 20.6 Landing-page imagery (updated 2026-11-24)
 
-The landing hero uses the **five photographs supplied by the project owner** (originals in `apps/web/public/assets/landing/`), hosted on Cloudinary under `muzikhub/brand/landing/` and shown as a cinematic sequence: a slow crossfade, a very subtle zoom, a Deep Forest overlay, a stable headline and CTA, and a single still photo for `prefers-reduced-motion`.
+The landing page uses **no photographs**. Its hero is an illustrative product preview built in code from the design system, labelled "Illustrative preview", with obviously fictional names and no numbers that imply traction.
 
-- Never replace them with invented people, stock photography or AI-generated images.
-- Compose each photograph for its own size and quality: low-resolution and portrait images are never stretched on desktop; bright-background images get a stronger overlay.
-- The photos are atmospheric only: no captions, names or wording that implies the people or visible brands endorse, sponsor or partner with MuzikHub.
-- Keep the local originals until the hosted images are verified in production; they are never deleted automatically.
+- The photographs previously supplied for the hero have **no recorded licence or model release**. They are not used. The originals are kept, untouched, in `brand-originals/landing/` (git-ignored, outside the deployed `public/` folder) and are never deleted automatically. Copies uploaded earlier remain on Cloudinary under `muzikhub/brand/landing/` until the owner decides what to do with them.
+- Photography may return only with the owner's written confirmation of permission, as a background plate behind the product preview with a measured scrim.
+- Never use invented people, stock photography or AI-generated images of people. Original abstract artwork drawn from the palette is allowed.
+- No captions, names or wording that implies any person or brand endorses, sponsors or partners with MuzikHub.
 
 ---
 
@@ -2128,7 +2127,7 @@ Examples:
 - Vercel for frontend deployment.
 - Render for backend deployment.
 - Notch Pay for payments.
-- Deep Forest, Emerald, Mint and Off White brand identity.
+- The olive-black and lime brand palette (§20, approved 2026-11-24).
 - Mobile-first responsive design.
 - Free basic participation and discovery.
 

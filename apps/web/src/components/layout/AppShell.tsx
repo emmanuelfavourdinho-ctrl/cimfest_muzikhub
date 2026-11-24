@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { cn } from 'cn';
+import { cn } from '@/lib/cn';
 import { LogOut, Settings, ShieldCheck, UserRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { CREATIVE_ROLES, PRIMARY_USES } from '@muzikhub/shared';

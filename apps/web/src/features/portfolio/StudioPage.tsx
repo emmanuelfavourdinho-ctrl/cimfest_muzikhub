@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { cn } from 'cn';
+import { cn } from '@/lib/cn';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { InfiniteList } from '@/components/ui/InfiniteList';

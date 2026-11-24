@@ -83,18 +83,24 @@ Monorepo, Postgres + Prisma migrations, API conventions, prototype design system
 | Same URL for `prisma migrate deploy` | ✅ verified locally | Limitation: the Prisma 7.10.1 CLI does not verify the certificate (the runtime does) |
 | Supabase CA certificate `apps/api/certs/prod-supabase.crt` | ✅ in place | Supabase Root 2021 CA, valid to 2031-04-26 (fingerprint in ARCHITECTURE §7b) |
 | Free-plan limits and backup practice documented | ✅ | ARCHITECTURE §7b (official pages; unconfirmed items marked) |
-| Production database created / migrated / deployed | ⬜ **not done; needs approval** | |
+| Supabase database migrated (all 5 migrations, `prisma migrate deploy`) | ✅ 2026-11-24, approved by the owner | Rehearsed first on PostgreSQL 17.12. Verified afterwards: 0 pending, 18 tables + `_prisma_migrations`, audit triggers present, every table empty (not seeded) |
+| Application deployed (API / web) | ⬜ **not done; needs approval** | |
 
-### Landing hero — approved photographs
+### Landing page — olive-and-lime redesign (2026-11-24)
 | Item | Status | Evidence |
 |---|---|---|
-| All five supplied photographs uploaded to Cloudinary `muzikhub/brand/landing/` and delivery-verified | ✅ | `npm run brand:upload`; every variant checked |
-| Crossfade, subtle zoom, Deep Forest overlay, stable headline + CTA | ✅ | E2E (headline/CTA positions unchanged across all slides) |
-| Per-photo composition; 333×500 photo never shown above natural size on desktop | ✅ | E2E measurement + visual review |
-| Only the first photo high-priority; one-ahead loading; pause when tab hidden | ✅ | E2E (request tracking) |
-| `prefers-reduced-motion`: single still photo, no zoom | ✅ | E2E |
-| No overflow 320–1920 px | ✅ | Existing sweep |
-| Local originals | ✅ preserved | Still in `apps/web/public/assets/landing/`. Remove by hand after production verification (they are currently copied into the build output but not referenced) |
+| Palette B (olive-black + lime) as one-file tokens; CLAUDE.md §20 updated | ✅ | `styles/palette.css`; contrast table in ARCHITECTURE §7c |
+| Full page: header, hero with illustrative preview, problem (paper), value, who it's for (tabs), how it works, features, trust, roadmap, FAQ, lime CTA, footer | ✅ | `e2e/landing.spec.ts` |
+| Every header, section and footer link works; mobile menu traps focus and closes on Escape and navigation; tabs and FAQ by keyboard; signed-in "Open app"; skip link first | ✅ | `e2e/landing.spec.ts` (mobile + desktop) |
+| No horizontal scroll at 360, 390, 768, 1024, 1280, 1536 and 844×390 (landscape) | ✅ | E2E sweep |
+| axe WCAG 2.2 A/AA: 0 violations (landing, menu sheet, draft pages) | ✅ | E2E |
+| Lighthouse (production build, simulated mobile): perf 91–94, a11y/best/SEO 100, LCP 2.0–2.5 s, TBT 190–230 ms, CLS 0. Desktop: 100/100/100/100 | ✅ measured | 3 mobile runs + 1 desktop; wide run-to-run variance (earlier rounds measured 510–850 ms TBT) |
+| Landing JavaScript before → after | ✅ | 182.0 → 146.5 kB gzip at first render (+3.6 kB deferred). CSS 10.9 → 13.1 kB |
+| Draft /terms, /privacy, /contact, /safety (DRAFT, noindex); register form links Terms and Privacy | ✅ | E2E |
+| Original photos removed from the deployed folder | ✅ moved | `brand-originals/landing/` (7 files, untouched, git-ignored). Cloudinary copies still exist |
+| Pre-rendering, Lighthouse CI budget gate, visual-regression baselines | ⬜ | Recommended approach in ARCHITECTURE |
+| Real contact email, social links, event line, production domain (`VITE_SITE_URL`), photo permissions | ⏳ owner | Pages say "will be published before launch" |
+| App screens still use 237 hard-coded legacy colours (31 files) | ⬜ | Platform redesign |
 
 ## Admin Console (CLAUDE.md §19.3–19.4) — approved and implemented 2026-11-24
 
@@ -112,7 +118,7 @@ Monorepo, Postgres + Prisma migrations, API conventions, prototype design system
 | 5. Community / competition / opportunity oversight | ⬜ added with those pillars; listed as pending in the overview |
 | Announcements | ⬜ deferred (disabled "Pending" nav entry) |
 | 6. FINANCE_ADMIN and finance views | ⬜ deferred until payments |
-| Migration `admin_console_foundation` | ✅ dev + test DBs · ⛔ production not migrated (needs approval) |
+| Migration `admin_console_foundation` | ✅ dev + test DBs · ✅ Supabase (2026-11-24) |
 
 ### Known limitations (Admin Console)
 

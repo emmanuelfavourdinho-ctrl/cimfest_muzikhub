@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { cn } from 'cn';
+import { cn } from '@/lib/cn';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/Dialog';

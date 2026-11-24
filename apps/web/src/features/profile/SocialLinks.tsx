@@ -1,4 +1,4 @@
-import { cn } from 'cn';
+import { cn } from '@/lib/cn';
 import { Globe, Link2 } from 'lucide-react';
 import {
   siApplemusic,

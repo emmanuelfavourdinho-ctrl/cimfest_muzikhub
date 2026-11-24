@@ -2,39 +2,135 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/inter";
+@import "./styles/palette.css";
 
 @custom-variant dark (&:is(.dark *));
 
 /*
- * MuzikHub design tokens — taken from the approved prototype (Downloads/index.html).
- * Palette: Deep Forest (surfaces), Emerald (actions), Mint (highlights), Off White (text).
- * The prototype is dark-only, so there is a single theme.
+ * MuzikHub design tokens (CLAUDE.md §20). Colour VALUES live only in styles/palette.css;
+ * this file maps them to roles, and defines type, spacing, radius, elevation and motion.
+ * Typed names for TypeScript: src/design/tokens.ts.
  */
+
+/* Metric-matched fallback so the swap to Inter doesn't shift layout (CLS). */
+@font-face {
+  font-family: 'Inter Fallback';
+  src: local('Arial');
+  ascent-override: 90.44%;
+  descent-override: 22.52%;
+  line-gap-override: 0%;
+  size-adjust: 107.12%;
+}
+
 @theme inline {
-    --font-sans: 'Inter Variable', Inter, Arial, sans-serif;
+    /* Inter Variable is already self-hosted (latin subset 47 kB woff2, weights 100–900):
+       one family for body and display; display uses weight 800 and tight tracking. */
+    --font-sans: 'Inter Variable', 'Inter Fallback', Arial, sans-serif;
     --font-heading: var(--font-sans);
 
-    /* Brand palette (raw values — prefer the semantic tokens below in components) */
-    --color-forest-950: #061612;   /* page background */
-    --color-forest-925: #071c17;   /* sidebar */
-    --color-forest-900: #092019;
-    --color-forest-850: #0d2720;   /* panel */
-    --color-forest-800: #102e26;   /* raised panel / inputs */
-    --color-forest-700: #143a2c;   /* hover / active nav */
-    --color-line: #21463a;
-    --color-line-strong: #2b604b;
-    --color-emerald: #17d995;
-    --color-emerald-deep: #08b781;
-    --color-mint: #73e1b8;
-    --color-mint-soft: #91f9c7;
-    --color-offwhite: #f1f9f5;
-    --color-sage: #9bb8aa;         /* muted text */
-    --color-sage-dim: #638579;     /* subtle text */
-    --color-gold: #f2c86a;
-    --color-violet: #c090fa;
+    /* ── Colour roles ───────────────────────────────────────────── */
+    --color-surface-footer: var(--p-footer);
+    --color-surface-base: var(--p-base);
+    --color-surface-raised: var(--p-raised);
+    --color-surface-overlay: var(--p-overlay);
+    --color-surface-chip: var(--p-chip);
+    --color-surface-control: var(--p-control);
+    --color-surface-header: var(--p-header);
+    --color-signal: var(--p-accent);
+    --color-signal-hover: var(--p-accent-hover);
+    --color-signal-press: var(--p-accent-press);
+    --color-on-signal: var(--p-on-accent);
+    --color-text-1: var(--p-text);
+    --color-text-2: var(--p-text-2);
+    --color-text-3: var(--p-text-3);
+    --color-paper: var(--p-paper);
+    --color-paper-raised: var(--p-paper-raised);
+    --color-on-paper: var(--p-on-paper);
+    --color-on-paper-2: var(--p-on-paper-2);
+    --color-paper-line: var(--p-paper-line);
+    --color-hairline: var(--p-line);
+    --color-hairline-strong: var(--p-line-strong);
+    --color-control-border: var(--p-control-border);
+    --color-glow: var(--p-glow);
+    --color-danger: var(--p-danger);
+    --color-warning: var(--p-warning);
+    --color-success: var(--p-success);
 
+    /* Legacy names used across the app (Milestones 1–2, Admin Console), now aliases of the
+       olive palette. Replace them with the role names above during the platform redesign. */
+    --color-forest-950: var(--p-base);
+    --color-forest-925: var(--p-raised);
+    --color-forest-900: var(--p-raised);
+    --color-forest-850: var(--p-raised);
+    --color-forest-800: var(--p-overlay);
+    --color-forest-700: var(--p-chip);
+    --color-line: var(--p-line-strong);
+    --color-line-strong: var(--p-control-border);
+    --color-emerald: var(--p-accent);
+    --color-emerald-deep: var(--p-accent-press);
+    --color-mint: var(--p-accent);
+    --color-mint-soft: var(--p-accent-hover);
+    --color-offwhite: var(--p-text);
+    --color-sage: var(--p-text-2);
+    --color-sage-dim: var(--p-text-3);
+    --color-gold: var(--p-warning);
+    --color-violet: var(--p-violet);
+
+    /* ── Type scale (fluid; 360 px → 1280 px) ───────────────────── */
+    --text-display: clamp(2.5rem, 1.7rem + 3.4vw, 4.25rem);
+    --text-display--line-height: 1.02;
+    --text-display--letter-spacing: -0.04em;
+    --text-display--font-weight: 800;
+    --text-h1: clamp(2rem, 1.45rem + 2.4vw, 3.25rem);
+    --text-h1--line-height: 1.06;
+    --text-h1--letter-spacing: -0.035em;
+    --text-h1--font-weight: 800;
+    --text-h2: clamp(1.625rem, 1.3rem + 1.4vw, 2.375rem);
+    --text-h2--line-height: 1.1;
+    --text-h2--letter-spacing: -0.03em;
+    --text-h2--font-weight: 750;
+    --text-h3: clamp(1.1875rem, 1.1rem + 0.35vw, 1.375rem);
+    --text-h3--line-height: 1.25;
+    --text-h3--letter-spacing: -0.015em;
+    --text-h3--font-weight: 700;
+    --text-lead: clamp(1.0625rem, 1rem + 0.3vw, 1.25rem);
+    --text-lead--line-height: 1.55;
+    --text-body: 1rem;
+    --text-body--line-height: 1.6;
+    --text-small: 0.875rem;
+    --text-small--line-height: 1.5;
+    --text-caption: 0.8125rem;
+    --text-caption--line-height: 1.4;
+    --text-label: 0.75rem;
+    --text-label--line-height: 1.2;
+    --text-label--letter-spacing: 0.14em;
+    --text-label--font-weight: 700;
+
+    /* ── Layout & spacing (Tailwind's 4 px unit; these are the named rhythms) ── */
+    --spacing-section: clamp(4.5rem, 3rem + 6vw, 8rem);
+    --spacing-gutter: clamp(1rem, 0.5rem + 2.5vw, 2.5rem);
+    --spacing-header: var(--header-h);
+    --spacing-hero-top: calc(var(--header-h) + 2.5rem);
+    --container-content: 75rem;   /* 1200 px */
+    --container-wide: 90rem;      /* 1440 px */
+    --container-measure: 40rem;   /* ~68 characters of body text */
+
+    /* ── Radius: small 8 · medium 16 · media 30 (media and previews only) · pill = rounded-full ── */
+    --radius-s: 0.5rem;
+    --radius-m: 1rem;
+    --radius-media: 1.875rem;
     --radius-panel: 18px;
 
+    /* ── Elevation: lightness + hairline first, shadow second ── */
+    --shadow-e1: 0 1px 0 0 rgb(255 255 255 / 0.04) inset;
+    --shadow-e2: 0 1px 0 0 rgb(255 255 255 / 0.05) inset, 0 12px 32px -18px rgb(0 0 0 / 0.6);
+    --shadow-e3: 0 1px 0 0 rgb(255 255 255 / 0.06) inset, 0 24px 60px -28px rgb(0 0 0 / 0.75);
+
+    /* ── Motion ── */
+    --ease-enter: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+
+    /* shadcn / existing component variables */
     --color-ring: var(--ring);
     --color-input: var(--input);
     --color-border: var(--border);
@@ -62,39 +158,75 @@
 
 :root {
     color-scheme: dark;
-    --background: #061612;
-    --foreground: #f1f9f5;
-    --card: #0d2720;
-    --card-foreground: #f1f9f5;
-    --popover: #0e2b21;
-    --popover-foreground: #f1f9f5;
-    --primary: #17d995;
-    --primary-foreground: #032216;
-    --secondary: #163c2f;
-    --secondary-foreground: #a8f5cf;
-    --muted: #102e25;
-    --muted-foreground: #9bb8aa;
-    --accent: #143a2c;
-    --accent-foreground: #edf9f1;
-    --destructive: #ff8f93;
-    --border: #21463a;
-    --input: #2b5e49;
-    --ring: #17d995;
+    --header-h: 4rem;
+    --motion-micro: 150ms;
+    --motion-standard: 250ms;
+    --motion-reveal: 500ms;
+
+    --background: var(--p-base);
+    --foreground: var(--p-text);
+    --card: var(--p-raised);
+    --card-foreground: var(--p-text);
+    --popover: var(--p-overlay);
+    --popover-foreground: var(--p-text);
+    --primary: var(--p-accent);
+    --primary-foreground: var(--p-on-accent);
+    --secondary: var(--p-chip);
+    --secondary-foreground: var(--p-text);
+    --muted: var(--p-raised);
+    --muted-foreground: var(--p-text-2);
+    --accent: var(--p-chip);
+    --accent-foreground: var(--p-text);
+    --destructive: var(--p-danger);
+    --border: var(--p-line-strong);
+    --input: var(--p-control-border);
+    --ring: var(--p-accent);
     --radius: 0.625rem;
 }
-
-/*
- * Landing hero: a very slow, subtle zoom on the visible photo (1.0 → 1.06 over 14 s).
- * Only when the user hasn't asked for reduced motion.
- */
-@keyframes hero-kenburns {
-  from { transform: scale(1) translate3d(0, 0, 0); }
-  to { transform: scale(1.06) translate3d(-1%, -0.5%, 0); }
+@media (min-width: 40rem) {
+    :root { --header-h: 4.5rem; }
 }
+
+/* Keyboard focus and anchor targets are never hidden under the sticky header. */
+html { scroll-padding-top: calc(var(--header-h) + 1rem); }
 @media (prefers-reduced-motion: no-preference) {
-  .hero-kenburns {
-    animation: hero-kenburns 14s ease-out forwards;
-    will-change: transform;
+  html:has(.landing-root) { scroll-behavior: smooth; }
+}
+
+/* Section reveal (landing): content is visible unless JS has set .js-reveal, and never under reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .js-reveal [data-reveal] {
+    transition: opacity var(--motion-reveal) var(--ease-enter), transform var(--motion-reveal) var(--ease-enter);
+    transition-delay: var(--reveal-delay, 0ms);
+  }
+  .js-reveal [data-reveal]:not([data-shown]) {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+}
+
+/* "How it works" timeline: the lime line draws in when the list is revealed. */
+@media (prefers-reduced-motion: no-preference) {
+  .js-reveal [data-reveal] [data-line] { transition: transform 900ms var(--ease-enter) 150ms; }
+  .js-reveal [data-reveal]:not([data-shown]) [data-line='x'] { transform: scaleX(0); }
+  .js-reveal [data-reveal]:not([data-shown]) [data-line='y'] { transform: scaleY(0); }
+}
+
+/* Hero preview: the player dial's progress sweep. Paused off-screen (data-playing) and under reduced motion. */
+@keyframes dial-sweep {
+  from { stroke-dashoffset: var(--dial-length); }
+  to { stroke-dashoffset: 0; }
+}
+.dial-progress { stroke-dashoffset: calc(var(--dial-length) * 0.62); }
+@media (prefers-reduced-motion: no-preference) {
+  [data-playing='true'] .dial-progress { animation: dial-sweep 18s linear infinite; }
+}
+
+/* Header surface: blur only where supported and wanted; otherwise solid. */
+.header-surface { background-color: var(--p-base); }
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  @media (prefers-reduced-transparency: no-preference) {
+    .header-surface { background-color: var(--p-header); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
   }
 }
 
@@ -108,8 +240,8 @@
   }
   body {
     @apply text-foreground antialiased;
-    /* Prototype `.app` background: a single soft emerald glow over deep forest. */
-    background: radial-gradient(ellipse at 60% -20%, #0d4e35 0%, transparent 36%) no-repeat, #061612;
+    /* App atmosphere: one faint lime glow over olive-black. */
+    background: radial-gradient(ellipse at 60% -20%, var(--p-glow) 0%, transparent 36%) no-repeat, var(--p-base);
     min-height: 100svh;
   }
   h1, h2, h3 {
@@ -119,7 +251,10 @@
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
+  @media (forced-colors: active) {
+    :focus-visible { outline-color: CanvasText; }
+  }
   @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
   }
 }

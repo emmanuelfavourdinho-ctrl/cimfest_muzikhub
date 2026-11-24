@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { cn } from 'cn';
+import { cn } from '@/lib/cn';
 import { RotateCcw, Upload, X } from 'lucide-react';
 import { formatBytes, MEDIA_RULES, PURPOSE_KINDS, type MediaKind, type MediaPurpose, type MediaView } from '@muzikhub/shared';
 import { Button } from '@/components/ui/button';

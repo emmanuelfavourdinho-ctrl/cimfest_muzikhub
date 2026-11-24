@@ -1,5 +1,5 @@
 import { Link, useSearchParams } from 'react-router';
-import { cn } from 'cn';
+import { cn } from '@/lib/cn';
 import { ArrowRight, Search } from 'lucide-react';
 import { CREATIVE_ROLES, type FeedTab, type Me } from '@muzikhub/shared';
 import { Button } from '@/components/ui/button';

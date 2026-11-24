@@ -1,15 +1,17 @@
 import { Link } from 'react-router';
 
-/** Prototype `.brand`: the "∿M" wave mark + Muzik<b>Hub</b> wordmark. */
+/** The "∿M" wave mark + Muzik<b>Hub</b> wordmark. */
 export function BrandMark({ to = '/' }: { to?: string }) {
   return (
-    <Link to={to} className="flex items-center gap-2.5 text-[19px] font-extrabold tracking-[-0.04em] sm:text-xl" aria-label="MuzikHub home">
-      <span aria-hidden className="inline-flex -rotate-[5deg] pr-1 text-[27px] font-black tracking-[-0.18em] text-emerald">
+    <Link to={to} className="flex min-h-11 items-center gap-2.5 text-xl font-extrabold tracking-tight">
+      <span aria-hidden className="inline-flex -rotate-6 pr-1 text-[1.6875rem] font-black tracking-[-0.18em] text-signal">
         ∿M
       </span>
       <span>
-        Muzik<b className="text-emerald">Hub</b>
+        Muzik<b className="text-signal">Hub</b>
       </span>
+      {/* Visible text stays the start of the accessible name ("MuzikHub home"), per WCAG 2.5.3. */}
+      <span className="sr-only"> home</span>
     </Link>
   );
 }

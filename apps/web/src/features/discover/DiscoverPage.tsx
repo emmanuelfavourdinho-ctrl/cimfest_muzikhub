@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { cn } from 'cn';
+import { cn } from '@/lib/cn';
 import { MapPin, Search, X } from 'lucide-react';
 import {
   CREATIVE_ROLES,

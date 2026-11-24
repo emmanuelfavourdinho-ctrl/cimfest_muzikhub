@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueryClient } from '@tanstack/react-query';
-import { cn } from 'cn';
+import { cn } from '@/lib/cn';
 import { ArrowLeft, ArrowRight, Briefcase, Headphones, Mic } from 'lucide-react';
 import { PRIMARY_USES, registerSchema, usernameSchema, type PrimaryUse, type RegisterInput } from '@muzikhub/shared';
 import { Button } from '@/components/ui/button';
@@ -157,6 +157,18 @@ function AccountForm({ primaryUse, onBack }: { primaryUse: PrimaryUse; onBack: (
         {isSubmitting ? 'Creating your account…' : 'Create account'}
         {!isSubmitting && <ArrowRight />}
       </Button>
+      {/* New tab, so a half-filled form is never lost. Drafts: "read", not "you agree to". */}
+      <p className="mt-4 text-center text-caption text-text-2">
+        Read the draft{' '}
+        <Link to="/terms" target="_blank" rel="noopener" className="font-semibold text-text-1 underline underline-offset-4">
+          Terms<span className="sr-only"> (opens in a new tab)</span>
+        </Link>{' '}
+        and{' '}
+        <Link to="/privacy" target="_blank" rel="noopener" className="font-semibold text-text-1 underline underline-offset-4">
+          Privacy notice<span className="sr-only"> (opens in a new tab)</span>
+        </Link>
+        .
+      </p>
     </form>
   );
 }

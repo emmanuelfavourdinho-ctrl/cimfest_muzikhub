@@ -1,5 +1,5 @@
 import { useId, type ComponentProps, type ReactNode } from 'react';
-import { cn } from 'cn';
+import { cn } from '@/lib/cn';
 
 /** Prototype `.control` input styling, shared by inputs, textareas and selects. */
 export const controlClass =

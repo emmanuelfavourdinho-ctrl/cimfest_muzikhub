@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { cn } from 'cn';
+import { cn } from '@/lib/cn';
 import { ImageOff, Music2, Play } from 'lucide-react';
 import type { MediaView } from '@muzikhub/shared';
 

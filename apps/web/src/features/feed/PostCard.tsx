@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { cn } from 'cn';
+import { cn } from '@/lib/cn';
 import { Heart, Link2, MessageCircle, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { PostView } from '@muzikhub/shared';

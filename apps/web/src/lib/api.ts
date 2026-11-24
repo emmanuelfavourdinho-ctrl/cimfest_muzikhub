@@ -29,26 +29,12 @@ import {
   type UpdateProfileInput,
 } from '@muzikhub/shared';
 import { z } from 'zod';
+import { ApiRequestError } from './api-error';
+
+export { ApiRequestError };
 
 // Empty in development (Vite proxies /api). In production on Vercel, /api is rewritten to the API.
 export const API_BASE = import.meta.env.VITE_API_URL ?? '';
-
-/** Every failed API call becomes one of these, so UI code handles errors in one way. */
-export class ApiRequestError extends Error {
-  constructor(
-    readonly status: number,
-    readonly code: string,
-    message: string,
-    readonly details?: { path: string; message: string }[],
-  ) {
-    super(message);
-    this.name = 'ApiRequestError';
-  }
-
-  get isUnauthenticated() {
-    return this.status === 401;
-  }
-}
 
 type Query = Record<string, string | number | string[] | undefined | null>;
 

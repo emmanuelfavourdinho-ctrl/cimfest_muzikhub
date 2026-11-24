@@ -1,6 +1,6 @@
 import { Link, useSearchParams } from 'react-router';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { cn } from 'cn';
+import { cn } from '@/lib/cn';
 import { toast } from 'sonner';
 import type { ConnectionView, PersonSummary } from '@muzikhub/shared';
 import { Button } from '@/components/ui/button';

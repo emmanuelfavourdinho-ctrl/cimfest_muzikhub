@@ -1,15 +1,15 @@
 import type { ComponentProps, ReactNode } from 'react';
-import { cn } from 'cn';
+import { cn } from '@/lib/cn';
 import { LoaderCircle } from 'lucide-react';
 
 /* Small presentational building blocks taken from the prototype's CSS classes. */
 
-/** `.eyebrow` — uppercase kicker with a short emerald rule. */
+/** `.eyebrow` — uppercase kicker with a short signal-colour rule. */
 export function Eyebrow({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <div
       className={cn(
-        'flex items-center gap-2.5 text-[10px] font-extrabold tracking-[0.22em] text-[#65e6ab] uppercase before:block before:h-0.5 before:w-5 before:bg-[#1ae8a1]',
+        'flex items-center gap-2.5 text-label text-signal uppercase before:block before:h-0.5 before:w-5 before:bg-signal',
         className,
       )}
     >
@@ -47,7 +47,7 @@ export function Panel({ className, ...props }: ComponentProps<'section'>) {
   return (
     <section
       className={cn(
-        'overflow-hidden rounded-panel border border-line bg-[linear-gradient(160deg,rgba(18,52,40,.94),rgba(8,29,23,.97))]',
+        'overflow-hidden rounded-panel border border-hairline-strong bg-surface-raised shadow-e1',
         className,
       )}
       {...props}
