@@ -77,7 +77,7 @@ describe('rehash on sign-in', () => {
       .default(app)
       .post('/api/auth/sign-in/email')
       .set('Origin', ORIGIN)
-      .send({ email: input.email, password: 'definitely-wrong-1' });
+      .send({ email: input.email, password: 'definitely-wrong-1' }); // gitleaks:allow — deliberately wrong test password
     expect(res.status).toBe(401);
     await new Promise((r) => setTimeout(r, 300));
     expect((await prisma.account.findFirstOrThrow({ where: { userId, providerId: 'credential' } })).password).toBe(legacy);

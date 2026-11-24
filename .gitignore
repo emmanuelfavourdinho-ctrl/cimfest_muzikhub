@@ -59,3 +59,6 @@ brand-originals/
 # Editor / tool settings
 .vscode/
 .claude/settings.local.json
+
+# Lighthouse CI reports
+.lighthouseci/

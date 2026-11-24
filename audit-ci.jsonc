@@ -1,0 +1,16 @@
+{
+  // CI dependency audit (.github/workflows/ci.yml → security job). Fails on HIGH or CRITICAL
+  // advisories in production dependencies, except the reviewed allow-list below.
+  "$schema": "https://github.com/IBM/audit-ci/raw/main/docs/schema.json",
+  "high": true,
+  "skip-dev": true,
+  "allowlist": [
+    // GHSA-7589-6fvf-x4pw — ReDoS in `effect` Schema.TemplateLiteral, pulled in by the Prisma CLI
+    // (`prisma` → `@prisma/config` → `effect`). Counted as "production" only because
+    // @prisma/client and @better-auth/prisma-adapter declare `prisma` as a peer dependency;
+    // the running API never loads the CLI, and the affected code parses Prisma config, not
+    // user input. npm's only "fix" is downgrading to Prisma 6. Reviewed 2026-11-24.
+    // Remove this entry as soon as a Prisma 7.x release ships a patched `effect`.
+    "GHSA-7589-6fvf-x4pw",
+  ],
+}

@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
+import { hasCloudinary, NEEDS_CLOUDINARY } from './cloudinary-env';
 
 const WEB = 'http://localhost:5273';
 const fixture = (name: string) => join(import.meta.dirname, 'fixtures', name);
@@ -47,6 +48,7 @@ async function noHorizontalOverflow(page: Page) {
 }
 
 test('creator uploads a profile photo and publishes a beat with real media; it reaches profile and feed', async ({ page }) => {
+  test.skip(!hasCloudinary, NEEDS_CLOUDINARY);
   const me = await signUpViaApi(page.request, 'Kora Beats', { roles: ['PRODUCER'], genres: ['amapiano'] });
 
   // Profile photo through the real uploader
@@ -145,6 +147,7 @@ test('a second person discovers, follows and connects; the creator accepts', asy
 });
 
 test('post with an image, then like and comment as another person', async ({ page, browser }) => {
+  test.skip(!hasCloudinary, NEEDS_CLOUDINARY);
   await signUpViaApi(page.request, 'Naya Sol');
   const text = `Studio session ${uid()}`;
   await page.goto('/home');
@@ -185,6 +188,7 @@ test('post with an image, then like and comment as another person', async ({ pag
 });
 
 test('performance: images below the fold are not downloaded until scrolled to', async ({ page }, info) => {
+  test.skip(!hasCloudinary, NEEDS_CLOUDINARY);
   test.setTimeout(150_000);
   test.skip(info.project.name !== 'mobile', 'checked on the phone viewport');
   await signUpViaApi(page.request, 'Lazy Loader');
@@ -227,6 +231,7 @@ test('performance: images below the fold are not downloaded until scrolled to', 
 });
 
 test('slow 3G: the feed stays usable and an upload shows progress and completes', async ({ page }, info) => {
+  test.skip(!hasCloudinary, NEEDS_CLOUDINARY);
   test.skip(info.project.name !== 'mobile', 'throttled on the phone viewport');
   await signUpViaApi(page.request, 'Slow Network');
   const cdp = await page.context().newCDPSession(page);
@@ -250,6 +255,7 @@ test('slow 3G: the feed stays usable and an upload shows progress and completes'
 });
 
 test('upload failure shows a retry instead of hanging', async ({ page }, info) => {
+  test.skip(!hasCloudinary, NEEDS_CLOUDINARY);
   test.skip(info.project.name !== 'mobile', 'once is enough');
   await signUpViaApi(page.request, 'Offline Uploader');
   await page.goto('/studio/new');

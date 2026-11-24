@@ -1,4 +1,4 @@
-import { lazy, Suspense, type ComponentType, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, type ComponentType } from 'react';
 import { createBrowserRouter, Link } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Eyebrow, PageLoading } from '@/components/ui/primitives';
@@ -10,8 +10,17 @@ import { LandingPage } from '@/features/landing/LandingPage';
  * The landing page is the only eager page; the app shell and the auth guards are lazy too,
  * because they bring the validated API client (Zod + schemas) and the auth client.
  */
-function page<K extends string>(load: () => Promise<Record<K, ComponentType>>, name: K) {
-  const Component = lazy<ComponentType>(() => load().then((m) => ({ default: m[name] })));
+type Loader<K extends string> = () => Promise<Record<K, ComponentType>>;
+
+/** A lazy page whose download can be started early (and only ever happens once). */
+function lazyPage<K extends string>(load: Loader<K>, name: K) {
+  let pending: Promise<{ default: ComponentType }> | null = null;
+  const preload = () => (pending ??= load().then((m) => ({ default: m[name] })));
+  return { Component: lazy<ComponentType>(preload), preload };
+}
+
+function page<K extends string>(load: Loader<K>, name: K) {
+  const { Component } = lazyPage(load, name);
   return (
     <Suspense fallback={<PageLoading />}>
       <Component />
@@ -19,23 +28,42 @@ function page<K extends string>(load: () => Promise<Record<K, ComponentType>>, n
   );
 }
 
+/** Starts a page download as soon as its route renders, in parallel with the auth guard and /me. */
+function Preload({ run }: { run: () => unknown }) {
+  useEffect(() => void run(), [run]);
+  return null;
+}
+
 const RequireAuth = lazy(() => import('@/features/auth/guards').then((m) => ({ default: m.RequireAuth })));
 const RedirectIfSignedIn = lazy(() => import('@/features/auth/guards').then((m) => ({ default: m.RedirectIfSignedIn })));
-const auth = (node: ReactNode) => (
-  <Suspense fallback={<PageLoading />}>
-    <RequireAuth>{node}</RequireAuth>
-  </Suspense>
-);
-const guest = (node: ReactNode) => (
-  <Suspense fallback={<PageLoading />}>
-    <RedirectIfSignedIn>{node}</RedirectIfSignedIn>
-  </Suspense>
-);
+
+/**
+ * Guarded pages. Without the Preload, a guarded page downloads in sequence (entry → guard chunk →
+ * /me → page chunk), which pushed LCP on /login past 3 s on throttled mobile. Now the page chunk
+ * loads alongside the guard.
+ */
+function guarded<K extends string>(Guard: typeof RequireAuth, load: Loader<K>, name: K) {
+  const { Component, preload } = lazyPage(load, name);
+  return (
+    <>
+      <Preload run={preload} />
+      <Suspense fallback={<PageLoading />}>
+        <Guard>
+          <Suspense fallback={<PageLoading />}>
+            <Component />
+          </Suspense>
+        </Guard>
+      </Suspense>
+    </>
+  );
+}
+const auth = <K extends string>(load: Loader<K>, name: K) => guarded(RequireAuth, load, name);
+const guest = <K extends string>(load: Loader<K>, name: K) => guarded(RedirectIfSignedIn, load, name);
 
 export const router = createBrowserRouter([
   { path: '/', element: <LandingPage /> },
-  { path: '/login', element: guest(page(() => import('@/features/auth/LoginPage'), 'LoginPage')) },
-  { path: '/register', element: guest(page(() => import('@/features/auth/RegisterPage'), 'RegisterPage')) },
+  { path: '/login', element: guest(() => import('@/features/auth/LoginPage'), 'LoginPage') },
+  { path: '/register', element: guest(() => import('@/features/auth/RegisterPage'), 'RegisterPage') },
   { path: '/forgot-password', element: page(() => import('@/features/auth/PasswordResetPages'), 'ForgotPasswordPage') },
   { path: '/reset-password', element: page(() => import('@/features/auth/PasswordResetPages'), 'ResetPasswordPage') },
   { path: '/email-verified', element: page(() => import('@/features/auth/EmailVerifiedPage'), 'EmailVerifiedPage') },
@@ -44,12 +72,12 @@ export const router = createBrowserRouter([
   { path: '/privacy', element: page(() => import('@/features/legal/LegalPages'), 'PrivacyPage') },
   { path: '/safety', element: page(() => import('@/features/legal/LegalPages'), 'SafetyPage') },
   { path: '/contact', element: page(() => import('@/features/legal/LegalPages'), 'ContactPage') },
-  { path: '/onboarding', element: auth(page(() => import('@/features/onboarding/OnboardingPage'), 'OnboardingPage')) },
+  { path: '/onboarding', element: auth(() => import('@/features/onboarding/OnboardingPage'), 'OnboardingPage') },
   // Admin Console: its own layout and navigation, separate from the member app.
   // RequireAuth is UX only; every /api/v1/admin call is authorised on the server.
   {
     path: '/admin',
-    element: auth(page(() => import('@/features/admin/AdminLayout'), 'AdminLayout')),
+    element: auth(() => import('@/features/admin/AdminLayout'), 'AdminLayout'),
     children: [
       { index: true, element: page(() => import('@/features/admin/OverviewPage'), 'OverviewPage') },
       { path: 'reports', element: page(() => import('@/features/admin/ReportsPage'), 'ReportsPage') },
@@ -70,12 +98,12 @@ export const router = createBrowserRouter([
       { path: '/p/:id', element: page(() => import('@/features/feed/PostPage'), 'PostPage') },
       { path: '/discover', element: page(() => import('@/features/discover/DiscoverPage'), 'DiscoverPage') },
       // Signed-in pages
-      { path: '/home', element: auth(page(() => import('@/features/home/HomePage'), 'HomePage')) },
-      { path: '/studio', element: auth(page(() => import('@/features/portfolio/StudioPage'), 'StudioPage')) },
-      { path: '/studio/new', element: auth(page(() => import('@/features/portfolio/PortfolioEditorPage'), 'PortfolioEditorPage')) },
-      { path: '/studio/:id/edit', element: auth(page(() => import('@/features/portfolio/PortfolioEditorPage'), 'PortfolioEditorPage')) },
-      { path: '/network', element: auth(page(() => import('@/features/network/NetworkPage'), 'NetworkPage')) },
-      { path: '/settings/profile', element: auth(page(() => import('@/features/profile/EditProfilePage'), 'EditProfilePage')) },
+      { path: '/home', element: auth(() => import('@/features/home/HomePage'), 'HomePage') },
+      { path: '/studio', element: auth(() => import('@/features/portfolio/StudioPage'), 'StudioPage') },
+      { path: '/studio/new', element: auth(() => import('@/features/portfolio/PortfolioEditorPage'), 'PortfolioEditorPage') },
+      { path: '/studio/:id/edit', element: auth(() => import('@/features/portfolio/PortfolioEditorPage'), 'PortfolioEditorPage') },
+      { path: '/network', element: auth(() => import('@/features/network/NetworkPage'), 'NetworkPage') },
+      { path: '/settings/profile', element: auth(() => import('@/features/profile/EditProfilePage'), 'EditProfilePage') },
       { path: '*', element: <NotFound /> },
     ],
   },

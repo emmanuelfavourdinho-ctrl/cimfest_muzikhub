@@ -1,15 +1,5 @@
-import { existsSync, readFileSync } from 'node:fs';
-import { parseEnv } from 'node:util';
 import { defineConfig, devices } from '@playwright/test';
-
-/** Real Cloudinary for browser uploads — ONLY the CLOUDINARY_* values from apps/api/.env. */
-const cloudinaryEnv: Record<string, string> = existsSync('apps/api/.env')
-  ? Object.fromEntries(
-      Object.entries(parseEnv(readFileSync('apps/api/.env', 'utf8')) as Record<string, string>).filter(([k]) =>
-        k.startsWith('CLOUDINARY_'),
-      ),
-    )
-  : {};
+import { cloudinaryEnv } from './e2e/cloudinary-env';
 
 /**
  * End-to-end tests drive a real browser against a real API and database.
