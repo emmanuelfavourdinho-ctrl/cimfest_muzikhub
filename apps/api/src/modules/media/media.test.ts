@@ -31,6 +31,15 @@ describe('POST /api/v1/media/uploads — signing', () => {
     expect(asset.status).toBe('PENDING');
   });
 
+  it('rejects unknown fields instead of silently dropping them (mass-assignment guard)', async () => {
+    const { agent } = await signUp(app);
+    const res = await agent
+      .post('/api/v1/media/uploads')
+      .send({ kind: 'IMAGE', purpose: 'POST', bytes: 1000, ownerId: 'someone-else', folder: 'muzikhub/other' });
+    expect(res.status).toBe(400);
+    expect(res.body.code).toBe('VALIDATION_ERROR');
+  });
+
   it('marks large files for chunked upload', async () => {
     const { agent } = await signUp(app);
     const res = await agent.post('/api/v1/media/uploads').send({ kind: 'VIDEO', purpose: 'POST', bytes: 60 * 1024 * 1024 });

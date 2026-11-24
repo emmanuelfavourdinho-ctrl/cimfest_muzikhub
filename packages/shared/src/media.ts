@@ -77,7 +77,7 @@ export function checkUpload(kind: MediaKind, purpose: MediaPurpose, bytes: numbe
 // ── Contracts ─────────────────────────────────────────────────
 
 /** POST /api/v1/media/uploads */
-export const createUploadSchema = z.object({
+export const createUploadSchema = z.strictObject({
   kind: z.enum(MEDIA_KINDS),
   purpose: z.enum(MEDIA_PURPOSES),
   bytes: z.number().int().positive(),
