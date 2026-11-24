@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { Link, NavLink, Outlet, useNavigate } from 'react-router';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/cn';
-import { BellRing, CreditCard, Gem, LogOut, Settings, ShieldCheck, UserRound } from 'lucide-react';
+import { BellRing, CreditCard, Gem, LogOut, Menu, Settings, ShieldCheck, UserRound, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { CREATIVE_ROLES, PRIMARY_USES } from '@muzikhub/shared';
 import { Button } from '@/components/ui/button';
@@ -45,7 +45,10 @@ function TopBar() {
   const { data: me } = useMe();
   return (
     <header className="sticky top-0 z-30 flex h-14.75 items-center justify-between border-b border-hairline-strong header-surface px-4 sm:h-16.5 sm:px-8">
-      <BrandMark to={me ? '/home' : '/'} />
+      <div className="flex items-center gap-2">
+        {me && <MobileSidebar />}
+        <BrandMark to={me ? '/home' : '/'} />
+      </div>
       {me ? (
         <div className="flex items-center gap-1 sm:gap-2">
           <NotificationBell />
@@ -157,7 +160,8 @@ function MenuLink({ to, icon: Icon, children, onSelect }: { to: string; icon: Na
   );
 }
 
-function Sidebar() {
+/** The sidebar's contents, shared by the desktop sidebar and the mobile drawer (one navigation list). */
+function SidebarContent({ label, onNavigate }: { label: string; onNavigate?: () => void }) {
   const { data: me } = useMe();
   if (!me) return null;
   const roles = me.profile.roles.map((r) => CREATIVE_ROLES[r]);
@@ -165,37 +169,157 @@ function Sidebar() {
     roles.length > 0 ? roles.slice(0, 2).join(' · ') : me.profile.primaryUse ? PRIMARY_USES[me.profile.primaryUse].label : 'Member';
 
   return (
-    <aside className="sticky top-16.5 hidden h-[calc(100svh_-_--spacing(16.5))] flex-col border-r border-hairline-strong bg-surface-raised px-3 pt-5 pb-4 md:flex">
+    <>
       <p className="mx-3 mb-3 text-xs font-extrabold tracking-wider text-text-3 uppercase">Creative platform</p>
-      <nav aria-label="Main" className="flex flex-col gap-1">
+      <nav aria-label={label} className="flex flex-col gap-1">
         {primaryNav
           .filter((item) => item.to)
           .map((item) => (
-            <SidebarItem key={item.label} item={item} />
+            <SidebarItem key={item.label} item={item} onNavigate={onNavigate} />
           ))}
         {/* Unbuilt areas: visible so the product's shape is clear, but grouped and disabled. */}
-        <p className="mx-3 mt-5 mb-2 text-xs font-extrabold tracking-wider text-text-3 uppercase">Coming soon</p>
-        {primaryNav
-          .filter((item) => !item.to)
-          .map((item) => (
-            <SidebarItem key={item.label} item={item} />
-          ))}
+        {primaryNav.some((item) => !item.to) && (
+          <>
+            <p className="mx-3 mt-5 mb-2 text-xs font-extrabold tracking-wider text-text-3 uppercase">Coming soon</p>
+            {primaryNav
+              .filter((item) => !item.to)
+              .map((item) => (
+                <SidebarItem key={item.label} item={item} />
+              ))}
+          </>
+        )}
       </nav>
       <div className="mt-auto rounded-m border border-control-border bg-[linear-gradient(140deg,var(--p-chip),var(--p-raised))] p-3">
         <p className="text-xs tracking-wide text-text-2 uppercase">Your profile</p>
         <p className="my-1.5 truncate text-caption font-bold">{identity}</p>
         <Link
           to="/settings/profile"
+          onClick={onNavigate}
           className="block rounded-lg border border-control-border bg-surface-chip px-2.5 py-2 text-center text-xs font-bold text-text-1 hover:brightness-110"
         >
           Edit profile
         </Link>
       </div>
+    </>
+  );
+}
+
+function Sidebar() {
+  return (
+    <aside className="sticky top-16.5 hidden h-[calc(100svh_-_--spacing(16.5))] flex-col border-r border-hairline-strong bg-surface-raised px-3 pt-5 pb-4 md:flex">
+      <SidebarContent label="Main" />
     </aside>
   );
 }
 
-function SidebarItem({ item }: { item: NavItem }) {
+// Keep Tab inside the drawer (Chromium otherwise lets it reach the browser UI after the last item).
+function trapTab(e: KeyboardEvent<HTMLDialogElement>) {
+  if (e.key !== 'Tab') return;
+  const items = [...e.currentTarget.querySelectorAll<HTMLElement>('a[href], button:not([disabled])')];
+  const first = items[0];
+  const last = items.at(-1);
+  if (!first || !last) return;
+  if (e.shiftKey && document.activeElement === first) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && document.activeElement === last) {
+    e.preventDefault();
+    first.focus();
+  }
+}
+
+/**
+ * Below md the desktop sidebar is hidden, so its full navigation opens as a left drawer from the
+ * top bar. It complements the bottom bar (MobileNav), which is unchanged. Native <dialog> +
+ * showModal(): focus is trapped and the page is inert; Escape closes. We add scroll lock, closing on
+ * backdrop tap and on navigation, and focus return to the trigger.
+ */
+function MobileSidebar() {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const closeButton = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false);
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    const d = dialog.current;
+    if (!d) return;
+    const onClose = () => {
+      setOpen(false);
+      document.documentElement.style.overflow = '';
+      trigger.current?.focus();
+    };
+    d.addEventListener('close', onClose);
+    return () => {
+      d.removeEventListener('close', onClose);
+      document.documentElement.style.overflow = '';
+    };
+  }, []);
+  // Any navigation (including from outside the drawer, e.g. browser back) closes it.
+  useEffect(() => {
+    if (dialog.current?.open) dialog.current.close();
+  }, [pathname]);
+  // The drawer is for small screens only; if the window grows past md, close it.
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 48rem)');
+    const onChange = () => mq.matches && dialog.current?.open && dialog.current.close();
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
+  const show = () => {
+    document.documentElement.style.overflow = 'hidden';
+    setOpen(true);
+    dialog.current?.showModal();
+    closeButton.current?.focus();
+  };
+  const close = () => dialog.current?.close();
+
+  return (
+    <>
+      <button
+        ref={trigger}
+        type="button"
+        onClick={show}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-controls="app-menu"
+        className="-ml-2 inline-flex size-11 items-center justify-center rounded-lg text-text-1 hover:bg-surface-chip md:hidden"
+      >
+        <Menu className="size-5" />
+        <span className="sr-only">Open menu</span>
+      </button>
+      {/* Tapping the backdrop (the <dialog> itself, outside the panel) closes it; Escape is native. */}
+      {/* oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
+      <dialog
+        ref={dialog}
+        id="app-menu"
+        aria-label="Menu"
+        onKeyDown={trapTab}
+        onClick={(e) => e.target === dialog.current && close()}
+        className="m-0 h-dvh max-h-none w-[min(--spacing(80),calc(100vw_-_--spacing(14)))] max-w-none border-r border-hairline-strong bg-surface-raised p-0 text-text-1 shadow-e3 backdrop:bg-surface-base/80 backdrop:backdrop-blur-sm"
+      >
+        <div className="flex h-full flex-col overflow-y-auto overscroll-contain px-3 pb-[max(--spacing(4),env(safe-area-inset-bottom))]">
+          <div className="sticky top-0 z-10 -mx-3 mb-4 flex h-14.75 shrink-0 items-center justify-between border-b border-hairline-strong bg-surface-raised px-4">
+            <BrandMark to="/home" />
+            <button
+              type="button"
+              ref={closeButton}
+              onClick={close}
+              className="inline-flex size-11 items-center justify-center rounded-lg text-text-1 hover:bg-surface-chip"
+            >
+              <X className="size-5" />
+              <span className="sr-only">Close menu</span>
+            </button>
+          </div>
+          {open && <SidebarContent label="Main menu" onNavigate={close} />}
+        </div>
+      </dialog>
+    </>
+  );
+}
+
+function SidebarItem({ item, onNavigate }: { item: NavItem; onNavigate?: () => void }) {
   const Icon = item.icon;
   const base = 'flex min-h-10 items-center gap-3 rounded-lg px-3 text-caption font-semibold transition';
   if (!item.to) {
@@ -210,6 +334,7 @@ function SidebarItem({ item }: { item: NavItem }) {
   return (
     <NavLink
       to={item.to}
+      onClick={onNavigate}
       className={({ isActive }) =>
         cn(
           base,
