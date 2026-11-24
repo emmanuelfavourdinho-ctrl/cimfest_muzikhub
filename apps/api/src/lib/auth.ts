@@ -9,6 +9,7 @@ import { passwordResetEmail, verificationEmail } from './email-templates.js';
 import { sendEmail } from './mailer.js';
 import { prisma } from './prisma.js';
 import { isVisibleStatus, reinstateExpiredSuspensions } from './account-status.js';
+import { betterAuthPassword } from './password.js';
 
 /** Idempotency key derived from the one-time token: a retried send of the same link is sent once. */
 const idempotencyKeyFor = (kind: string, token: string) => `${kind}/${createHash('sha256').update(token).digest('hex').slice(0, 40)}`;
@@ -46,6 +47,10 @@ export const auth = betterAuth({
 
   emailAndPassword: {
     enabled: true,
+    // scrypt at the OWASP minimum with rehash-on-login of older hashes (ADR 0001, lib/password.ts).
+    password: betterAuthPassword((oldHash, newHash) =>
+      prisma.account.updateMany({ where: { providerId: 'credential', password: oldHash }, data: { password: newHash } }),
+    ),
     minPasswordLength: PASSWORD_MIN,
     maxPasswordLength: PASSWORD_MAX,
     // Someone resetting a password may be locking out an attacker: end every other session.
