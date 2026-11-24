@@ -42,30 +42,30 @@ enum AccountStatus {
 }
 
 model User {
-  id                      String                   @id
+  id                      String                    @id
   name                    String
-  email                   String                   @unique
-  emailVerified           Boolean                  @default(false)
+  email                   String                    @unique
+  emailVerified           Boolean                   @default(false)
   image                   String?
   /// Lower-case, unique handle used in profile URLs (Better Auth username plugin).
-  username                String?                  @unique
+  username                String?                   @unique
   /// Username as the user typed it (original capitalisation).
   displayUsername         String?
   primaryUse              PrimaryUse?
   /// Server-controlled. Never accepted from client input.
-  platformRole            PlatformRole             @default(USER)
+  platformRole            PlatformRole              @default(USER)
   /// Server-controlled. See AccountStatus.
-  status                  AccountStatus            @default(ACTIVE)
+  status                  AccountStatus             @default(ACTIVE)
   /// Reason shown to the user for RESTRICTED / SUSPENDED / BANNED.
   statusReason            String?
   /// When a SUSPENDED account is automatically reinstated.
   statusUntil             DateTime?
   statusChangedAt         DateTime?
   /// Better Auth two-factor plugin. Required for MODERATOR and ADMIN.
-  twoFactorEnabled        Boolean                  @default(false)
+  twoFactorEnabled        Boolean                   @default(false)
   twoFactors              TwoFactor[]
-  createdAt               DateTime                 @default(now())
-  updatedAt               DateTime                 @updatedAt
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
   sessions                Session[]
   accounts                Account[]
   profile                 Profile?
@@ -76,22 +76,22 @@ model User {
   comments                Comment[]
   reports                 Report[]
   /// People this user follows / people following this user.
-  following               Follow[]                 @relation("Follower")
-  followers               Follow[]                 @relation("Following")
-  sentConnections         Connection[]             @relation("ConnectionRequester")
-  receivedConnections     Connection[]             @relation("ConnectionAddressee")
+  following               Follow[]                  @relation("Follower")
+  followers               Follow[]                  @relation("Following")
+  sentConnections         Connection[]              @relation("ConnectionRequester")
+  receivedConnections     Connection[]              @relation("ConnectionAddressee")
   /// Organiser capability (D7): granted only by an ADMIN; also needs a verified email and
   /// the PROFESSIONAL primary use. Server-controlled.
-  isOrganiser             Boolean                  @default(false)
+  isOrganiser             Boolean                   @default(false)
   organiserSince          DateTime?
-  opportunities           Opportunity[]            @relation("OpportunityOrganiser")
+  opportunities           Opportunity[]             @relation("OpportunityOrganiser")
   opportunityApplications OpportunityApplication[]
   subscriptions           Subscription[]
   promotions              Promotion[]
   orders                  Order[]
   notifications           Notification[]
-  blocksMade              UserBlock[]              @relation("BlocksMade")
-  blocksReceived          UserBlock[]              @relation("BlocksReceived")
+  blocksMade              UserBlock[]               @relation("BlocksMade")
+  blocksReceived          UserBlock[]               @relation("BlocksReceived")
   notificationSettings    NotificationSetting[]
   communitiesCreated      Community[]
   communityMemberships    CommunityMember[]
@@ -99,6 +99,8 @@ model User {
   discussionComments      DiscussionComment[]
   discussionReactions     DiscussionReaction[]
   discussionFollows       DiscussionFollow[]
+  conversations           ConversationParticipant[]
+  messagesSent            Message[]
   analyticsDaily          AnalyticsDaily[]
 
   @@map("user")
@@ -244,6 +246,8 @@ model Profile {
   updatedAt             DateTime       @updatedAt
   /// Paid benefit (Creator Plus / Pro). Shown only while the owner is entitled (checked at read time).
   accent                ProfileAccent?
+  /// Who may start a new conversation with this member (MSG-001 privacy).
+  messagePolicy         MessagePolicy  @default(EVERYONE)
 
   // GIN indexes make "has any of these roles/genres" filters fast for discovery.
   @@index([roles], type: Gin)
@@ -1238,4 +1242,71 @@ model DiscussionFollow {
 
   @@id([discussionId, userId])
   @@map("discussion_follow")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Direct messaging (FR-47–54, MSG-001–007). The database is the source of truth; Socket.IO only
+// pushes. Sends are idempotent on (sender, clientId), so retries never duplicate a message.
+// ─────────────────────────────────────────────────────────────
+
+enum MessagePolicy {
+  EVERYONE
+  /// Only accepted connections and people you follow can start a new conversation.
+  CONNECTIONS
+}
+
+model Conversation {
+  id            String                    @id @default(cuid(2))
+  /// One direct conversation per pair: "<smaller user id>:<larger user id>".
+  directKey     String                    @unique
+  createdAt     DateTime                  @default(now())
+  lastMessageAt DateTime                  @default(now())
+  participants  ConversationParticipant[]
+  messages      Message[]
+
+  @@index([lastMessageAt])
+  @@map("conversation")
+}
+
+model ConversationParticipant {
+  conversationId  String
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Everything up to this time has been read (read receipts).
+  lastReadAt      DateTime?
+  /// Everything up to this time reached one of this user's devices (delivery receipts).
+  lastDeliveredAt DateTime?
+  joinedAt        DateTime     @default(now())
+
+  @@id([conversationId, userId])
+  @@index([userId])
+  @@map("conversation_participant")
+}
+
+enum MessageKind {
+  TEXT
+  /// A system card about a collaboration request (links back to it).
+  COLLABORATION
+}
+
+model Message {
+  id                     String       @id @default(cuid(2))
+  conversationId         String
+  conversation           Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId               String
+  sender                 User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  /// Chosen by the sender's device; makes a retried send return the same message.
+  clientId               String
+  kind                   MessageKind  @default(TEXT)
+  body                   String
+  collaborationRequestId String?
+  createdAt              DateTime     @default(now())
+  removedAt              DateTime?
+  removedById            String?
+  removalReason          String?
+
+  @@unique([senderId, clientId])
+  @@index([conversationId, createdAt])
+  @@map("message")
 }

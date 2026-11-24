@@ -2,12 +2,20 @@ import { Link } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { NOTIFICATION_CATEGORIES, notificationSettingsSchema, personSummarySchema, type NotificationCategory } from '@muzikhub/shared';
+import {
+  MESSAGE_POLICIES,
+  type MessagePolicy,
+  NOTIFICATION_CATEGORIES,
+  notificationSettingsSchema,
+  personSummarySchema,
+  type NotificationCategory,
+} from '@muzikhub/shared';
 import { Button } from '@/components/ui/button';
 import { Avatar, PageHeader, PageLoading, Panel } from '@/components/ui/primitives';
 import { LoadFailed } from '@/features/auth/guards';
 import { errorMessage, request } from '@/lib/api';
 import { cn } from '@/lib/cn';
+import { messagingApi, messagingKeys } from '@/lib/messaging';
 
 const blocksSchema = z.object({ items: z.array(personSummarySchema) });
 
@@ -22,6 +30,7 @@ export function PreferencesPage() {
       />
       <div className="space-y-4">
         <NotificationSettings />
+        <MessagePrivacy />
         <BlockedMembers />
       </div>
     </div>
@@ -83,6 +92,48 @@ function NotificationSettings() {
             </li>
           ))}
         </ul>
+      )}
+    </Panel>
+  );
+}
+
+function MessagePrivacy() {
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: messagingKeys.policy, queryFn: messagingApi.policy });
+  const set = async (policy: MessagePolicy) => {
+    try {
+      qc.setQueryData(messagingKeys.policy, await messagingApi.setPolicy(policy));
+      toast.success('Saved');
+    } catch (e) {
+      toast.error(errorMessage(e));
+    }
+  };
+  return (
+    <Panel className="p-5 sm:p-6" aria-labelledby="dm-heading">
+      <h2 id="dm-heading" className="text-lg font-bold">
+        Who can message you
+      </h2>
+      <p className="mt-0.5 text-sm text-text-2">Applies to new conversations. People you already talk with can keep replying.</p>
+      {q.isPending ? (
+        <PageLoading />
+      ) : q.isError ? (
+        <LoadFailed message={errorMessage(q.error)} onRetry={() => void q.refetch()} />
+      ) : (
+        <fieldset className="mt-4 space-y-2">
+          <legend className="sr-only">Who can message you</legend>
+          {(Object.keys(MESSAGE_POLICIES) as MessagePolicy[]).map((p) => (
+            <label key={p} className="flex min-h-11 cursor-pointer items-center gap-3 text-sm">
+              <input
+                type="radio"
+                name="message-policy"
+                checked={q.data.policy === p}
+                onChange={() => void set(p)}
+                className="accent-signal"
+              />
+              {MESSAGE_POLICIES[p]}
+            </label>
+          ))}
+        </fieldset>
       )}
     </Panel>
   );

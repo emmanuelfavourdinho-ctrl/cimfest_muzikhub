@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { Ban, Check, Clock, Plus, UserCheck, UserPlus, X } from 'lucide-react';
+import { Ban, Check, Clock, MessageCircle, Plus, UserCheck, UserPlus, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { CONNECTION_MESSAGE_MAX } from '@muzikhub/shared';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { Dialog } from '@/components/ui/Dialog';
 import { Field, Textarea } from '@/components/ui/form';
 import { api, errorMessage, request } from '@/lib/api';
 import { useMe } from '@/lib/queries';
+import { messagingApi } from '@/lib/messaging';
 import { socialKeys, useRelationship } from '@/lib/social-queries';
 
 /**
@@ -81,6 +82,19 @@ export function RelationshipActions({ username, name }: { username: string; name
   const c = r.connection;
   return (
     <div className="flex flex-wrap gap-2">
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={busy}
+        onClick={() =>
+          void run(async () => {
+            const conv = await messagingApi.open(username);
+            void navigate(`/messages/${conv.id}`);
+          })
+        }
+      >
+        <MessageCircle /> Message
+      </Button>
       <Button
         size="sm"
         variant={r.following ? 'outline' : 'primary'}

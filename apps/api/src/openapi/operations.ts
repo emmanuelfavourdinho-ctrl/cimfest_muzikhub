@@ -8,6 +8,10 @@ import {
   changePriceSchema,
   startCheckoutSchema,
   blockSchema,
+  startConversationSchema,
+  sendMessageSchema,
+  messageReceiptSchema,
+  messagePolicySchema,
   createCommunitySchema,
   updateCommunitySchema,
   joinCommunitySchema,
@@ -520,4 +524,39 @@ export const operations: Operation[] = [
   op('POST', '/community-comments/{id}/remove', 'Communities', 'Remove a reply with a reason (community moderators; audited)', 'member', {
     body: moderationReasonSchema,
   }),
+  // Direct messaging (platform milestone 3): FR-47–54, MSG-001–007; push over /api/realtime (Socket.IO)
+  op('GET', '/conversations', 'Messaging', 'Your conversations, most recent first, with unread counts and receipts', 'member'),
+  op(
+    'POST',
+    '/conversations',
+    'Messaging',
+    'Open (or create) the direct conversation with a member (blocks and their message policy apply)',
+    'member',
+    { body: startConversationSchema, rateLimit: 'conversation-start' },
+  ),
+  op('GET', '/conversations/unread-count', 'Messaging', 'How many conversations have unread messages', 'member'),
+  op('GET', '/conversations/settings/policy', 'Messaging', 'Who may start a conversation with you', 'member'),
+  op('PUT', '/conversations/settings/policy', 'Messaging', 'Set who may start a conversation with you', 'member', {
+    body: messagePolicySchema,
+  }),
+  op('GET', '/conversations/{id}', 'Messaging', 'One conversation (participants only; others 404)', 'member'),
+  op(
+    'GET',
+    '/conversations/{id}/messages',
+    'Messaging',
+    'History: newest page, `before` for older, `after` to catch up after reconnecting; marks delivery',
+    'member',
+  ),
+  op(
+    'POST',
+    '/conversations/{id}/messages',
+    'Messaging',
+    'Send: persisted before it is pushed; same clientId = same message (no duplicates); anti-spam cap until a reply',
+    'member',
+    { body: sendMessageSchema, rateLimit: 'message-send' },
+  ),
+  op('POST', '/conversations/{id}/read', 'Messaging', 'Read receipt up to a message (only moves forward)', 'member', {
+    body: messageReceiptSchema,
+  }),
+  op('POST', '/conversations/{id}/delivered', 'Messaging', 'Delivery receipt up to a message', 'member', { body: messageReceiptSchema }),
 ];

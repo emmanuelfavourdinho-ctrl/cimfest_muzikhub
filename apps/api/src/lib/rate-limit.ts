@@ -80,6 +80,22 @@ export const limits = {
   }),
   /** Provider webhooks, per IP (no session). Generous: retries and bursts are normal. */
   webhook: rateLimit({ name: 'payment-webhook', windows: [{ ms: MIN, max: 300 }] }),
+  /** Starting new conversations (anti-spam, MSG-004). */
+  conversationStart: rateLimit({
+    name: 'conversation-start',
+    windows: [
+      { ms: MIN, max: 10 },
+      { ms: HOUR, max: 40 },
+    ],
+  }),
+  /** Sending messages: fast enough for a real chat, too slow for flooding. */
+  messageSend: rateLimit({
+    name: 'message-send',
+    windows: [
+      { ms: MIN, max: 40 },
+      { ms: HOUR, max: 600 },
+    ],
+  }),
   /** Analytics beacons (plays, link clicks), per user or IP. */
   analyticsEvent: rateLimit({ name: 'analytics-event', windows: [{ ms: MIN, max: 120 }] }),
   /** Public catalogue reads, per user or IP. */

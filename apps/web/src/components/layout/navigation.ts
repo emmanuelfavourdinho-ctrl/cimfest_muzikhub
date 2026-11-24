@@ -36,7 +36,7 @@ export const primaryNav: NavItem[] = [
   { label: 'Opportunities', icon: Briefcase, to: '/opportunities' },
   { label: 'Plans', icon: Gem, to: '/pricing' },
   { label: 'Competitions', icon: Trophy },
-  { label: 'Messages', icon: MessageCircle },
+  { label: 'Messages', icon: MessageCircle, to: '/messages' },
 ];
 
 /** Mobile bottom bar (prototype: Home, Discover, Create, Activity, Profile). */
