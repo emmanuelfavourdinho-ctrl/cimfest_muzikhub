@@ -85,6 +85,7 @@ export const router = createBrowserRouter([
       { path: 'users', element: page(() => import('@/features/admin/UsersPage'), 'UsersPage') },
       { path: 'users/:id', element: page(() => import('@/features/admin/UserDetailPage'), 'UserDetailPage') },
       { path: 'content', element: page(() => import('@/features/admin/ContentPage'), 'ContentPage') },
+      { path: 'pricing', element: page(() => import('@/features/admin/PricingAdminPage'), 'PricingAdminPage') },
       { path: 'audit', element: page(() => import('@/features/admin/AuditPage'), 'AuditPage') },
     ],
   },
@@ -97,6 +98,7 @@ export const router = createBrowserRouter([
       { path: '/work/:id', element: page(() => import('@/features/portfolio/PortfolioItemPage'), 'PortfolioItemPage') },
       { path: '/p/:id', element: page(() => import('@/features/feed/PostPage'), 'PostPage') },
       { path: '/discover', element: page(() => import('@/features/discover/DiscoverPage'), 'DiscoverPage') },
+      { path: '/pricing', element: page(() => import('@/features/billing/PricingPage'), 'PricingPage') },
       { path: '/opportunities', element: page(() => import('@/features/opportunities/OpportunitiesPage'), 'OpportunitiesPage') },
       {
         path: '/opportunities/new',

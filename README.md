@@ -26,6 +26,18 @@ npm run dev                           # API :4000 + web :5173
 
 Open http://localhost:5173 and create an account.
 
+**Notch Pay test keys** (payments are built against a fake provider; live payments are externally blocked, ADR 0004). When you have sandbox keys, put them **only** in your git-ignored `apps/api/.env`, never in the web app, `.env.example`, docs or chat:
+
+```bash
+NOTCHPAY_PUBLIC_KEY=
+NOTCHPAY_PRIVATE_KEY=
+NOTCHPAY_WEBHOOK_SECRET=
+```
+
+The server reads them; nothing in the browser ever does. Nothing uses them yet (checkout arrives in Phase 3).
+
+**Pricing catalogue:** `npm run catalogue:seed -w @muzikhub/api` adds the owner-confirmed catalogue rows (all off sale). It's idempotent and never changes an existing price; edit prices in the Admin Console → Pricing.
+
 **Emails in development** (password reset, verification) are printed to the API terminal and not sent; copy the link from there. Production sends through **Resend** once a sending domain is verified (see docs/ARCHITECTURE.md §5d). The hosted database will be **Supabase PostgreSQL** (configuration documented, not deployed).
 
 > Existing database volume created before 2026-11-23? Create the test database once:

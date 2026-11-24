@@ -9,3 +9,4 @@ export * from './portfolio.js';
 export * from './social.js';
 export * from './admin.js';
 export * from './opportunities.js';
+export * from './billing.js';

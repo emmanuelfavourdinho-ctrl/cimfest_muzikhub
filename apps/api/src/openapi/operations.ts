@@ -5,6 +5,8 @@ import {
   assignReportSchema,
   createOpportunitySchema,
   grantOrganiserSchema,
+  changePriceSchema,
+  setAvailabilitySchema,
   updateOpportunitySchema,
   createCommentSchema,
   createConnectionSchema,
@@ -196,4 +198,31 @@ export const operations: Operation[] = [
   op('POST', '/applications/{id}/status', 'Opportunities', 'Shortlist, accept or reject an application (organiser, audited)', 'member', {
     body: applicationDecisionSchema,
   }),
+  // Billing (Phase 2: read-only; no checkout yet — ADR 0004)
+  op(
+    'GET',
+    '/catalogue',
+    'Billing',
+    'Public catalogue: Free limits and products; a price appears only when the product can be bought',
+    'public',
+  ),
+  op('GET', '/billing/entitlements', 'Billing', 'Your current plan and limits, computed from stored periods (Free by default)', 'member'),
+  op('GET', '/billing/subscriptions/{id}', 'Billing', 'One of your subscription periods (owner only; others get 404)', 'member'),
+  op('GET', '/billing/promotions/{id}', 'Billing', 'One of your promotions (owner only; others get 404)', 'member'),
+  op('GET', '/admin/catalogue', 'Admin', 'Catalogue rows in force, with who changed them last (admin)', 'staff'),
+  op('POST', '/admin/catalogue/price', 'Admin', 'Change a price: new version, new orders only, reason required, audited (admin)', 'staff', {
+    body: changePriceSchema,
+  }),
+  op(
+    'POST',
+    '/admin/catalogue/availability',
+    'Admin',
+    'Put on or take off sale; refused unless the product is sellable (admin, audited)',
+    'staff',
+    {
+      body: setAvailabilitySchema,
+    },
+  ),
+  op('GET', '/admin/billing/subscriptions/{id}', 'Admin', "Read any member's subscription period (billing.view)", 'staff'),
+  op('GET', '/admin/billing/promotions/{id}', 'Admin', "Read any member's promotion (billing.view)", 'staff'),
 ];

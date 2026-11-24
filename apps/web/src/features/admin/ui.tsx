@@ -133,7 +133,7 @@ export function DataTable({ children, label = 'Data table' }: { children: ReactN
       role="region"
       aria-label={label}
       tabIndex={0}
-      className="overflow-x-auto rounded-xl border border-hairline-strong bg-surface-raised"
+      className="relative overflow-x-auto rounded-xl border border-hairline-strong bg-surface-raised"
     >
       <table className="w-full min-w-160 text-left text-caption [&_td]:border-t [&_td]:border-hairline-strong [&_td]:px-3 [&_td]:py-2.5 [&_td]:align-top [&_th]:px-3 [&_th]:py-2 [&_th]:text-xs [&_th]:font-semibold [&_th]:tracking-wide [&_th]:text-text-2 [&_th]:uppercase [&_tbody_tr:hover]:bg-surface-overlay">
         {children}

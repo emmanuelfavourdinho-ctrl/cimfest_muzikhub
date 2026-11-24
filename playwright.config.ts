@@ -27,7 +27,7 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: 'npx prisma migrate deploy && npx tsx src/server.ts',
+      command: 'npx prisma migrate deploy && npx tsx src/scripts/seed-catalogue.ts && npx tsx src/server.ts',
       cwd: './apps/api',
       url: 'http://localhost:4100/api/v1/health',
       reuseExistingServer: false,

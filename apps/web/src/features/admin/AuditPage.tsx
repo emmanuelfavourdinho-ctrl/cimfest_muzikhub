@@ -26,6 +26,8 @@ const LABELS: Record<string, string> = {
   'report.escalate': 'Escalated report',
   'report.resolve': 'Resolved report',
   'report.dismiss': 'Dismissed report',
+  'catalogue.price.change': 'Changed price',
+  'catalogue.availability.change': 'Changed availability',
 };
 export const describeAction = (action: string) => LABELS[action] ?? action;
 
@@ -62,6 +64,7 @@ export function AuditPage() {
           <option value="user.">Account actions</option>
           <option value="content.">Content moderation</option>
           <option value="report.">Reports</option>
+          <option value="catalogue.">Pricing</option>
         </select>
       </div>
       {query.isPending ? (

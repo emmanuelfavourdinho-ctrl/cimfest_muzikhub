@@ -11,6 +11,7 @@ import {
   Megaphone,
   ScrollText,
   ShieldCheck,
+  Tags,
   Trophy,
   Users,
   UsersRound,
@@ -32,6 +33,7 @@ const NAV = [
   { to: '/admin/reports', label: 'Reports', icon: Flag, permission: 'reports.manage' },
   { to: '/admin/users', label: 'Users', icon: Users, permission: 'users.view' },
   { to: '/admin/content', label: 'Content', icon: Layers, permission: 'content.moderate' },
+  { to: '/admin/pricing', label: 'Pricing', icon: Tags, permission: 'pricing.manage' },
   { to: '/admin/audit', label: 'Audit log', icon: ScrollText, permission: 'audit.view' },
 ] as const;
 

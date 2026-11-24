@@ -86,6 +86,8 @@ model User {
   organiserSince          DateTime?
   opportunities           Opportunity[]            @relation("OpportunityOrganiser")
   opportunityApplications OpportunityApplication[]
+  subscriptions           Subscription[]
+  promotions              Promotion[]
 
   @@map("user")
 }
@@ -707,4 +709,93 @@ model OpportunityApplication {
   @@unique([opportunityId, applicantId])
   @@index([applicantId])
   @@map("opportunity_application")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Billing: catalogue and entitlements (Phase 2, ADR 0004). Orders/payments come in Phase 3.
+// ─────────────────────────────────────────────────────────────
+
+enum BillingProduct {
+  CREATOR_PLUS
+  PRO
+  POST_BOOST
+  PROFILE_SPOTLIGHT
+}
+
+enum CatalogueOption {
+  MONTHLY
+  ANNUAL
+  DAYS_3
+  DAYS_7
+  DAYS_14
+}
+
+/// Versioned price list: a change inserts a new row (never updates one). The row in force for a
+/// (product, option) is the latest with effectiveFrom <= now. Whole XAF only.
+model ServiceCatalogue {
+  id            String          @id @default(cuid(2))
+  product       BillingProduct
+  option        CatalogueOption
+  durationDays  Int
+  priceXaf      Int
+  /// Can be bought. Only products in SELLABLE_PRODUCTS (code) may be activated.
+  active        Boolean         @default(false)
+  effectiveFrom DateTime        @default(now())
+  updatedById   String?
+  reason        String?
+  createdAt     DateTime        @default(now())
+
+  @@unique([product, option, effectiveFrom])
+  @@index([product, option, effectiveFrom])
+  @@map("service_catalogue")
+}
+
+enum SubscriptionPlan {
+  CREATOR_PLUS
+  PRO
+}
+
+enum EntitlementStatus {
+  ACTIVE
+  CANCELLED
+  REFUNDED
+}
+
+/// One paid period. Entitlement = ACTIVE and periodStart <= now < periodEnd (computed at request time).
+model Subscription {
+  id          String            @id @default(cuid(2))
+  userId      String
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan        SubscriptionPlan
+  periodStart DateTime
+  periodEnd   DateTime
+  status      EntitlementStatus @default(ACTIVE)
+  createdAt   DateTime          @default(now())
+
+  @@index([userId, periodEnd])
+  @@map("subscription")
+}
+
+enum PromotionTarget {
+  POST
+  PROFILE
+}
+
+/// A paid placement period for one post (Post Boost) or one profile (Spotlight). Never overlaps:
+/// buying again extends from the current end.
+model Promotion {
+  id          String            @id @default(cuid(2))
+  userId      String
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product     BillingProduct
+  targetType  PromotionTarget
+  targetId    String
+  periodStart DateTime
+  periodEnd   DateTime
+  status      EntitlementStatus @default(ACTIVE)
+  createdAt   DateTime          @default(now())
+
+  @@index([targetType, targetId, periodEnd])
+  @@index([userId])
+  @@map("promotion")
 }

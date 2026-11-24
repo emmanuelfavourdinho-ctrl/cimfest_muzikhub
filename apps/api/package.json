@@ -17,7 +17,8 @@
     "media:cleanup": "tsx src/scripts/media-cleanup.ts",
     "brand:upload": "tsx src/scripts/upload-brand-assets.ts",
     "admin:grant-initial": "tsx src/scripts/admin-grant-initial.ts",
-    "admin:reset-two-factor": "tsx src/scripts/admin-reset-two-factor.ts"
+    "admin:reset-two-factor": "tsx src/scripts/admin-reset-two-factor.ts",
+    "catalogue:seed": "tsx src/scripts/seed-catalogue.ts"
   },
   "dependencies": {
     "@muzikhub/shared": "*",

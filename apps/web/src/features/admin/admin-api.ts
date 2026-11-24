@@ -1,3 +1,4 @@
+import type { AdminCatalogueRow, BillingProduct, CatalogueOption } from '@muzikhub/shared';
 import type { AccountStatus, MediaView, Permission, PersonSummary, PlatformRole, SetAccountStatusInput } from '@muzikhub/shared';
 import { request } from '@/lib/api';
 
@@ -180,4 +181,10 @@ export const adminApi = {
   restoreContent: (type: string, id: string, reason: string) =>
     request<unknown>(`/admin/content/${type}/${encodeURIComponent(id)}/restore`, null, { method: 'POST', body: { reason } }),
   audit: (query: Q) => request<Page<AuditEntry>>('/admin/audit', null, { query }),
+  catalogue: () => request<{ items: AdminCatalogueRow[] }>('/admin/catalogue', null),
+  changePrice: (product: BillingProduct, option: CatalogueOption, priceXaf: number, reason: string) =>
+    request<{ items: AdminCatalogueRow[] }>('/admin/catalogue/price', null, {
+      method: 'POST',
+      body: { product, option, priceXaf, reason },
+    }),
 };

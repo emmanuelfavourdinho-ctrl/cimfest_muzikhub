@@ -89,12 +89,12 @@ _Phase 0 audit 2026-11-24, updated at the end of **M0** (branch `chore/m0-founda
 
 | FR | Requirement | Status | Evidence | Gap | Depth |
 |---|---|---|---|---|---|
-| FR-38 | Request promotional campaigns | Not started | — | Campaign lifecycle | L2 / L1 |
-| FR-39 | Show promotion options and costs | Not started; **prices unapproved** | CLAUDE.md pricing section is "pending approval" | Needs approved prices (D10) | |
-| FR-40 | Review campaign and track status | Not started | — | | |
-| FR-41 | Admins manage campaigns | Not started | — | | |
-| FR-42 | Initiate payment | Not started; **likely Blocked** | No PaymentProvider; `NOTCHPAY_*` env vars optional and unused | Notch Pay merchant/sandbox access (D2) | L2 |
-| FR-43 | Verify outcome via provider | Not started | — | Webhook signature scheme from official docs | |
+| FR-38 | Request promotional campaigns | Partial (foundation) | `Promotion` model; `grantPromotion` (owner only, extend-not-overlap, advisory lock) + tests in `modules/billing/entitlements.test.ts`. No purchase flow yet (Phase 3–4) | Payment lifecycle | L2 / L1 |
+| FR-39 | Show promotion options and costs | Partial | Versioned `service_catalogue` seeded from the confirmed table; `GET /api/v1/catalogue` + `/pricing` show every product as "Coming soon" with **no price** (nothing sellable: `SELLABLE_PRODUCTS = []`). Admin price editing audited (`billing.routes.test.ts`, `e2e/pricing.spec.ts`) | Benefits built and tested before any product goes on sale | |
+| FR-40 | Review campaign and track status | Not started (owner read endpoint only) | `GET /billing/promotions/:id` behind `lib/policy.ts` | Phase 4 | |
+| FR-41 | Admins manage campaigns | Partial | Admin catalogue prices/availability (`pricing.manage`), read-only billing records (`billing.view`); campaign management in Phase 6 | | |
+| FR-42 | Initiate payment | **Externally blocked** (live); not started (fake adapter) | ADR 0004 design; env names documented. No checkout yet | Notch Pay sandbox/merchant access and answers in decisions-and-risks §8.1 | L2 |
+| FR-43 | Verify outcome via provider | Not started; design in ADR 0004 | — | Webhook signature scheme (§8.1 q1) | |
 | FR-44 | Record transactions and statuses | Not started | — | | |
 | FR-45 | Pending, failed, cancelled, refunds | Not started | — | | |
 | FR-46 | Fulfil only after server-side verification | Not started | — | | |
@@ -148,7 +148,7 @@ _Phase 0 audit 2026-11-24, updated at the end of **M0** (branch `chore/m0-founda
 | Implemented and tested | 28 (FR-01–04, 06–13, 15–22, 34–37 at L1, 61, 62, 65, 66) |
 | Implemented, not fully tested | 2 (FR-05, FR-14) |
 | Partially implemented | 3 (FR-28, FR-54, FR-68) |
-| Externally blocked (expected) | 0 yet (FR-42–46 and FR-55–60 become Blocked if provider access or TURN isn't available) |
+| Externally blocked (expected) | 1: FR-42 live payments (Notch Pay access). Also expected: FR-43–46 and FR-55–60 become Blocked if provider access or TURN isn't available) |
 | Not started | 40 |
 
 ## Non-functional requirements (SRS §5)

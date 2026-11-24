@@ -197,3 +197,37 @@ The assets are kept (your decision), but anyone with a URL can view them, and th
 - **A. Convert to authenticated delivery (recommended).** The files stay in your account, but unsigned URLs stop working, so the leaked URLs go dead. With your approval I'd run, for each of the 5 assets: `cloudinary.uploader.rename(id, id, { type: 'upload', to_type: 'authenticated' })`. It's reversible: rename back with `to_type: 'upload'`.
 - **B. Make the GitHub repository private** (GitHub → Settings → General → Danger Zone → Change visibility). This hides the history from the public, though copies may already exist.
 - **C. Rewrite history** to drop `hero-photos.json` from the first commit, then force-push. This is irreversible for anyone who has cloned, and I'll only do it on your explicit instruction.
+
+## 8. Payments: open questions for outside advisers (Phase 2, 2026-11-24)
+
+Copied from `docs/monetization-audit.md` §4–5. Live payments are **Externally blocked** until Notch Pay answers §8.1 items 1, 3, 4 and 6 (they decide how ADR 0004's webhook and verification code behave) and merchant onboarding (item 12) is done. Until then everything is built and tested against the fake provider only.
+
+### 8.1 Questions for Notch Pay support (12)
+1. **Webhook signature:** Is the HMAC-SHA256 computed over the **exact raw request body**, or over a re-serialised JSON? Is the key the "webhook hash" (`hsk_…`, Settings → API Keys) or a per-webhook "secret"? Are they the same? Any timestamp or replay protection planned?
+2. **Retries:** How many webhook retries, on what schedule, with what delivery timeout? Is ordering guaranteed? Can an event id be redelivered days later?
+3. **Amounts:** Is `amount` for XAF in francs (5000 = 5,000 FCFA)? Is the same true for refunds' `amount` ("smallest currency unit")?
+4. **References:** Is a duplicate `reference` rejected? Does `GET /payments/{reference}` accept our reference, yours (`trx.…` / `pay_…`), or both? On the callback, which parameter is ours, `reference` or `trxref`?
+5. **Statuses:** What's the authoritative status list (`canceled` vs `cancelled`, `partialy-refunded`, `incomplete`, `abandoned`)? Is expiry always 3 hours?
+6. **Keys:** Which key is required for create and retrieve, public or private? Can retrieve be restricted to the private key?
+7. **Recurring:** Is there any subscription, saved-method or tokenised re-charge support, or on the roadmap?
+8. **Refunds:** Which statuses and methods are refundable? Is the 90-day window firm? Is the original fee ever refunded? How are refunds tested in sandbox?
+9. **Sandbox:** Is there a test number for "stays pending"? Any test cards? Sandbox rate limits?
+10. **Fees:** Card fees? The exact rounding when the customer pays the fee? Which tax applies to fees, and is it shown on invoices?
+11. **Payouts:** Settlement and withdrawal timing to MTN MoMo, holds or reserves, and minimum balances.
+12. **Merchant onboarding:** Requirements and documents needed to activate live mode for a platform selling its own digital services.
+
+### 8.2 Questions for a lawyer and an accountant
+- **Lawyer:**
+  - Consumer law for digital services in Cameroon (and CEMAC): pre-contract information, cancellation and refund rights for boosts, spotlights and subscriptions.
+  - Terms of sale and auto-renewal rules: manual renewals avoid stored credentials, but reminders may be regulated.
+  - Advertising and labelling rules for "Promoted" content.
+  - Data protection: payment data, the London data location (D15), cross-border transfers, and analytics consent.
+  - Minimum age 16 (D6) versus who may pay.
+  - Platform liability for organiser-run opportunities and competitions.
+- **Accountant:**
+  - VAT/TVA on MuzikHub's sales of digital services (rate, registration threshold, who collects).
+  - Tax treatment of Notch Pay fees (are they VAT-able, is the VAT recoverable?).
+  - Invoicing obligations (numbered invoices, required mentions).
+  - Revenue recognition for annual plans (deferred revenue) and for time-limited boosts.
+  - Treatment of refunds and chargebacks, and record-keeping for the Notch Pay balance and withdrawals.
+  - Whether pricing should be VAT-inclusive.

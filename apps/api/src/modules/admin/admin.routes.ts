@@ -11,6 +11,8 @@ import {
   moderationActionSchema,
   PERMISSIONS,
   grantOrganiserSchema,
+  changePriceSchema,
+  setAvailabilitySchema,
   reasonOnlySchema,
   reportNoteSchema,
   resolveReportSchema,
@@ -32,6 +34,8 @@ import { overview } from './overview.service.js';
 import * as reports from './reports.service.js';
 import * as users from './users.service.js';
 import { setOrganiser } from '../opportunities/opportunities.service.js';
+import * as catalogue from '../billing/catalogue.service.js';
+import { adminReadBilling } from '../billing/billing.routes.js';
 
 const param = (req: Request, name: string) => String((req.params as Record<string, string>)[name]);
 
@@ -131,6 +135,27 @@ export function adminRouter(): Router {
   });
   router.post('/content/:type/:id/restore', validateBody(reasonOnlySchema), async (req, res) => {
     res.json(await moderation.restoreContent(staffOf(res.locals), moderationTarget(req), param(req, 'id'), req.body.reason));
+  });
+
+  // ── Pricing catalogue (administrators; ADR 0004) ──
+  router.get('/catalogue', requirePermission('pricing.manage'), async (_req, res) => {
+    res.json({ items: await catalogue.adminCatalogue() });
+  });
+  router.post('/catalogue/price', requirePermission('pricing.manage'), validateBody(changePriceSchema), async (req, res) => {
+    const b = req.body;
+    res.json({ items: await catalogue.changePrice(staffOf(res.locals), b.product, b.option, b.priceXaf, b.reason) });
+  });
+  router.post('/catalogue/availability', requirePermission('pricing.manage'), validateBody(setAvailabilitySchema), async (req, res) => {
+    const b = req.body;
+    res.json({ items: await catalogue.setAvailability(staffOf(res.locals), b.product, b.option, b.active, b.reason) });
+  });
+
+  // ── Billing records (read-only; central policy in lib/policy.ts) ──
+  router.get('/billing/subscriptions/:id', async (req, res) => {
+    res.json(await adminReadBilling(staffOf(res.locals), 'subscription', param(req, 'id')));
+  });
+  router.get('/billing/promotions/:id', async (req, res) => {
+    res.json(await adminReadBilling(staffOf(res.locals), 'promotion', param(req, 'id')));
   });
 
   // ── Audit log (administrators) ──

@@ -36,6 +36,10 @@ export const PERMISSIONS = {
   'audit.view': ['ADMIN'],
   /** Grant or revoke the organiser capability (D7: opportunities, competitions). */
   'organisers.grant': ['ADMIN'],
+  /** Edit catalogue prices and availability (audited; new orders only). */
+  'pricing.manage': ['ADMIN'],
+  /** Read any member's subscriptions, promotions (and later orders). FINANCE_ADMIN later. */
+  'billing.view': ['ADMIN'],
 } as const satisfies Record<string, readonly PlatformRole[]>;
 export type Permission = keyof typeof PERMISSIONS;
 

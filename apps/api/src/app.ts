@@ -22,6 +22,7 @@ import type { MediaStorage } from './lib/media-storage.js';
 import { originCheck } from './middleware/origin-check.js';
 import { openApiDocument } from './openapi/document.js';
 import { applicationsRouter, opportunitiesRouter } from './modules/opportunities/opportunities.routes.js';
+import { billingRouter, catalogueRouter } from './modules/billing/billing.routes.js';
 
 export interface AppDependencies {
   /** Returns true when the database answers. Injected so tests need no real DB. */
@@ -78,6 +79,8 @@ export function createApp(overrides: Partial<AppDependencies> = {}): Express {
   v1.use('/reports', reportsRouter());
   v1.use('/opportunities', opportunitiesRouter());
   v1.use('/applications', applicationsRouter());
+  v1.use('/catalogue', catalogueRouter());
+  v1.use('/billing', billingRouter());
   v1.use('/admin', adminRouter());
   app.use(API_V1_PREFIX, v1);
 

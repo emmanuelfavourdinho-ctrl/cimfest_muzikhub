@@ -41,7 +41,7 @@ export async function resetDatabase() {
   if (!process.env.DATABASE_URL?.includes('muzikhub_test')) {
     throw new Error('resetDatabase called outside the test database');
   }
-  await prisma.$executeRawUnsafe('TRUNCATE TABLE "user", "verification", "idempotency_key", "outbox_event" CASCADE');
+  await prisma.$executeRawUnsafe('TRUNCATE TABLE "user", "verification", "idempotency_key", "outbox_event", "service_catalogue" CASCADE');
   // audit_log is append-only; TRUNCATE is permitted only inside a transaction that opts in.
   await prisma.$transaction([
     prisma.$executeRawUnsafe(`SELECT set_config('muzikhub.allow_audit_truncate', 'on', true)`),
