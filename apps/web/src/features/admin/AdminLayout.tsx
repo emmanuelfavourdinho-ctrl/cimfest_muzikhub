@@ -70,8 +70,8 @@ export function AdminLayout() {
 
 function AdminShell({ me, children, bare = false }: { me: AdminMe; children: React.ReactNode; bare?: boolean }) {
   return (
-    <div className="min-h-svh bg-[#050f0c]">
-      <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-line bg-[#06140f]/95 px-4 backdrop-blur sm:px-6">
+    <div className="min-h-svh bg-surface-base">
+      <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-hairline-strong bg-surface-raised/95 px-4 backdrop-blur sm:px-6">
         <div className="flex items-center gap-3">
           <BrandMark to="/admin" />
           <Tag color={me.role === 'ADMIN' ? 'violet' : 'blue'}>{me.role === 'ADMIN' ? 'Admin' : 'Moderator'} console</Tag>
@@ -85,7 +85,7 @@ function AdminShell({ me, children, bare = false }: { me: AdminMe; children: Rea
       {bare ? (
         <main className="mx-auto max-w-2xl px-4 py-8">{children}</main>
       ) : (
-        <div className="md:grid md:grid-cols-[220px_minmax(0,1fr)]">
+        <div className="md:grid md:grid-cols-[--spacing(55)_minmax(0,1fr)]">
           <AdminNav me={me} />
           <main className="min-w-0 px-4 py-5 sm:px-6 md:px-8 md:py-7">{children}</main>
         </div>
@@ -98,13 +98,13 @@ function AdminNav({ me }: { me: AdminMe }) {
   const items = NAV.filter((n) => canDo(me, n.permission));
   const link = ({ isActive }: { isActive: boolean }) =>
     cn(
-      'flex min-h-10 shrink-0 items-center gap-2.5 rounded-lg px-3 text-[13px] font-medium',
-      isActive ? 'bg-[#143a2c] text-[#76f5bc]' : 'text-[#adccbc] hover:bg-[#0f2b22] hover:text-foreground',
+      'flex min-h-10 shrink-0 items-center gap-2.5 rounded-lg px-3 text-caption font-medium',
+      isActive ? 'bg-surface-chip text-signal' : 'text-text-2 hover:bg-surface-overlay hover:text-foreground',
     );
   return (
     <nav
       aria-label="Admin"
-      className="border-b border-line bg-[#06140f] md:sticky md:top-14 md:h-[calc(100svh-56px)] md:border-r md:border-b-0"
+      className="border-b border-hairline-strong bg-surface-raised md:sticky md:top-14 md:h-[calc(100svh_-_--spacing(14))] md:border-r md:border-b-0"
     >
       {/* Phones: horizontal strip. Desktop: sidebar. */}
       <div className="flex gap-1 overflow-x-auto px-3 py-2 md:flex-col md:px-3 md:py-4">
@@ -115,13 +115,13 @@ function AdminNav({ me }: { me: AdminMe }) {
         ))}
       </div>
       <div className="hidden px-3 md:block">
-        <p className="mx-3 mt-4 mb-2 text-[10px] font-bold tracking-[0.14em] text-[#55776a] uppercase">Pending</p>
+        <p className="mx-3 mt-4 mb-2 text-xs font-bold tracking-wider text-text-3 uppercase">Pending</p>
         {PENDING.map((p) => (
           <span
             key={p.label}
             aria-disabled="true"
             title="Available when this part of MuzikHub is built"
-            className="flex min-h-9 cursor-not-allowed items-center gap-2.5 px-3 text-[13px] text-[#55776a]"
+            className="flex min-h-9 cursor-not-allowed items-center gap-2.5 px-3 text-caption text-text-3"
           >
             <p.icon className="size-4 shrink-0" /> <span className="truncate">{p.label}</span>
             <span className="sr-only">(pending)</span>
@@ -141,9 +141,9 @@ function NoAccess() {
 function Gate({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="mx-auto max-w-md px-4 py-20 text-center">
-      <ShieldCheck className="mx-auto mb-3 size-10 text-sage" aria-hidden />
+      <ShieldCheck className="mx-auto mb-3 size-10 text-text-2" aria-hidden />
       <h1 className="text-2xl font-bold">{title}</h1>
-      <p className="mt-2 mb-6 text-sm text-sage">{children}</p>
+      <p className="mt-2 mb-6 text-sm text-text-2">{children}</p>
       <Button asChild variant="outline">
         <Link to="/home">Back to MuzikHub</Link>
       </Button>
@@ -157,7 +157,7 @@ function ReauthDialog({ open, onClose }: { open: boolean; onClose: () => void })
   const qc = useQueryClient();
   return (
     <Dialog open={open} onClose={onClose} title="Confirm it's you">
-      <p className="mb-5 text-sm text-sage">
+      <p className="mb-5 text-sm text-text-2">
         This is a sensitive action. For your security, sign in again with your password and authenticator code — then repeat the action.
       </p>
       <div className="flex justify-end gap-2">

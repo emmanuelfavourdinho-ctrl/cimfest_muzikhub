@@ -40,19 +40,19 @@ export function useAdminAction() {
 
 // ── Pills ────────────────────────────────────────────────────
 const tone = {
-  green: 'border-[#24644b] bg-[#134130] text-[#87eabb]',
-  gray: 'border-[#365b45] bg-[#20352b] text-[#bdd0c6]',
-  gold: 'border-[#7a692d] bg-[#443817] text-[#ffdc81]',
-  red: 'border-destructive/40 bg-destructive/10 text-[#ffb3b6]',
-  blue: 'border-[#2f5679] bg-[#16324a] text-[#b8d9ff]',
-  violet: 'border-[#71447c] bg-[#392444] text-[#deb5ff]',
+  green: 'border-control-border bg-surface-chip text-signal',
+  gray: 'border-control-border bg-surface-chip text-text-2',
+  gold: 'border-warning/40 bg-warning/15 text-warning',
+  red: 'border-destructive/40 bg-destructive/10 text-danger',
+  blue: 'border-info/40 bg-info/15 text-info',
+  violet: 'border-violet/40 bg-violet/15 text-violet',
 } as const;
 
 export function Tag({ children, color = 'gray', className }: { children: ReactNode; color?: keyof typeof tone; className?: string }) {
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-md border px-1.5 py-0.5 text-[11px] font-semibold whitespace-nowrap',
+        'inline-flex items-center rounded-md border px-1.5 py-0.5 text-xs font-semibold whitespace-nowrap',
         tone[color],
         className,
       )}
@@ -90,7 +90,7 @@ export function ReportStatusTag({ status, escalated }: { status: string; escalat
 
 // ── Time ─────────────────────────────────────────────────────
 export function Ago({ iso }: { iso: string | null }) {
-  if (!iso) return <span className="text-sage-dim">—</span>;
+  if (!iso) return <span className="text-text-3">—</span>;
   const d = new Date(iso);
   const s = (Date.now() - d.getTime()) / 1000;
   const text =
@@ -113,10 +113,10 @@ export function Ago({ iso }: { iso: string | null }) {
 // ── Layout pieces ────────────────────────────────────────────
 export function AdminHeader({ title, description, actions }: { title: string; description?: ReactNode; actions?: ReactNode }) {
   return (
-    <div className="mb-5 flex flex-col gap-3 border-b border-line pb-4 sm:flex-row sm:items-end sm:justify-between">
+    <div className="mb-5 flex flex-col gap-3 border-b border-hairline-strong pb-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <h1 className="text-xl font-bold tracking-tight sm:text-2xl">{title}</h1>
-        {description && <p className="mt-1 text-sm text-sage">{description}</p>}
+        {description && <p className="mt-1 text-sm text-text-2">{description}</p>}
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
     </div>
@@ -126,8 +126,8 @@ export function AdminHeader({ title, description, actions }: { title: string; de
 /** Data-dense table that scrolls inside its own box on small screens (never the page). */
 export function DataTable({ children }: { children: ReactNode }) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-line bg-[#081d17]">
-      <table className="w-full min-w-[640px] text-left text-[13px] [&_td]:border-t [&_td]:border-line [&_td]:px-3 [&_td]:py-2.5 [&_td]:align-top [&_th]:px-3 [&_th]:py-2 [&_th]:text-[11px] [&_th]:font-semibold [&_th]:tracking-wide [&_th]:text-sage [&_th]:uppercase [&_tbody_tr:hover]:bg-[#0d2720]">
+    <div className="overflow-x-auto rounded-xl border border-hairline-strong bg-surface-raised">
+      <table className="w-full min-w-160 text-left text-caption [&_td]:border-t [&_td]:border-hairline-strong [&_td]:px-3 [&_td]:py-2.5 [&_td]:align-top [&_th]:px-3 [&_th]:py-2 [&_th]:text-xs [&_th]:font-semibold [&_th]:tracking-wide [&_th]:text-text-2 [&_th]:uppercase [&_tbody_tr:hover]:bg-surface-overlay">
         {children}
       </table>
     </div>
@@ -137,7 +137,7 @@ export function DataTable({ children }: { children: ReactNode }) {
 export function EmptyRow({ cols, children }: { cols: number; children: ReactNode }) {
   return (
     <tr>
-      <td colSpan={cols} className="!py-10 text-center text-sm text-sage">
+      <td colSpan={cols} className="!py-10 text-center text-sm text-text-2">
         {children}
       </td>
     </tr>
@@ -165,7 +165,7 @@ export function FilterTabs<T extends string>({
           onClick={() => onChange(o.value)}
           className={cn(
             'min-h-9 shrink-0 rounded-lg px-3 text-xs font-semibold',
-            value === o.value ? 'bg-[#143a2c] text-[#76f5bc]' : 'text-[#9ac2b0] hover:bg-[#0f2b22]',
+            value === o.value ? 'bg-surface-chip text-signal' : 'text-text-2 hover:bg-surface-overlay',
           )}
         >
           {o.label}
@@ -203,7 +203,7 @@ export function ReasonDialog({
   const tooShort = reason.trim().length < 5;
   return (
     <Dialog open={open} onClose={onClose} title={title}>
-      {description && <div className="mb-4 text-sm text-sage">{description}</div>}
+      {description && <div className="mb-4 text-sm text-text-2">{description}</div>}
       {children}
       <FormError message={error} />
       <Field label={reasonLabel} hint="At least 5 characters.">
@@ -237,13 +237,13 @@ export function ReasonDialog({
 export function Stat({ label, value, hint, href }: { label: string; value: ReactNode; hint?: ReactNode; href?: string }) {
   const body = (
     <>
-      <dt className="text-xs text-sage">{label}</dt>
+      <dt className="text-xs text-text-2">{label}</dt>
       <dd className="mt-1 text-2xl font-semibold tracking-tight tabular-nums">{value}</dd>
-      {hint && <dd className="mt-0.5 text-[11px] text-sage-dim">{hint}</dd>}
+      {hint && <dd className="mt-0.5 text-xs text-text-3">{hint}</dd>}
     </>
   );
   return href ? (
-    <a href={href} className="block rounded-lg px-3 py-2.5 hover:bg-[#0f2b22]">
+    <a href={href} className="block rounded-lg px-3 py-2.5 hover:bg-surface-overlay">
       {body}
     </a>
   ) : (
@@ -253,8 +253,8 @@ export function Stat({ label, value, hint, href }: { label: string; value: React
 
 export function Section({ title, children, action }: { title: string; children: ReactNode; action?: ReactNode }) {
   return (
-    <section className="rounded-xl border border-line bg-[#081d17]">
-      <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
+    <section className="rounded-xl border border-hairline-strong bg-surface-raised">
+      <div className="flex items-center justify-between border-b border-hairline-strong px-4 py-2.5">
         <h2 className="text-sm font-semibold">{title}</h2>
         {action}
       </div>

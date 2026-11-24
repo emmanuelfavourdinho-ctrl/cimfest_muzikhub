@@ -95,20 +95,20 @@ export function MediaUploader({
   return (
     <div>
       {state.kind === 'uploading' ? (
-        <div className="rounded-xl border border-[#3a7f60] bg-[#102f24] p-4" aria-live="polite">
+        <div className="rounded-xl border border-control-border bg-surface-overlay p-4" aria-live="polite">
           <div className="mb-2 flex items-center justify-between gap-3 text-xs">
-            <span className="truncate text-[#c2dacc]">Uploading {state.file.name}</span>
-            <span className="shrink-0 font-semibold text-mint">{Math.round(state.progress * 100)}%</span>
+            <span className="truncate text-text-1">Uploading {state.file.name}</span>
+            <span className="shrink-0 font-semibold text-signal">{Math.round(state.progress * 100)}%</span>
           </div>
           <div
-            className="h-2 overflow-hidden rounded-full bg-forest-700"
+            className="h-2 overflow-hidden rounded-full bg-surface-chip"
             role="progressbar"
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={Math.round(state.progress * 100)}
             aria-label={`Uploading ${state.file.name}`}
           >
-            <div className="h-full rounded-full bg-emerald transition-[width]" style={{ width: `${state.progress * 100}%` }} />
+            <div className="h-full rounded-full bg-signal transition-[width]" style={{ width: `${state.progress * 100}%` }} />
           </div>
           <Button type="button" variant="quiet" size="sm" className="mt-2" onClick={() => abort.current?.abort()}>
             <X /> Cancel
@@ -119,12 +119,12 @@ export function MediaUploader({
           type="button"
           onClick={() => input.current?.click()}
           className={cn(
-            'flex w-full flex-col items-center gap-2 rounded-xl border border-dashed bg-[#102f24] p-5 text-center text-xs text-[#9ecbb3] transition hover:border-mint',
-            state.kind === 'failed' ? 'border-destructive/60' : 'border-[#3a7f60]',
+            'flex w-full flex-col items-center gap-2 rounded-xl border border-dashed bg-surface-overlay p-5 text-center text-xs text-text-2 transition hover:border-signal',
+            state.kind === 'failed' ? 'border-destructive/60' : 'border-control-border',
           )}
         >
-          <Upload className="size-6 text-[#80eab6]" aria-hidden />
-          <strong className="text-sm text-[#d4fce9]">{label}</strong>
+          <Upload className="size-6 text-signal" aria-hidden />
+          <strong className="text-sm text-text-1">{label}</strong>
           <span>{limits}</span>
         </button>
       )}

@@ -75,7 +75,7 @@ export function Composer() {
           maxLength={POST_BODY_MAX}
           onChange={(e) => update(e.target.value)}
           placeholder="What are you working on? Share a clip, a beat or an update…"
-          className="min-h-20 w-full resize-y bg-transparent text-[14px] text-foreground outline-none placeholder:text-[#62836e]"
+          className="min-h-20 w-full resize-y bg-transparent text-sm text-foreground outline-none placeholder:text-text-3"
         />
       </div>
 
@@ -120,7 +120,7 @@ export function Composer() {
         </div>
       )}
 
-      <div className="mt-3 flex flex-wrap items-center gap-1 border-t border-line pt-3">
+      <div className="mt-3 flex flex-wrap items-center gap-1 border-t border-hairline-strong pt-3">
         {(
           [
             ['IMAGE', ImagePlus, 'Images'],
@@ -140,7 +140,7 @@ export function Composer() {
             <Icon /> {label}
           </Button>
         ))}
-        <span className="ml-auto text-[11px] text-sage-dim">{body.length > POST_BODY_MAX - 200 && `${body.length}/${POST_BODY_MAX}`}</span>
+        <span className="ml-auto text-xs text-text-3">{body.length > POST_BODY_MAX - 200 && `${body.length}/${POST_BODY_MAX}`}</span>
         <Button size="sm" disabled={posting || uploading || (!body.trim() && media.length === 0)} onClick={() => void post()}>
           {posting ? 'Posting…' : uploading ? 'Uploading…' : 'Post'}
         </Button>

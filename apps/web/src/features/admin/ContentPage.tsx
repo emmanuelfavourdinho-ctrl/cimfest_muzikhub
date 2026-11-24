@@ -101,16 +101,16 @@ export function ContentPage() {
               ) : (
                 rows.map((c) => (
                   <tr key={c.id}>
-                    <td className="max-w-[340px]">
+                    <td className="max-w-85">
                       <div className="flex gap-2.5">
                         {c.thumbnail && (
                           <img src={c.thumbnail} alt="" loading="lazy" className="size-12 shrink-0 rounded-md object-cover" />
                         )}
                         <div className="min-w-0">
                           {c.title && <p className="font-semibold">{c.title}</p>}
-                          <p className="line-clamp-2 text-sage">{c.excerpt ?? (c.thumbnail ? 'Media post' : '—')}</p>
+                          <p className="line-clamp-2 text-text-2">{c.excerpt ?? (c.thumbnail ? 'Media post' : '—')}</p>
                           {c.removedAt && (
-                            <p className="mt-0.5 text-xs text-[#ffb3b6]">
+                            <p className="mt-0.5 text-xs text-danger">
                               Removed <Ago iso={c.removedAt} />: {c.removalReason}
                             </p>
                           )}
@@ -118,7 +118,7 @@ export function ContentPage() {
                             href={c.link}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-1 text-[11px] text-mint-soft hover:underline"
+                            className="inline-flex items-center gap-1 text-xs text-signal hover:underline"
                           >
                             Open <ExternalLink className="size-3" />
                           </a>
@@ -126,14 +126,14 @@ export function ContentPage() {
                       </div>
                     </td>
                     <td>
-                      <Link to={`/admin/users?q=${encodeURIComponent(c.author.username)}`} className="hover:text-mint">
+                      <Link to={`/admin/users?q=${encodeURIComponent(c.author.username)}`} className="hover:text-signal">
                         {c.author.name}
                       </Link>
                     </td>
-                    <td className="whitespace-nowrap text-sage">
+                    <td className="whitespace-nowrap text-text-2">
                       <Ago iso={c.createdAt} />
                     </td>
-                    <td>{c.openReports > 0 ? <Tag color="gold">{c.openReports} open</Tag> : <span className="text-sage-dim">—</span>}</td>
+                    <td>{c.openReports > 0 ? <Tag color="gold">{c.openReports} open</Tag> : <span className="text-text-3">—</span>}</td>
                     <td className="text-right">
                       <Button size="sm" variant={c.removedAt ? 'outline' : 'destructive'} onClick={() => setTarget(c)}>
                         {c.removedAt ? 'Restore' : 'Remove'}

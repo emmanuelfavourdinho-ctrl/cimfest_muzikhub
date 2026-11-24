@@ -6,20 +6,20 @@ import { Eyebrow } from '@/components/ui/primitives';
 export function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-svh flex-col">
-      <header className="flex h-[59px] items-center border-b border-[#214639] px-4 sm:h-[66px] sm:px-8">
+      <header className="flex h-14.75 items-center border-b border-hairline-strong px-4 sm:h-16.5 sm:px-8">
         <BrandMark />
       </header>
-      <div className="mx-auto grid w-full max-w-6xl flex-1 items-center gap-10 px-4 py-8 sm:px-8 lg:grid-cols-[1fr_minmax(0,460px)]">
+      <div className="mx-auto grid w-full max-w-6xl flex-1 items-center gap-10 px-4 py-8 sm:px-8 lg:grid-cols-[1fr_minmax(0,--spacing(115))]">
         <section className="hidden lg:block">
           <Eyebrow>Music is better together</Eyebrow>
-          <h1 className="mt-3 max-w-xl text-[43px] leading-[1.065] font-extrabold tracking-[-0.045em]">
+          <h1 className="mt-3 max-w-xl text-4xl leading-[1.065] font-extrabold tracking-[-0.045em]">
             Discover talent.
             <br />
             Create together.
             <br />
-            <em className="text-[#41eca5] not-italic">Grow together.</em>
+            <em className="text-signal not-italic">Grow together.</em>
           </h1>
-          <p className="mt-4 max-w-md text-sm leading-relaxed text-[#c4dfd1]">
+          <p className="mt-4 max-w-md text-sm leading-relaxed text-text-1">
             One connected world for artists, producers, DJs, engineers and the people who move music forward.
           </p>
         </section>

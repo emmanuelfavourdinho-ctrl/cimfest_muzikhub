@@ -35,7 +35,7 @@ function UserWorkspace({ u }: { u: AdminUserDetail }) {
 
   return (
     <div>
-      <Link to="/admin/users" className="mb-3 inline-flex items-center gap-1 text-xs text-sage hover:text-foreground">
+      <Link to="/admin/users" className="mb-3 inline-flex items-center gap-1 text-xs text-text-2 hover:text-foreground">
         <ArrowLeft className="size-3" /> Users
       </Link>
       <AdminHeader
@@ -51,7 +51,7 @@ function UserWorkspace({ u }: { u: AdminUserDetail }) {
                 href={`/u/${u.username}`}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1 text-mint-soft hover:underline"
+                className="inline-flex items-center gap-1 text-signal hover:underline"
               >
                 Public profile <ExternalLink className="size-3" />
               </a>
@@ -88,7 +88,7 @@ function UserWorkspace({ u }: { u: AdminUserDetail }) {
         <p className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm">
           <strong>{u.status.charAt(0) + u.status.slice(1).toLowerCase()}</strong>
           {u.statusUntil && <> until {new Date(u.statusUntil).toLocaleString()}</>}: {u.statusReason}
-          <span className="text-sage">
+          <span className="text-text-2">
             {' '}
             · <Ago iso={u.statusChangedAt} />
           </span>
@@ -102,35 +102,35 @@ function UserWorkspace({ u }: { u: AdminUserDetail }) {
               <Avatar name={u.name} image={u.image} className="size-14 text-sm" />
               <dl className="grid min-w-0 flex-1 grid-cols-1 gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2">
                 <div className="min-w-0">
-                  <dt className="text-xs text-sage">Email</dt>
+                  <dt className="text-xs text-text-2">Email</dt>
                   <dd className="[overflow-wrap:anywhere]">
-                    {u.email ?? <span className="text-sage-dim">visible to administrators</span>}{' '}
+                    {u.email ?? <span className="text-text-3">visible to administrators</span>}{' '}
                     {u.email && (u.emailVerified ? <Tag color="green">verified</Tag> : <Tag color="gray">unverified</Tag>)}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-sage">Joined</dt>
+                  <dt className="text-xs text-text-2">Joined</dt>
                   <dd>{new Date(u.joinedAt).toLocaleDateString()}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-sage">Last active</dt>
+                  <dt className="text-xs text-text-2">Last active</dt>
                   <dd>
                     <Ago iso={u.lastActiveAt} />
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-sage">Professional roles</dt>
+                  <dt className="text-xs text-text-2">Professional roles</dt>
                   <dd>{u.creativeRoles.map((r) => CREATIVE_ROLES[r as keyof typeof CREATIVE_ROLES]).join(' · ') || '—'}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-sage">Location</dt>
+                  <dt className="text-xs text-text-2">Location</dt>
                   <dd>{u.location ?? '—'}</dd>
                 </div>
               </dl>
             </div>
-            {u.bio && <p className="px-3 pb-2 text-sm text-sage">{u.bio}</p>}
+            {u.bio && <p className="px-3 pb-2 text-sm text-text-2">{u.bio}</p>}
             {(u.image || u.hasCover) && (
-              <div className="flex flex-wrap gap-2 border-t border-line px-3 py-2">
+              <div className="flex flex-wrap gap-2 border-t border-hairline-strong px-3 py-2">
                 {u.image && (
                   <Button size="sm" variant="quiet" onClick={() => setDialog('avatar')}>
                     Remove profile photo
@@ -157,12 +157,12 @@ function UserWorkspace({ u }: { u: AdminUserDetail }) {
 
           <Section title={`Reports about this member (${u.reportsAgainst.length})`}>
             {u.reportsAgainst.length === 0 ? (
-              <p className="px-3 py-2 text-sm text-sage">None.</p>
+              <p className="px-3 py-2 text-sm text-text-2">None.</p>
             ) : (
-              <ul className="divide-y divide-line">
+              <ul className="divide-y divide-hairline-strong">
                 {u.reportsAgainst.map((r) => (
                   <li key={r.id} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
-                    <Link to={`/admin/reports/${r.id}`} className="hover:text-mint">
+                    <Link to={`/admin/reports/${r.id}`} className="hover:text-signal">
                       {REPORT_REASONS[r.reason as keyof typeof REPORT_REASONS]} · {r.targetType.toLowerCase().replace('_', ' ')} ·{' '}
                       <Ago iso={r.createdAt} />
                     </Link>
@@ -201,7 +201,7 @@ function UserWorkspace({ u }: { u: AdminUserDetail }) {
                     Reset two-step verification
                   </Button>
                 )}
-                <p className="text-[11px] text-sage-dim">
+                <p className="text-xs text-text-3">
                   Role changes and resets need a recent sign-in. Staff must set up two-step verification before using the console.
                 </p>
               </div>
@@ -209,16 +209,16 @@ function UserWorkspace({ u }: { u: AdminUserDetail }) {
           )}
           <Section title="Account history">
             {u.history.length === 0 ? (
-              <p className="px-3 py-2 text-sm text-sage">No administrative actions on this account.</p>
+              <p className="px-3 py-2 text-sm text-text-2">No administrative actions on this account.</p>
             ) : (
               <ol className="space-y-2 px-3 py-2 text-sm">
                 {u.history.map((h) => (
                   <li key={h.id}>
                     <span className="font-medium">{describeAction(h.action)}</span>{' '}
-                    <span className="text-xs text-sage">
+                    <span className="text-xs text-text-2">
                       <Ago iso={h.createdAt} /> · {h.actorRole?.toLowerCase() ?? h.actorLabel}
                     </span>
-                    {h.reason && <p className="text-sage">{h.reason}</p>}
+                    {h.reason && <p className="text-text-2">{h.reason}</p>}
                   </li>
                 ))}
               </ol>

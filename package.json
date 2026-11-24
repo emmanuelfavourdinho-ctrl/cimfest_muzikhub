@@ -27,12 +27,15 @@
     "test:e2e": "playwright test",
     "media:cleanup": "npm run media:cleanup -w @muzikhub/api",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "lint": "oxlint && node scripts/check-tokens.mjs",
+    "lint:tokens": "node scripts/check-tokens.mjs --report"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",
     "@playwright/test": "^1.65.1",
     "concurrently": "^10.0.7",
+    "oxlint": "^1.95.0",
     "prettier": "^3.10.1",
     "typescript": "^7.0.2"
   },

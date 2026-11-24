@@ -46,7 +46,7 @@ export function ForgotPasswordPage() {
           </>
         ) : (
           <form onSubmit={onSubmit} noValidate>
-            <p className="mb-5 text-sm text-sage">Enter the email address on your account and we'll send you a reset link.</p>
+            <p className="mb-5 text-sm text-text-2">Enter the email address on your account and we'll send you a reset link.</p>
             <FormError message={formError} />
             <Field label="Email" error={formState.errors.email?.message}>
               {(a) => <Input {...a} type="email" autoComplete="email" inputMode="email" {...register('email')} />}
@@ -55,7 +55,7 @@ export function ForgotPasswordPage() {
               {formState.isSubmitting ? 'Sending…' : 'Send reset link'}
             </Button>
             <p className="mt-6 text-center text-sm">
-              <Link to="/login" className="font-semibold text-mint-soft hover:underline">
+              <Link to="/login" className="font-semibold text-signal hover:underline">
                 Back to sign in
               </Link>
             </p>
@@ -114,7 +114,7 @@ export function ResetPasswordPage() {
             <Field label="Confirm new password" error={formState.errors.confirm?.message}>
               {(a) => <Input {...a} type="password" autoComplete="new-password" {...register('confirm')} />}
             </Field>
-            <p className="mb-4 text-xs text-sage-dim">For your security, you'll be signed out on all other devices.</p>
+            <p className="mb-4 text-xs text-text-3">For your security, you'll be signed out on all other devices.</p>
             <Button type="submit" size="lg" className="w-full" disabled={formState.isSubmitting}>
               {formState.isSubmitting ? 'Saving…' : 'Update password'}
             </Button>

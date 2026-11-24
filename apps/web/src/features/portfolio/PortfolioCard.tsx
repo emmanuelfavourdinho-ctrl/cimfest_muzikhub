@@ -29,15 +29,15 @@ export function PortfolioCard({
   return (
     <Link
       to={`/work/${item.id}`}
-      className="group block overflow-hidden rounded-[13px] border border-[#2d5441] bg-[#102920] transition hover:border-[#3a7f60]"
+      className="group block overflow-hidden rounded-m border border-control-border bg-surface-overlay transition hover:border-control-border"
     >
       <div className="relative">
         {visual ? (
           <ResponsiveImage media={visual} alt="" aspect="4 / 3" sizes="(min-width: 1024px) 25vw, 50vw" />
         ) : poster ? (
-          <img src={poster} alt="" loading="lazy" decoding="async" className="aspect-[4/3] w-full bg-forest-800 object-cover" />
+          <img src={poster} alt="" loading="lazy" decoding="async" className="aspect-4/3 w-full bg-surface-overlay object-cover" />
         ) : (
-          <div className="flex aspect-[4/3] items-center justify-center bg-[radial-gradient(ellipse_at_70%_20%,#1b6b4a_0%,transparent_60%),#0b241b] text-mint/80">
+          <div className="flex aspect-4/3 items-center justify-center bg-[radial-gradient(ellipse_at_70%_20%,var(--p-glow)_0%,transparent_60%),var(--p-overlay)] text-signal/80">
             <Icon className="size-9" aria-hidden />
           </div>
         )}
@@ -60,11 +60,11 @@ export function PortfolioCard({
         </div>
       </div>
       <div className="p-3">
-        <p className="flex items-center gap-1.5 text-[10px] font-bold tracking-wide text-[#86caaa] uppercase">
+        <p className="flex items-center gap-1.5 text-xs font-bold tracking-wide text-signal uppercase">
           <Icon className="size-3" aria-hidden /> {PORTFOLIO_TYPES[item.type].label}
         </p>
         <strong className="mt-1 block truncate text-sm">{item.title}</strong>
-        <span className="block truncate text-[11px] text-[#9ab9a6]">
+        <span className="block truncate text-xs text-text-2">
           {showOwner ? `${item.owner.name} · ` : ''}
           {item.genres.map((g) => GENRES[g]).join(' · ') ||
             (item.externalPlatform ? `On ${LINK_PLATFORMS[item.externalPlatform].label}` : ' ')}

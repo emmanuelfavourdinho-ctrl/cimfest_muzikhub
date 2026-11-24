@@ -35,7 +35,7 @@ function ReportWorkspace({ r }: { r: ReportDetail }) {
 
   return (
     <div>
-      <Link to="/admin/reports" className="mb-3 inline-flex items-center gap-1 text-xs text-sage hover:text-foreground">
+      <Link to="/admin/reports" className="mb-3 inline-flex items-center gap-1 text-xs text-text-2 hover:text-foreground">
         <ArrowLeft className="size-3" /> Reports
       </Link>
       <AdminHeader
@@ -72,7 +72,7 @@ function ReportWorkspace({ r }: { r: ReportDetail }) {
                   href={t.link}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-mint-soft hover:underline"
+                  className="inline-flex items-center gap-1 text-xs text-signal hover:underline"
                 >
                   View in app <ExternalLink className="size-3" />
                 </a>
@@ -80,7 +80,7 @@ function ReportWorkspace({ r }: { r: ReportDetail }) {
             }
           >
             {!t.exists ? (
-              <p className="px-3 py-4 text-sm text-sage">
+              <p className="px-3 py-4 text-sm text-text-2">
                 This content no longer exists (deleted by its owner). You can still resolve or dismiss the report.
               </p>
             ) : (
@@ -89,17 +89,17 @@ function ReportWorkspace({ r }: { r: ReportDetail }) {
                   {t.owner && (
                     <>
                       By{' '}
-                      <Link to={`/admin/users/${t.ownerId}`} className="font-semibold text-mint-soft hover:underline">
+                      <Link to={`/admin/users/${t.ownerId}`} className="font-semibold text-signal hover:underline">
                         {t.owner.name}
                       </Link>{' '}
-                      <span className="text-sage">@{t.owner.username}</span>
+                      <span className="text-text-2">@{t.owner.username}</span>
                     </>
                   )}
                   {t.accountStatus && <StatusTag status={t.accountStatus} />}
                   {t.removed && <Tag color="red">Removed: {t.removalReason}</Tag>}
                 </div>
                 <p className="font-semibold">{t.title}</p>
-                {t.text && <p className="text-sm whitespace-pre-line text-[#d6ece0]">{t.text}</p>}
+                {t.text && <p className="text-sm whitespace-pre-line text-text-1">{t.text}</p>}
                 {t.media && t.media.length > 0 && (
                   <div className="grid max-w-md grid-cols-2 gap-2">
                     {t.media.map((m) =>
@@ -111,7 +111,7 @@ function ReportWorkspace({ r }: { r: ReportDetail }) {
                           href={m.urls.src}
                           target="_blank"
                           rel="noreferrer"
-                          className="rounded-lg border border-line p-3 text-xs"
+                          className="rounded-lg border border-hairline-strong p-3 text-xs"
                         >
                           {m.kind.toLowerCase()} file ↗
                         </a>
@@ -122,8 +122,8 @@ function ReportWorkspace({ r }: { r: ReportDetail }) {
               </div>
             )}
             {r.details && (
-              <p className="mx-3 mb-2 rounded-lg bg-[#0d2720] px-3 py-2 text-sm">
-                <span className="text-sage">Reporter's note: </span>
+              <p className="mx-3 mb-2 rounded-lg bg-surface-overlay px-3 py-2 text-sm">
+                <span className="text-text-2">Reporter's note: </span>
                 {r.details}
               </p>
             )}
@@ -132,7 +132,7 @@ function ReportWorkspace({ r }: { r: ReportDetail }) {
           {open && (
             <Section title="Decide">
               {!r.canDecide && (
-                <p className="px-3 pb-2 text-sm text-gold">
+                <p className="px-3 pb-2 text-sm text-warning">
                   This report is escalated: an administrator must resolve or dismiss it. You can still add notes.
                 </p>
               )}
@@ -169,7 +169,7 @@ function ReportWorkspace({ r }: { r: ReportDetail }) {
                     type="checkbox"
                     checked={includeRelated}
                     onChange={(e) => setIncludeRelated(e.target.checked)}
-                    className="size-4 accent-[#28dca0]"
+                    className="size-4 accent-signal"
                   />
                   Also close the other open reports about this content
                 </label>
@@ -179,7 +179,7 @@ function ReportWorkspace({ r }: { r: ReportDetail }) {
           {!open && r.resolution && (
             <Section title="Decision">
               <p className="px-3 py-2 text-sm">{r.resolution}</p>
-              <p className="px-3 pb-2 text-xs text-sage">
+              <p className="px-3 pb-2 text-xs text-text-2">
                 {r.resolvedBy?.name ?? 'Staff'} · <Ago iso={r.resolvedAt} />
               </p>
             </Section>
@@ -188,12 +188,12 @@ function ReportWorkspace({ r }: { r: ReportDetail }) {
 
         <div className="space-y-4">
           <Section title={`Internal notes (${r.notes.length})`}>
-            <p className="px-3 pb-2 text-[11px] text-sage-dim">Visible to staff only. Notes can't be edited.</p>
+            <p className="px-3 pb-2 text-xs text-text-3">Visible to staff only. Notes can't be edited.</p>
             <ul className="space-y-2 px-3">
               {r.notes.map((n) => (
-                <li key={n.id} className="rounded-lg bg-[#0d2720] px-3 py-2 text-sm">
+                <li key={n.id} className="rounded-lg bg-surface-overlay px-3 py-2 text-sm">
                   <p className="whitespace-pre-line">{n.body}</p>
-                  <p className="mt-1 text-[11px] text-sage">
+                  <p className="mt-1 text-xs text-text-2">
                     {n.author?.name ?? 'Staff'} · <Ago iso={n.createdAt} />
                   </p>
                 </li>
@@ -222,12 +222,12 @@ function ReportWorkspace({ r }: { r: ReportDetail }) {
 
           <Section title={`Other reports about this content (${r.otherReports.length})`}>
             {r.otherReports.length === 0 ? (
-              <p className="px-3 py-2 text-sm text-sage">None.</p>
+              <p className="px-3 py-2 text-sm text-text-2">None.</p>
             ) : (
-              <ul className="divide-y divide-line">
+              <ul className="divide-y divide-hairline-strong">
                 {r.otherReports.map((o) => (
                   <li key={o.id} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
-                    <Link to={`/admin/reports/${o.id}`} className="hover:text-mint">
+                    <Link to={`/admin/reports/${o.id}`} className="hover:text-signal">
                       {REPORT_REASONS[o.reason as keyof typeof REPORT_REASONS]} · {o.reporter.name}
                     </Link>
                     <ReportStatusTag status={o.status} escalated={o.escalated} />
@@ -239,13 +239,13 @@ function ReportWorkspace({ r }: { r: ReportDetail }) {
 
           <Section title="History">
             <ol className="space-y-1.5 px-3 py-2 text-sm">
-              <li className="text-sage">
+              <li className="text-text-2">
                 Reported <Ago iso={r.createdAt} />
               </li>
               {r.history.map((h) => (
                 <li key={h.id}>
                   {describeAction(h.action)}{' '}
-                  <span className="text-sage">
+                  <span className="text-text-2">
                     · <Ago iso={h.createdAt} />
                     {h.reason && ` — ${h.reason}`}
                   </span>

@@ -61,12 +61,12 @@ export function RolePicker({ suggested, ...props }: PickerProps<CreativeRole> & 
         <button
           type="button"
           onClick={() => setShowAll(true)}
-          className="mt-3 inline-flex min-h-9 items-center gap-1 text-xs font-semibold text-mint-soft hover:underline"
+          className="mt-3 inline-flex min-h-9 items-center gap-1 text-xs font-semibold text-signal hover:underline"
         >
           Show all roles <ChevronDown className="size-3.5" />
         </button>
       )}
-      <p className="mt-2 text-xs text-sage-dim">
+      <p className="mt-2 text-xs text-text-3">
         {props.value.length}/{props.max} selected
       </p>
     </div>
@@ -77,7 +77,7 @@ export function GenrePicker(props: PickerProps<Genre>) {
   return (
     <div>
       <ChipGroup options={GENRE_KEYS} labels={GENRES} {...props} />
-      <p className="mt-2 text-xs text-sage-dim">
+      <p className="mt-2 text-xs text-text-3">
         {props.value.length}/{props.max} selected
       </p>
     </div>

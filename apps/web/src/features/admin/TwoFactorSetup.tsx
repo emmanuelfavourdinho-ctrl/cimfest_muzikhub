@@ -66,7 +66,7 @@ export function TwoFactorSetup() {
     <Panel className="p-5 sm:p-7">
       <Eyebrow>Staff security</Eyebrow>
       <h1 className="mt-2 text-2xl font-bold">Set up two-step verification</h1>
-      <p className="mt-1 mb-5 text-sm text-sage">
+      <p className="mt-1 mb-5 text-sm text-text-2">
         Staff accounts can change other people's accounts, so the Admin Console requires an authenticator app (Google Authenticator,
         Microsoft Authenticator, 1Password, Authy…).
       </p>
@@ -93,8 +93,8 @@ export function TwoFactorSetup() {
 
       {step.kind === 'scan' && (
         <form onSubmit={confirm} noValidate className="space-y-5">
-          <div className="grid gap-5 sm:grid-cols-[220px_1fr]">
-            <div className="flex aspect-square w-[220px] items-center justify-center rounded-xl bg-white p-2">
+          <div className="grid gap-5 sm:grid-cols-[--spacing(55)_1fr]">
+            <div className="flex aspect-square w-55 items-center justify-center rounded-xl bg-white p-2">
               {qr ? (
                 <img src={qr} alt="QR code to add MuzikHub to your authenticator app" className="size-full" />
               ) : (
@@ -103,8 +103,8 @@ export function TwoFactorSetup() {
             </div>
             <div className="text-sm">
               <p className="font-semibold">1. Scan this code with your authenticator app</p>
-              <p className="mt-1 text-sage">Can't scan? Enter this key manually:</p>
-              <code className="mt-1 block rounded-md bg-[#081d17] px-2 py-1.5 font-mono text-xs break-all">
+              <p className="mt-1 text-text-2">Can't scan? Enter this key manually:</p>
+              <code className="mt-1 block rounded-md bg-surface-raised px-2 py-1.5 font-mono text-xs break-all">
                 {new URL(step.totpURI).searchParams.get('secret')}
               </code>
             </div>
@@ -115,7 +115,7 @@ export function TwoFactorSetup() {
               Each code works once if you lose your phone. Store them somewhere safe (a password manager). They won't be shown again.
             </Hint>
             <ul
-              className="grid grid-cols-2 gap-1.5 rounded-xl border border-line bg-[#081d17] p-3 font-mono text-sm sm:grid-cols-5"
+              className="grid grid-cols-2 gap-1.5 rounded-xl border border-hairline-strong bg-surface-raised p-3 font-mono text-sm sm:grid-cols-5"
               aria-label="Backup codes"
             >
               {step.backupCodes.map((c) => (
@@ -149,7 +149,7 @@ export function TwoFactorSetup() {
               </Button>
             </div>
             <label className="mt-3 flex min-h-11 items-center gap-3 text-sm">
-              <input type="checkbox" checked={saved} onChange={(e) => setSaved(e.target.checked)} className="size-4 accent-[#28dca0]" />
+              <input type="checkbox" checked={saved} onChange={(e) => setSaved(e.target.checked)} className="size-4 accent-signal" />
               I've saved my backup codes somewhere safe
             </label>
           </div>

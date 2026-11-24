@@ -83,15 +83,15 @@ function PhotosSection({ me }: { me: Me }) {
 
   return (
     <Section title="Photos" description="A clear photo and a cover help people recognise you.">
-      <div className="grid gap-6 sm:grid-cols-[200px_1fr]">
+      <div className="grid gap-6 sm:grid-cols-[--spacing(50)_1fr]">
         <div>
-          <p className="mb-2 text-xs font-bold text-[#b4dbbf]">Profile photo</p>
+          <p className="mb-2 text-xs font-bold text-text-1">Profile photo</p>
           {me.profile.image ? (
             <div>
               <img
                 src={me.profile.image}
-                alt="Your profile photo"
-                className="size-24 rounded-full border-2 border-[#37694e] object-cover"
+                alt="Your current avatar"
+                className="size-24 rounded-full border-2 border-control-border object-cover"
               />
               <div className="mt-2 flex gap-2">
                 <Button variant="quiet" size="sm" disabled={saving} onClick={() => void apply('avatar', null)}>
@@ -110,7 +110,7 @@ function PhotosSection({ me }: { me: Me }) {
           </div>
         </div>
         <div>
-          <p className="mb-2 text-xs font-bold text-[#b4dbbf]">Cover image</p>
+          <p className="mb-2 text-xs font-bold text-text-1">Cover image</p>
           {me.profile.cover ? (
             <div className="mb-2">
               <ResponsiveImage
@@ -141,7 +141,7 @@ function Section({ title, description, children }: { title: string; description?
   return (
     <Panel className="p-5 sm:p-6">
       <h2 className="text-lg font-bold">{title}</h2>
-      {description && <p className="mt-0.5 text-sm text-sage">{description}</p>}
+      {description && <p className="mt-0.5 text-sm text-text-2">{description}</p>}
       <div className="mt-5">{children}</div>
     </Panel>
   );
@@ -254,11 +254,11 @@ function IdentitySection({ me }: { me: Me }) {
             </Select>
           )}
         </Field>
-        <h3 className="mb-2.5 text-xs font-bold text-[#b4dbbf]">Roles</h3>
+        <h3 className="mb-2.5 text-xs font-bold text-text-1">Roles</h3>
         <RolePicker label="Roles" value={roles} onChange={setRoles} max={6} suggested={SUGGESTED_ROLES[primaryUse]} />
-        <h3 className="mt-6 mb-2.5 text-xs font-bold text-[#b4dbbf]">Genres</h3>
+        <h3 className="mt-6 mb-2.5 text-xs font-bold text-text-1">Genres</h3>
         <GenrePicker label="Genres" value={genres} onChange={setGenres} max={8} />
-        <h3 className="mt-6 mb-2.5 text-xs font-bold text-[#b4dbbf]">Skills</h3>
+        <h3 className="mt-6 mb-2.5 text-xs font-bold text-text-1">Skills</h3>
         <div className="flex gap-2">
           <Input
             aria-label="Add a skill"
@@ -282,14 +282,14 @@ function IdentitySection({ me }: { me: Me }) {
             {skills.map((s) => (
               <li
                 key={s}
-                className="inline-flex items-center gap-1 rounded-full border border-[#24644b] bg-[#134130] py-1 pr-1 pl-3 text-xs text-[#87eabb]"
+                className="inline-flex items-center gap-1 rounded-full border border-control-border bg-surface-chip py-1 pr-1 pl-3 text-xs text-signal"
               >
                 {s}
                 <button
                   type="button"
                   aria-label={`Remove ${s}`}
                   onClick={() => setSkills(skills.filter((x) => x !== s))}
-                  className="rounded-full p-1 hover:bg-forest-700"
+                  className="rounded-full p-1 hover:bg-surface-chip"
                 >
                   <X className="size-3" />
                 </button>
@@ -297,7 +297,7 @@ function IdentitySection({ me }: { me: Me }) {
             ))}
           </ul>
         )}
-        <h3 className="mt-6 mb-2.5 text-xs font-bold text-[#b4dbbf]">What you're here for</h3>
+        <h3 className="mt-6 mb-2.5 text-xs font-bold text-text-1">What you're here for</h3>
         <GoalPicker label="Goals" value={goals} onChange={setGoals} max={7} />
         <Button type="submit" size="sm" className="mt-6" disabled={pending}>
           {pending ? 'Saving…' : 'Save identity'}

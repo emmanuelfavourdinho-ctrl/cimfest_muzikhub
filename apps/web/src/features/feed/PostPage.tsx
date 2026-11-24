@@ -25,7 +25,7 @@ export function PostPage() {
         error instanceof ApiRequestError && error.status === 404 ? (
           <div className="py-16 text-center">
             <h1 className="text-2xl font-bold">This post isn't available</h1>
-            <p className="mt-2 text-sm text-sage">It may have been deleted.</p>
+            <p className="mt-2 text-sm text-text-2">It may have been deleted.</p>
           </div>
         ) : (
           <LoadFailed message={errorMessage(error)} onRetry={() => void refetch()} />

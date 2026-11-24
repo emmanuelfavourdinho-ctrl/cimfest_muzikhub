@@ -30,7 +30,7 @@ export function PortfolioItemPage() {
       return (
         <div className="mx-auto max-w-md py-16 text-center">
           <h1 className="text-2xl font-bold">This work isn't available</h1>
-          <p className="mt-2 text-sm text-sage">It may be private, archived or deleted.</p>
+          <p className="mt-2 text-sm text-text-2">It may be private, archived or deleted.</p>
         </div>
       );
     }
@@ -75,11 +75,11 @@ export function PortfolioItemPage() {
           <Eyebrow>
             <Icon className="size-3" aria-hidden /> {PORTFOLIO_TYPES[item.type].label}
           </Eyebrow>
-          <h1 className="mt-2 text-[27px] leading-tight font-bold break-words">{item.title}</h1>
-          <Link to={`/u/${item.owner.username}`} className="mt-3 flex items-center gap-2.5 rounded-lg py-1 text-sm hover:text-mint">
+          <h1 className="mt-2 text-2xl leading-tight font-bold break-words">{item.title}</h1>
+          <Link to={`/u/${item.owner.username}`} className="mt-3 flex items-center gap-2.5 rounded-lg py-1 text-sm hover:text-signal">
             <Avatar name={item.owner.name} image={item.owner.image} className="size-9 text-xs" />
             <span className="font-semibold">{item.owner.name}</span>
-            <span className="text-sage">@{item.owner.username}</span>
+            <span className="text-text-2">@{item.owner.username}</span>
           </Link>
           {item.genres.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1.5">
@@ -88,10 +88,10 @@ export function PortfolioItemPage() {
               ))}
             </div>
           )}
-          {item.description && <p className="mt-4 text-[13px] leading-[1.8] whitespace-pre-line text-[#b5d4c2]">{item.description}</p>}
+          {item.description && <p className="mt-4 text-caption leading-[1.8] whitespace-pre-line text-text-2">{item.description}</p>}
           {item.credits && (
-            <p className="mt-3 text-xs text-sage">
-              <span className="font-semibold text-[#c2dacc]">Credits: </span>
+            <p className="mt-3 text-xs text-text-2">
+              <span className="font-semibold text-text-1">Credits: </span>
               {item.credits}
             </p>
           )}
@@ -105,14 +105,14 @@ export function PortfolioItemPage() {
             </Button>
           )}
           {item.publishedAt && (
-            <p className="mt-4 text-[11px] text-sage-dim">
+            <p className="mt-4 text-xs text-text-3">
               Published {new Date(item.publishedAt).toLocaleDateString(undefined, { dateStyle: 'medium' })}
             </p>
           )}
 
           {item.isOwner ? (
             <Panel className="mt-5 p-4">
-              <p className="mb-3 text-xs text-sage">
+              <p className="mb-3 text-xs text-text-2">
                 Status: <strong className="text-foreground">{item.status.toLowerCase()}</strong> ·{' '}
                 {item.visibility === 'PUBLIC' ? 'Public' : 'Only you'}
               </p>
@@ -150,7 +150,7 @@ export function PortfolioItemPage() {
       </div>
 
       <Dialog open={confirmDelete} onClose={() => setConfirmDelete(false)} title="Delete this work?">
-        <p className="mb-5 text-sm text-sage">
+        <p className="mb-5 text-sm text-text-2">
           “{item.title}” and its uploaded files will be permanently deleted, including any feed post that shares it. This can't be undone.
         </p>
         <div className="flex justify-end gap-2">

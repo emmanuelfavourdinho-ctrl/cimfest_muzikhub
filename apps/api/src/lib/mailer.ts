@@ -52,6 +52,8 @@ export const captureTransport: EmailTransport = {
 export const consoleTransport: EmailTransport = {
   name: 'console',
   async send(message) {
+    // Printing the email IS this transport's job (development only, never sent).
+    // oxlint-disable-next-line no-console
     console.log(
       `\n──── EMAIL (dev console transport — not sent) ────\nTo: ${message.to}\nSubject: ${message.subject}\n\n${message.text}\n──────────────────────────────────────────────────\n`,
     );

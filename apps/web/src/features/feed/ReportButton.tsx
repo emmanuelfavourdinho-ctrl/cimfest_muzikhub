@@ -51,7 +51,7 @@ export function ReportButton({
         <Field label="Details (optional)">
           {(a) => <Textarea {...a} value={details} maxLength={1000} onChange={(e) => setDetails(e.target.value)} />}
         </Field>
-        <p className="mb-4 text-xs text-sage-dim">Reports are private. The person you report isn't told who reported them.</p>
+        <p className="mb-4 text-xs text-text-3">Reports are private. The person you report isn't told who reported them.</p>
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={() => setOpen(false)}>
             Cancel

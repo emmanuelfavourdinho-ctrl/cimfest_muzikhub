@@ -43,9 +43,9 @@ export function VerifyEmailBanner() {
   return (
     <div
       role="status"
-      className="mb-5 flex flex-col gap-3 rounded-xl border border-[#7a692d] bg-[#2a2410] px-4 py-3 text-sm text-[#ffe9b0] sm:flex-row sm:items-center"
+      className="mb-5 flex flex-col gap-3 rounded-xl border border-warning/40 bg-warning/15 px-4 py-3 text-sm text-warning sm:flex-row sm:items-center"
     >
-      <MailCheck className="hidden size-5 shrink-0 text-gold sm:block" aria-hidden />
+      <MailCheck className="hidden size-5 shrink-0 text-warning sm:block" aria-hidden />
       <p className="flex-1">
         <strong className="font-semibold">Confirm your email.</strong> We sent a link to <span className="break-all">{me.email}</span>.
         Confirming helps you recover your account.

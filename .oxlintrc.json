@@ -1,0 +1,49 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "react", "jsx-a11y", "import", "unicorn", "oxc"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn"
+  },
+  "env": {
+    "browser": true,
+    "node": true,
+    "es2024": true
+  },
+  "rules": {
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "error",
+    "typescript/no-explicit-any": "error",
+    "no-console": [
+      "error",
+      {
+        "allow": ["warn", "error", "info"]
+      }
+    ],
+    "eqeqeq": ["error", "smart"],
+    "import/no-cycle": "error",
+    "react/react-in-jsx-scope": "off",
+    "jsx-a11y/no-autofocus": "off",
+    "jsx-a11y/prefer-tag-over-role": "off",
+    "react/purity": "off",
+    "react/incompatible-library": "off",
+    "react/exhaustive-effect-dependencies": "off",
+    "oxc/no-async-endpoint-handlers": "off",
+    "no-underscore-dangle": "off"
+  },
+  "ignorePatterns": ["**/dist/**", "**/node_modules/**", "apps/api/src/generated/**", "e2e/.results/**", "brand-originals/**"],
+  "overrides": [
+    {
+      "files": ["apps/api/src/scripts/**", "apps/api/src/server.ts", "e2e/**", "**/*.test.ts", "**/*.config.ts", "scripts/**"],
+      "rules": {
+        "no-console": "off"
+      }
+    },
+    {
+      "files": ["apps/web/src/features/landing/**"],
+      "rules": {
+        "jsx-a11y/interactive-supports-focus": "off"
+      }
+    }
+  ]
+}

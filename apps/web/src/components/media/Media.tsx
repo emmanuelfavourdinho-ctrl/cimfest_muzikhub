@@ -40,7 +40,7 @@ export function ResponsiveImage({
         role="img"
         aria-label={alt || 'Image unavailable'}
         style={{ aspectRatio: ratio }}
-        className={cn('flex items-center justify-center bg-forest-800 text-sage-dim', className)}
+        className={cn('flex items-center justify-center bg-surface-overlay text-text-3', className)}
       >
         <ImageOff className="size-6" aria-hidden />
       </div>
@@ -59,7 +59,7 @@ export function ResponsiveImage({
       fetchPriority={priority ? 'high' : 'auto'}
       onError={() => setFailed(true)}
       style={{ aspectRatio: ratio }}
-      className={cn('w-full bg-forest-800 object-cover', className)}
+      className={cn('w-full bg-surface-overlay object-cover', className)}
     />
   );
 }
@@ -68,18 +68,20 @@ export function ResponsiveImage({
 export function AudioPlayer({ media, title }: { media: MediaView; title: string }) {
   const [failed, setFailed] = useState(false);
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-[#2b5e49] bg-[#0b261d] p-3">
-      <span aria-hidden className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#134130] text-mint">
+    <div className="flex items-center gap-3 rounded-xl border border-control-border bg-surface-overlay p-3">
+      <span aria-hidden className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-surface-chip text-signal">
         <Music2 className="size-5" />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="mb-1.5 truncate text-xs font-semibold text-[#c2dacc]">
+        <p className="mb-1.5 truncate text-xs font-semibold text-text-1">
           {title}
-          {media.durationSec ? <span className="ml-2 font-normal text-sage-dim">{formatDuration(media.durationSec)}</span> : null}
+          {media.durationSec ? <span className="ml-2 font-normal text-text-3">{formatDuration(media.durationSec)}</span> : null}
         </p>
         {failed ? (
           <p className="text-xs text-destructive">This audio couldn't be loaded.</p>
         ) : (
+          // User uploads carry no caption files yet (captions: tracked gap in docs/traceability.md).
+          // oxlint-disable-next-line jsx-a11y/media-has-caption
           <audio
             controls
             preload="none"
@@ -104,6 +106,8 @@ export function VideoPlayer({ media, title }: { media: MediaView; title: string 
   if (playing) {
     return (
       // autoPlay is fine here: the user explicitly pressed play a moment ago.
+      // User uploads carry no caption files yet (captions: tracked gap in docs/traceability.md).
+      // oxlint-disable-next-line jsx-a11y/media-has-caption
       <video
         controls
         autoPlay
@@ -128,12 +132,12 @@ export function VideoPlayer({ media, title }: { media: MediaView; title: string 
         <img src={media.urls.poster} alt="" loading="lazy" decoding="async" className="size-full object-cover opacity-90" />
       )}
       <span className="absolute inset-0 flex items-center justify-center">
-        <span className="flex size-14 items-center justify-center rounded-full bg-[#20d99b] text-[#05241a] shadow-[0_6px_28px_#12dba16e] transition group-hover:scale-105">
+        <span className="flex size-14 items-center justify-center rounded-full bg-signal text-on-signal shadow-glow transition group-hover:scale-105">
           <Play className="ml-0.5 size-6 fill-current" />
         </span>
       </span>
       {media.durationSec ? (
-        <span className="absolute right-2 bottom-2 rounded bg-black/70 px-1.5 py-0.5 text-[11px] text-white">
+        <span className="absolute right-2 bottom-2 rounded bg-black/70 px-1.5 py-0.5 text-xs text-white">
           {formatDuration(media.durationSec)}
         </span>
       ) : null}

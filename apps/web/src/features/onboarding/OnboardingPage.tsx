@@ -93,9 +93,9 @@ function OnboardingFlow({ me }: { me: Me }) {
 
   return (
     <div className="flex min-h-svh flex-col">
-      <header className="flex h-[59px] items-center justify-between border-b border-[#214639] px-4 sm:h-[66px] sm:px-8">
+      <header className="flex h-14.75 items-center justify-between border-b border-hairline-strong px-4 sm:h-16.5 sm:px-8">
         <BrandMark to="/home" />
-        <Link to="/home" className="rounded-lg px-2 py-2 text-xs font-semibold text-sage hover:text-foreground">
+        <Link to="/home" className="rounded-lg px-2 py-2 text-xs font-semibold text-text-2 hover:text-foreground">
           Finish later
         </Link>
       </header>
@@ -185,7 +185,7 @@ function OnboardingFlow({ me }: { me: Me }) {
             </StepIntro>
           )}
 
-          <div className="mt-7 flex items-center justify-between gap-3 border-t border-line pt-5">
+          <div className="mt-7 flex items-center justify-between gap-3 border-t border-hairline-strong pt-5">
             <Button variant="quiet" size="sm" onClick={() => setIndex(index - 1)} disabled={index === 0 || busy}>
               <ArrowLeft /> Back
             </Button>
@@ -210,7 +210,7 @@ function OnboardingFlow({ me }: { me: Me }) {
 function Progress({ current, total }: { current: number; total: number }) {
   return (
     <div>
-      <div className="mb-2 flex justify-between text-xs font-semibold text-sage">
+      <div className="mb-2 flex justify-between text-xs font-semibold text-text-2">
         <span>Set up your profile</span>
         <span>
           Step {current + 1} of {total}
@@ -225,7 +225,7 @@ function Progress({ current, total }: { current: number; total: number }) {
         aria-label="Profile setup progress"
       >
         {Array.from({ length: total }, (_, i) => (
-          <span key={i} className={`h-1.5 flex-1 rounded-full ${i <= current ? 'bg-emerald' : 'bg-forest-700'}`} />
+          <span key={i} className={`h-1.5 flex-1 rounded-full ${i <= current ? 'bg-signal' : 'bg-surface-chip'}`} />
         ))}
       </div>
     </div>
@@ -246,8 +246,8 @@ function StepIntro({
   return (
     <div>
       <Eyebrow>{eyebrow}</Eyebrow>
-      <h1 className="mt-2 text-2xl font-bold sm:text-[27px]">{title}</h1>
-      <p className="mt-1 mb-6 text-sm text-sage">{description}</p>
+      <h1 className="mt-2 text-2xl font-bold sm:text-2xl">{title}</h1>
+      <p className="mt-1 mb-6 text-sm text-text-2">{description}</p>
       {children}
     </div>
   );

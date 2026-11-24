@@ -124,7 +124,7 @@ function PortfolioEditor({ existing }: { existing?: PortfolioItemView }) {
         <FormError message={error} />
         <Panel className="p-5 sm:p-6">
           <fieldset>
-            <legend className="mb-2.5 text-xs font-bold text-[#b4dbbf]">What kind of work is it?</legend>
+            <legend className="mb-2.5 text-xs font-bold text-text-1">What kind of work is it?</legend>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
               {PORTFOLIO_TYPE_KEYS.map((key) => {
                 const Icon = typeIcons[key];
@@ -135,7 +135,7 @@ function PortfolioEditor({ existing }: { existing?: PortfolioItemView }) {
                     type="button"
                     aria-pressed={selected}
                     onClick={() => chooseType(key)}
-                    className={`flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl border px-2 py-2 text-center text-[11px] font-semibold transition ${selected ? 'border-[#33eba5] bg-[#123f2e] text-mint' : 'border-[#2a5744] bg-[#0e2c22] text-[#a8cdbb] hover:border-[#3a7f60]'}`}
+                    className={`flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl border px-2 py-2 text-center text-xs font-semibold transition ${selected ? 'border-signal bg-surface-chip text-signal' : 'border-control-border bg-surface-overlay text-text-2 hover:border-control-border'}`}
                   >
                     <Icon className="size-5" aria-hidden />
                     {PORTFOLIO_TYPES[key].label}
@@ -154,7 +154,7 @@ function PortfolioEditor({ existing }: { existing?: PortfolioItemView }) {
           </Field>
           {accepts.length > 0 && (
             <div className="mb-4">
-              <p className="mb-1.5 text-xs font-bold text-[#b4dbbf]">
+              <p className="mb-1.5 text-xs font-bold text-text-1">
                 {type === 'VIDEO' ? 'Video file' : type === 'IMAGE' ? 'Image' : 'Audio file'}
               </p>
               <MediaUploader
@@ -170,8 +170,8 @@ function PortfolioEditor({ existing }: { existing?: PortfolioItemView }) {
           )}
           {type !== 'IMAGE' && (
             <div className="mb-4">
-              <p className="mb-1.5 text-xs font-bold text-[#b4dbbf]">
-                Cover image <span className="font-normal text-sage-dim">(optional)</span>
+              <p className="mb-1.5 text-xs font-bold text-text-1">
+                Cover image <span className="font-normal text-text-3">(optional)</span>
               </p>
               <MediaUploader
                 purpose="PORTFOLIO"
@@ -217,13 +217,13 @@ function PortfolioEditor({ existing }: { existing?: PortfolioItemView }) {
           <Field label="Credits" hint="Optional, e.g. “Produced by Kora Beats · Mixed by …”">
             {(a) => <Input {...a} value={credits} maxLength={500} onChange={(e) => setCredits(e.target.value)} />}
           </Field>
-          <p className="mb-2.5 text-xs font-bold text-[#b4dbbf]">Genres</p>
+          <p className="mb-2.5 text-xs font-bold text-text-1">Genres</p>
           <GenrePicker label="Genres" value={genres} onChange={setGenres} max={5} />
         </Panel>
 
         <Panel className="space-y-3 p-5 sm:p-6">
           <fieldset>
-            <legend className="mb-2 text-xs font-bold text-[#b4dbbf]">Who can see it?</legend>
+            <legend className="mb-2 text-xs font-bold text-text-1">Who can see it?</legend>
             {(['PUBLIC', 'PRIVATE'] as const).map((v) => (
               <label key={v} className="flex min-h-11 items-center gap-3 text-sm">
                 <input
@@ -231,14 +231,14 @@ function PortfolioEditor({ existing }: { existing?: PortfolioItemView }) {
                   name="visibility"
                   checked={visibility === v}
                   onChange={() => setVisibility(v)}
-                  className="size-4 accent-[#28dca0]"
+                  className="size-4 accent-signal"
                 />
                 {v === 'PUBLIC' ? 'Public — anyone can see it on your profile and in discovery' : 'Private — only you'}
               </label>
             ))}
           </fieldset>
           <label className="flex min-h-11 items-center gap-3 text-sm">
-            <input type="checkbox" checked={featured} onChange={(e) => setFeatured(e.target.checked)} className="size-4 accent-[#28dca0]" />
+            <input type="checkbox" checked={featured} onChange={(e) => setFeatured(e.target.checked)} className="size-4 accent-signal" />
             Feature it at the top of my portfolio
           </label>
           {!isPublished && visibility === 'PUBLIC' && (
@@ -247,7 +247,7 @@ function PortfolioEditor({ existing }: { existing?: PortfolioItemView }) {
                 type="checkbox"
                 checked={shareToFeed}
                 onChange={(e) => setShareToFeed(e.target.checked)}
-                className="size-4 accent-[#28dca0]"
+                className="size-4 accent-signal"
               />
               Share to the feed when I publish
             </label>

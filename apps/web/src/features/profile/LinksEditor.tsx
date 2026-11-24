@@ -62,10 +62,10 @@ export function LinksEditor({
           return (
             <li key={index} className="flex items-center gap-2">
               <span
-                className="flex size-11 shrink-0 items-center justify-center rounded-full border border-[#2c6750] bg-[#0f2b22] text-[#bdeed6]"
+                className="flex size-11 shrink-0 items-center justify-center rounded-full border border-control-border bg-surface-overlay text-text-1"
                 title={platform ? LINK_PLATFORMS[platform].label : 'Paste a link'}
               >
-                {platform ? <PlatformIcon platform={platform} /> : <Plus className="size-4 text-sage-dim" />}
+                {platform ? <PlatformIcon platform={platform} /> : <Plus className="size-4 text-text-3" />}
               </span>
               <Input
                 aria-label={`Link ${index + 1}`}
@@ -119,7 +119,7 @@ export function LinksEditor({
           {save.isPending ? 'Saving…' : submitLabel}
         </Button>
       </div>
-      <p className="mt-3 text-xs text-sage-dim">
+      <p className="mt-3 text-xs text-text-3">
         Spotify, Apple Music, YouTube, SoundCloud, Audiomack, Boomplay, Deezer, Bandcamp, Instagram, TikTok, Facebook, X, LinkedIn or your
         own website. Up to {MAX_PROFILE_LINKS}.
       </p>

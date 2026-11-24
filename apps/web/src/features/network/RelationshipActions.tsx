@@ -132,7 +132,7 @@ export function RelationshipActions({ username, name }: { username: string; name
       )}
 
       <Dialog open={requestOpen} onClose={() => setRequestOpen(false)} title={`Connect with ${name}`}>
-        <p className="mb-4 text-sm text-sage">Connections are mutual — {name} will need to accept. Following doesn't need approval.</p>
+        <p className="mb-4 text-sm text-text-2">Connections are mutual — {name} will need to accept. Following doesn't need approval.</p>
         <Field label="Add a note (optional)" hint={`${message.length}/${CONNECTION_MESSAGE_MAX}`}>
           {(a) => (
             <Textarea

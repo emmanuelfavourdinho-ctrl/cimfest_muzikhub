@@ -55,25 +55,8 @@
   --color-danger: var(--p-danger);
   --color-warning: var(--p-warning);
   --color-success: var(--p-success);
+  --color-info: var(--p-info);
 
-  /* Legacy names used across the app (Milestones 1–2, Admin Console), now aliases of the
-       olive palette. Replace them with the role names above during the platform redesign. */
-  --color-forest-950: var(--p-base);
-  --color-forest-925: var(--p-raised);
-  --color-forest-900: var(--p-raised);
-  --color-forest-850: var(--p-raised);
-  --color-forest-800: var(--p-overlay);
-  --color-forest-700: var(--p-chip);
-  --color-line: var(--p-line-strong);
-  --color-line-strong: var(--p-control-border);
-  --color-emerald: var(--p-accent);
-  --color-emerald-deep: var(--p-accent-press);
-  --color-mint: var(--p-accent);
-  --color-mint-soft: var(--p-accent-hover);
-  --color-offwhite: var(--p-text);
-  --color-sage: var(--p-text-2);
-  --color-sage-dim: var(--p-text-3);
-  --color-gold: var(--p-warning);
   --color-violet: var(--p-violet);
 
   /* ── Type scale (fluid; 360 px → 1280 px) ───────────────────── */
@@ -124,6 +107,7 @@
   /* ── Elevation: lightness + hairline first, shadow second ── */
   --shadow-e1: 0 1px 0 0 rgb(255 255 255 / 0.04) inset;
   --shadow-e2: 0 1px 0 0 rgb(255 255 255 / 0.05) inset, 0 12px 32px -18px rgb(0 0 0 / 0.6);
+  --shadow-glow: 0 6px 28px color-mix(in oklab, var(--p-accent) 40%, transparent);
   --shadow-e3: 0 1px 0 0 rgb(255 255 255 / 0.06) inset, 0 24px 60px -28px rgb(0 0 0 / 0.75);
 
   /* ── Motion ── */

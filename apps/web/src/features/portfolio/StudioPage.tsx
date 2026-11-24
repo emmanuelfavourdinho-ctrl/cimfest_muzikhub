@@ -37,7 +37,7 @@ export function StudioPage() {
           </Button>
         }
       />
-      <div role="tablist" aria-label="Filter by status" className="mb-5 flex gap-1 overflow-x-auto border-b border-[#264b3d]">
+      <div role="tablist" aria-label="Filter by status" className="mb-5 flex gap-1 overflow-x-auto border-b border-hairline-strong">
         {tabs.map((t) => (
           <button
             key={t.label}
@@ -46,7 +46,7 @@ export function StudioPage() {
             onClick={() => setStatus(t.key)}
             className={cn(
               'min-h-11 border-b-2 px-4 text-xs font-bold whitespace-nowrap',
-              status === t.key ? 'border-[#26ed9f] text-[#76f5bc]' : 'border-transparent text-[#9ac2b0] hover:text-foreground',
+              status === t.key ? 'border-signal text-signal' : 'border-transparent text-text-2 hover:text-foreground',
             )}
           >
             {t.label}
@@ -61,7 +61,7 @@ export function StudioPage() {
       ) : items.length === 0 ? (
         <Panel className="p-8 text-center">
           <h2 className="text-lg font-bold">{status ? 'Nothing here yet' : 'Start your portfolio'}</h2>
-          <p className="mx-auto mt-1 mb-5 max-w-sm text-sm text-sage">
+          <p className="mx-auto mt-1 mb-5 max-w-sm text-sm text-text-2">
             Upload a track, a beat, a performance video or artwork — or add a project with links to where it lives.
           </p>
           <Button asChild>

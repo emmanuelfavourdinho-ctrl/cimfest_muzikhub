@@ -80,7 +80,7 @@ export function DiscoverPage() {
         description="Search by name, skill, genre, location and the kind of talent you need."
       />
 
-      <div role="tablist" aria-label="What to discover" className="mb-4 flex gap-1 border-b border-[#264b3d]">
+      <div role="tablist" aria-label="What to discover" className="mb-4 flex gap-1 border-b border-hairline-strong">
         {(['people', 'work'] as const).map((v) => (
           <button
             key={v}
@@ -89,7 +89,7 @@ export function DiscoverPage() {
             onClick={() => set('view', v === 'people' ? null : 'work')}
             className={cn(
               'min-h-11 border-b-2 px-4 text-xs font-bold',
-              view === v ? 'border-[#26ed9f] text-[#76f5bc]' : 'border-transparent text-[#9ac2b0] hover:text-foreground',
+              view === v ? 'border-signal text-signal' : 'border-transparent text-text-2 hover:text-foreground',
             )}
           >
             {v === 'people' ? 'People' : 'Creative work'}
@@ -98,14 +98,14 @@ export function DiscoverPage() {
       </div>
 
       <div className="mb-4 flex flex-col gap-2 lg:flex-row">
-        <label className="flex h-11 min-w-0 flex-1 items-center gap-2.5 rounded-[11px] border border-[#2b5e49] bg-[#102e25] px-3 text-[#a1c6b1]">
+        <label className="flex h-11 min-w-0 flex-1 items-center gap-2.5 rounded-lg border border-control-border bg-surface-overlay px-3 text-text-2">
           <Search className="size-4 shrink-0" aria-hidden />
           <input
             aria-label="Search"
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder={view === 'people' ? 'Search by name, skill, city…' : 'Search titles, descriptions, credits…'}
-            className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-[#739988]"
+            className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-text-3"
           />
           {text && (
             <button type="button" aria-label="Clear search" onClick={() => setText('')}>
@@ -122,15 +122,15 @@ export function DiscoverPage() {
           ))}
         </Select>
         {view === 'people' ? (
-          <label className="flex h-11 items-center gap-2 rounded-[9px] border border-[#2b5844] bg-[#081d17] px-3 lg:w-44">
-            <MapPin className="size-4 shrink-0 text-sage-dim" aria-hidden />
+          <label className="flex h-11 items-center gap-2 rounded-s border border-control-border bg-surface-raised px-3 lg:w-44">
+            <MapPin className="size-4 shrink-0 text-text-3" aria-hidden />
             <input
               aria-label="Location"
               defaultValue={location}
               onBlur={(e) => set('location', e.target.value.trim() || null)}
               onKeyDown={(e) => e.key === 'Enter' && set('location', e.currentTarget.value.trim() || null)}
               placeholder="Location"
-              className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#62836e]"
+              className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-text-3"
             />
           </label>
         ) : (
@@ -158,10 +158,10 @@ export function DiscoverPage() {
               aria-pressed={roles.includes(r)}
               onClick={() => toggleRole(r)}
               className={cn(
-                'min-h-10 shrink-0 rounded-[9px] border px-3 text-xs',
+                'min-h-10 shrink-0 rounded-s border px-3 text-xs',
                 roles.includes(r)
-                  ? 'border-[#33eba5] bg-[#34e6a5] font-bold text-[#062819]'
-                  : 'border-[#2a5744] bg-[#0e2c22] text-[#a8cdbb]',
+                  ? 'border-signal bg-signal font-bold text-on-signal'
+                  : 'border-control-border bg-surface-overlay text-text-2',
               )}
             >
               {CREATIVE_ROLES[r]}
@@ -207,7 +207,9 @@ function PeopleResults(filters: { q: string; roles: string[]; genres: string[]; 
     return (
       <Panel className="p-8 text-center">
         <h2 className="font-bold">No one matches yet</h2>
-        <p className="mt-1 text-sm text-sage">Try fewer filters or a different search. MuzikHub is growing — new people join every day.</p>
+        <p className="mt-1 text-sm text-text-2">
+          Try fewer filters or a different search. MuzikHub is growing — new people join every day.
+        </p>
       </Panel>
     );
   }
@@ -241,37 +243,37 @@ function PersonCard({ person }: { person: PersonCardData }) {
   return (
     <Link
       to={`/u/${person.username}`}
-      className="block overflow-hidden rounded-[15px] border border-[#255441] bg-[#0d2a21] transition hover:border-[#3a7f60]"
+      className="block overflow-hidden rounded-m border border-control-border bg-surface-overlay transition hover:border-control-border"
     >
       <div className="relative h-20 sm:h-24">
         {person.cover ? (
           <ResponsiveImage media={person.cover} alt="" aspect="auto" className="h-full" sizes="(min-width: 1024px) 25vw, 50vw" />
         ) : (
-          <div className="h-full bg-[radial-gradient(ellipse_at_80%_0%,#1b6b4a_0%,transparent_60%),#0b241b]" />
+          <div className="h-full bg-[radial-gradient(ellipse_at_80%_0%,var(--p-glow)_0%,transparent_60%),var(--p-overlay)]" />
         )}
         <Avatar
           name={person.name}
           image={person.image}
-          className="absolute -bottom-6 left-3 size-14 border-[3px] border-[#0d2a21] text-sm"
+          className="absolute -bottom-6 left-3 size-14 border-3 border-hairline-strong text-sm"
         />
       </div>
       <div className="p-3 pt-8">
         <strong className="block truncate text-sm">{person.name}</strong>
-        <p className="truncate text-[11px] text-[#95bdaa]">{roles || '@' + person.username}</p>
+        <p className="truncate text-xs text-text-2">{roles || '@' + person.username}</p>
         {person.location && (
-          <p className="mt-1 flex items-center gap-1 truncate text-[11px] text-sage-dim">
+          <p className="mt-1 flex items-center gap-1 truncate text-xs text-text-3">
             <MapPin className="size-3 shrink-0" aria-hidden />
             {person.location}
           </p>
         )}
         <div className="mt-2.5 flex flex-wrap gap-1">
           {person.following && (
-            <Pill variant="gray" className="px-2 py-0.5 text-[10px]">
+            <Pill variant="gray" className="px-2 py-0.5 text-xs">
               Following
             </Pill>
           )}
           {person.publishedWorkCount > 0 && (
-            <Pill className="px-2 py-0.5 text-[10px]">
+            <Pill className="px-2 py-0.5 text-xs">
               {person.publishedWorkCount} {person.publishedWorkCount === 1 ? 'work' : 'works'}
             </Pill>
           )}
@@ -296,9 +298,9 @@ function WorkResults(filters: { q: string; types: string[]; genres: string[] }) 
     return (
       <Panel className="p-8 text-center">
         <h2 className="font-bold">No published work matches</h2>
-        <p className="mt-1 text-sm text-sage">
+        <p className="mt-1 text-sm text-text-2">
           Try another genre or type — or{' '}
-          <Link to="/studio/new" className="text-mint-soft hover:underline">
+          <Link to="/studio/new" className="text-signal hover:underline">
             share your own
           </Link>
           .

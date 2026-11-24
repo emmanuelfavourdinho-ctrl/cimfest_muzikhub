@@ -56,7 +56,7 @@ export function AuditPage() {
           aria-label="Filter by action"
           value={action}
           onChange={(e) => setAction(e.target.value)}
-          className="h-11 rounded-[9px] border border-[#2b5844] bg-[#081d17] px-3 text-sm sm:w-56"
+          className="h-11 rounded-s border border-control-border bg-surface-raised px-3 text-sm sm:w-56"
         >
           <option value="">All actions</option>
           <option value="user.">Account actions</option>
@@ -99,29 +99,31 @@ export function AuditPage() {
 function AuditRow({ a }: { a: AuditEntry }) {
   return (
     <tr>
-      <td className="whitespace-nowrap text-sage">
+      <td className="whitespace-nowrap text-text-2">
         <Ago iso={a.createdAt} />
       </td>
       <td>
         {a.actor ? (
           <>
-            {a.actor.name} <span className="text-sage">({a.actorRole?.toLowerCase()})</span>
+            {a.actor.name} <span className="text-text-2">({a.actorRole?.toLowerCase()})</span>
           </>
         ) : (
-          <span className="font-mono text-xs text-sage">{a.actorLabel ?? 'system'}</span>
+          <span className="font-mono text-xs text-text-2">{a.actorLabel ?? 'system'}</span>
         )}
       </td>
       <td className="whitespace-nowrap">{describeAction(a.action)}</td>
       <td className="font-mono text-xs">
         {a.targetType.toLowerCase()}
         <br />
-        <span className="text-sage">{a.targetId}</span>
+        <span className="text-text-2">{a.targetId}</span>
       </td>
-      <td className="max-w-[260px] text-sage">{a.reason ?? '—'}</td>
+      <td className="max-w-65 text-text-2">{a.reason ?? '—'}</td>
       <td>
+        {/* The <summary> text is the control's label. */}
+        {/* oxlint-disable-next-line jsx-a11y/control-has-associated-label */}
         <details>
-          <summary className="cursor-pointer text-xs text-mint-soft">Before / after</summary>
-          <pre className="mt-1 max-w-[320px] overflow-x-auto rounded bg-[#050f0c] p-2 text-[11px] leading-snug">
+          <summary className="cursor-pointer text-xs text-signal">Before / after</summary>
+          <pre className="mt-1 max-w-80 overflow-x-auto rounded bg-surface-base p-2 text-xs leading-snug">
             {JSON.stringify({ before: a.before, after: a.after }, null, 2)}
           </pre>
         </details>

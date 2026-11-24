@@ -34,8 +34,8 @@ export function PageHeader({
     <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <Eyebrow>{eyebrow}</Eyebrow>
-        <h1 className="mt-1.5 text-[27px] leading-tight font-bold tracking-tight sm:text-[33px]">{title}</h1>
-        {description && <p className="mt-1 text-[13px] leading-relaxed text-sage">{description}</p>}
+        <h1 className="mt-1.5 text-2xl leading-tight font-bold tracking-tight sm:text-3xl">{title}</h1>
+        {description && <p className="mt-1 text-caption leading-relaxed text-text-2">{description}</p>}
       </div>
       {actions && <div className="flex shrink-0 gap-2">{actions}</div>}
     </div>
@@ -53,16 +53,16 @@ export function Panel({ className, ...props }: ComponentProps<'section'>) {
 }
 
 const pillVariants = {
-  emerald: 'border-[#24644b] bg-[#134130] text-[#87eabb]',
-  gray: 'border-[#365b45] bg-[#20352b] text-[#bdd0c6]',
-  gold: 'border-[#7a692d] bg-[#443817] text-[#ffdc81]',
-  violet: 'border-[#71447c] bg-[#392444] text-[#deb5ff]',
+  signal: 'border-control-border bg-surface-chip text-signal',
+  gray: 'border-control-border bg-surface-chip text-text-2',
+  gold: 'border-warning/40 bg-warning/15 text-warning',
+  violet: 'border-violet/40 bg-violet/15 text-violet',
 } as const;
 
 /** `.pill` */
 export function Pill({
   children,
-  variant = 'emerald',
+  variant = 'signal',
   className,
 }: {
   children: ReactNode;
@@ -72,7 +72,7 @@ export function Pill({
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap',
+        'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold whitespace-nowrap',
         pillVariants[variant],
         className,
       )}
@@ -89,10 +89,10 @@ export function ToggleChip({ selected, className, ...props }: ComponentProps<'bu
       type="button"
       aria-pressed={selected}
       className={cn(
-        'min-h-10 rounded-[9px] border px-3 text-xs transition',
+        'min-h-10 rounded-s border px-3 text-xs transition',
         selected
-          ? 'border-[#33eba5] bg-[#34e6a5] font-bold text-[#062819]'
-          : 'border-[#2a5744] bg-[#0e2c22] text-[#a8cdbb] hover:border-[#3a7f60]',
+          ? 'border-signal bg-signal font-bold text-on-signal'
+          : 'border-control-border bg-surface-overlay text-text-2 hover:border-control-border',
         className,
       )}
       {...props}
@@ -101,7 +101,7 @@ export function ToggleChip({ selected, className, ...props }: ComponentProps<'bu
 }
 
 export function Spinner({ className, label = 'Loading' }: { className?: string; label?: string }) {
-  return <LoaderCircle role="status" aria-label={label} className={cn('size-5 animate-spin text-mint', className)} />;
+  return <LoaderCircle role="status" aria-label={label} className={cn('size-5 animate-spin text-signal', className)} />;
 }
 
 /** Full-area loading state used while a page's data is fetched. */
@@ -116,9 +116,7 @@ export function PageLoading() {
 /** `.hint` — left-ruled explanatory note. */
 export function Hint({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div
-      className={cn('rounded-md border-l-2 border-[#2beca1] bg-[#163c2f] px-3.5 py-3 text-xs leading-relaxed text-[#b1d4c1]', className)}
-    >
+    <div className={cn('rounded-md border-l-2 border-signal bg-surface-chip px-3.5 py-3 text-xs leading-relaxed text-text-2', className)}>
       {children}
     </div>
   );
@@ -142,7 +140,7 @@ export function Avatar({ name, image, className }: { name: string; image?: strin
         decoding="async"
         width={192}
         height={192}
-        className={cn('rounded-full border-2 border-[#37694e] object-cover', className)}
+        className={cn('rounded-full border-2 border-control-border object-cover', className)}
       />
     );
   }
@@ -150,7 +148,7 @@ export function Avatar({ name, image, className }: { name: string; image?: strin
     <span
       aria-hidden
       className={cn(
-        'flex items-center justify-center rounded-full border-2 border-[#37694e] bg-[linear-gradient(140deg,#123f2e,#0d291f)] font-bold text-mint',
+        'flex items-center justify-center rounded-full border-2 border-control-border bg-[linear-gradient(140deg,var(--p-chip),var(--p-raised))] font-bold text-signal',
         className,
       )}
     >

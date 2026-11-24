@@ -39,13 +39,13 @@ export function PlatformIcon({ platform, className }: { platform: LinkPlatform; 
   const icon = brandIcons[platform];
   if (icon) {
     return (
-      <svg viewBox="0 0 24 24" aria-hidden className={cn('size-[18px] fill-current', className)}>
+      <svg viewBox="0 0 24 24" aria-hidden className={cn('size-4.5 fill-current', className)}>
         <path d={icon.path} />
       </svg>
     );
   }
   const Fallback = platform === 'WEBSITE' ? Globe : Link2;
-  return <Fallback aria-hidden className={cn('size-[18px]', className)} />;
+  return <Fallback aria-hidden className={cn('size-4.5', className)} />;
 }
 
 export function SocialLinks({ links, className }: { links: ProfileLink[]; className?: string }) {
@@ -63,7 +63,7 @@ export function SocialLinks({ links, className }: { links: ProfileLink[]; classN
               rel="noopener noreferrer nofollow"
               title={link.platform === 'WEBSITE' ? host : label}
               aria-label={`${link.platform === 'WEBSITE' ? host : label} (opens in a new tab)`}
-              className="flex size-11 items-center justify-center rounded-full border border-[#2c6750] bg-[#0f2b22] text-[#bdeed6] transition hover:border-mint hover:text-mint focus-visible:border-mint"
+              className="flex size-11 items-center justify-center rounded-full border border-control-border bg-surface-overlay text-text-1 transition hover:border-signal hover:text-signal focus-visible:border-signal"
             >
               <PlatformIcon platform={link.platform} />
             </a>

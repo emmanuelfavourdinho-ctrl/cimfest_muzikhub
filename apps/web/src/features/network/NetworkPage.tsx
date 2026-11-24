@@ -31,7 +31,7 @@ export function NetworkPage() {
         title="Connections & followers"
         description="Respond to requests and keep track of the people you work with."
       />
-      <div role="tablist" aria-label="Network" className="mb-5 flex gap-1 overflow-x-auto border-b border-[#264b3d]">
+      <div role="tablist" aria-label="Network" className="mb-5 flex gap-1 overflow-x-auto border-b border-hairline-strong">
         {tabs.map((t) => (
           <button
             key={t.key}
@@ -40,7 +40,7 @@ export function NetworkPage() {
             onClick={() => setParams({ tab: t.key }, { replace: true })}
             className={cn(
               'min-h-11 border-b-2 px-4 text-xs font-bold whitespace-nowrap',
-              tab === t.key ? 'border-[#26ed9f] text-[#76f5bc]' : 'border-transparent text-[#9ac2b0] hover:text-foreground',
+              tab === t.key ? 'border-signal text-signal' : 'border-transparent text-text-2 hover:text-foreground',
             )}
           >
             {t.label}
@@ -86,7 +86,7 @@ function ConnectionList({ filter }: { filter: 'incoming' | 'outgoing' | 'accepte
     }[filter];
     return (
       <Panel className="p-8 text-center">
-        <p className="text-sm text-sage">{text}</p>
+        <p className="text-sm text-text-2">{text}</p>
         <Button asChild variant="outline" size="sm" className="mt-4">
           <Link to="/discover">Discover people</Link>
         </Button>
@@ -105,7 +105,7 @@ function ConnectionList({ filter }: { filter: 'incoming' | 'outgoing' | 'accepte
           <li key={c.id}>
             <Panel className="flex flex-wrap items-center gap-3 p-4">
               <PersonLink person={c.person} />
-              {c.message && filter !== 'accepted' && <p className="w-full text-[13px] text-[#b5d4c2] sm:order-last">“{c.message}”</p>}
+              {c.message && filter !== 'accepted' && <p className="w-full text-caption text-text-2 sm:order-last">“{c.message}”</p>}
               <div className="ml-auto flex gap-2">
                 {filter === 'incoming' && (
                   <>
@@ -134,7 +134,7 @@ function ConnectionList({ filter }: { filter: 'incoming' | 'outgoing' | 'accepte
                   </Button>
                 )}
               </div>
-              <p className="w-full text-[11px] text-sage-dim">
+              <p className="w-full text-xs text-text-3">
                 {filter === 'accepted' && c.respondedAt ? `Connected ${timeAgo(c.respondedAt)}` : `Sent ${timeAgo(c.createdAt)}`}
               </p>
             </Panel>
@@ -160,7 +160,7 @@ function FollowList({ which }: { which: 'followers' | 'following' }) {
   if (query.isError && people.length === 0) return <LoadFailed message={errorMessage(query.error)} onRetry={() => void query.refetch()} />;
   if (people.length === 0) {
     return (
-      <Panel className="p-8 text-center text-sm text-sage">
+      <Panel className="p-8 text-center text-sm text-text-2">
         {which === 'followers' ? 'Nobody follows you yet.' : "You aren't following anyone yet."}
       </Panel>
     );
@@ -187,11 +187,11 @@ function FollowList({ which }: { which: 'followers' | 'following' }) {
 
 export function PersonLink({ person }: { person: PersonSummary }) {
   return (
-    <Link to={`/u/${person.username}`} className="flex min-w-0 items-center gap-3 hover:text-mint">
+    <Link to={`/u/${person.username}`} className="flex min-w-0 items-center gap-3 hover:text-signal">
       <Avatar name={person.name} image={person.image} className="size-11 shrink-0 text-xs" />
       <span className="min-w-0">
         <span className="block truncate text-sm font-semibold">{person.name}</span>
-        <span className="block truncate text-xs text-sage">@{person.username}</span>
+        <span className="block truncate text-xs text-text-2">@{person.username}</span>
       </span>
     </Link>
   );

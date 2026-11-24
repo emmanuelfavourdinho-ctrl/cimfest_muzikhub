@@ -83,10 +83,10 @@ export function PostCard({ post }: { post: PostView }) {
           <Avatar name={post.author.name} image={post.author.image} className="size-10 text-xs" />
         </Link>
         <div className="min-w-0 flex-1">
-          <Link to={`/u/${post.author.username}`} className="block truncate text-sm font-semibold hover:text-mint">
+          <Link to={`/u/${post.author.username}`} className="block truncate text-sm font-semibold hover:text-signal">
             {post.author.name}
           </Link>
-          <p className="text-[11px] text-sage">
+          <p className="text-xs text-text-2">
             @{post.author.username} ·{' '}
             <Link to={`/p/${post.id}`} className="hover:underline">
               <time dateTime={post.createdAt}>{timeAgo(post.createdAt)}</time>
@@ -124,7 +124,7 @@ export function PostCard({ post }: { post: PostView }) {
           </div>
         </div>
       ) : (
-        post.body && <p className="mt-3 text-[14px] leading-relaxed whitespace-pre-line break-words text-[#d6ece0]">{post.body}</p>
+        post.body && <p className="mt-3 text-sm leading-relaxed whitespace-pre-line break-words text-text-1">{post.body}</p>
       )}
 
       {images.length > 0 && (
@@ -156,7 +156,7 @@ export function PostCard({ post }: { post: PostView }) {
         </div>
       )}
 
-      <footer className="mt-3 flex items-center gap-1 border-t border-line pt-2">
+      <footer className="mt-3 flex items-center gap-1 border-t border-hairline-strong pt-2">
         <Button
           variant="quiet"
           size="sm"
@@ -165,7 +165,7 @@ export function PostCard({ post }: { post: PostView }) {
           onClick={() =>
             requireSignIn() && toggleLike.mutate({ post, liked: !post.likedByMe }, { onError: (e) => toast.error(errorMessage(e)) })
           }
-          className={cn(post.likedByMe && 'text-[#ff8fb0]')}
+          className={cn(post.likedByMe && 'text-danger')}
         >
           <Heart className={cn(post.likedByMe && 'fill-current')} /> {post.likeCount > 0 && post.likeCount}
         </Button>
@@ -179,7 +179,7 @@ export function PostCard({ post }: { post: PostView }) {
       {showComments && <Comments post={post} onRequireSignIn={requireSignIn} />}
 
       <Dialog open={confirmDelete} onClose={() => setConfirmDelete(false)} title="Delete this post?">
-        <p className="mb-5 text-sm text-sage">The post, its comments and its uploaded media will be deleted permanently.</p>
+        <p className="mb-5 text-sm text-text-2">The post, its comments and its uploaded media will be deleted permanently.</p>
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={() => setConfirmDelete(false)}>
             Cancel
@@ -236,7 +236,7 @@ function Comments({ post, onRequireSignIn }: { post: PostView; onRequireSignIn: 
   return (
     <div className="mt-3 space-y-3">
       {query.isPending ? (
-        <p className="text-xs text-sage">Loading comments…</p>
+        <p className="text-xs text-text-2">Loading comments…</p>
       ) : query.isError ? (
         <p className="text-xs text-destructive">
           Couldn't load comments.{' '}
@@ -245,20 +245,20 @@ function Comments({ post, onRequireSignIn }: { post: PostView; onRequireSignIn: 
           </button>
         </p>
       ) : comments.length === 0 ? (
-        <p className="text-xs text-sage">No comments yet.</p>
+        <p className="text-xs text-text-2">No comments yet.</p>
       ) : (
         <ul className="space-y-3">
           {comments.map((c) => (
             <li key={c.id} className="flex gap-2.5">
-              <Avatar name={c.author.name} image={c.author.image} className="size-8 shrink-0 text-[10px]" />
-              <div className="min-w-0 flex-1 rounded-xl bg-[#0b241b] px-3 py-2">
+              <Avatar name={c.author.name} image={c.author.image} className="size-8 shrink-0 text-xs" />
+              <div className="min-w-0 flex-1 rounded-xl bg-surface-overlay px-3 py-2">
                 <p className="text-xs">
-                  <Link to={`/u/${c.author.username}`} className="font-semibold hover:text-mint">
+                  <Link to={`/u/${c.author.username}`} className="font-semibold hover:text-signal">
                     {c.author.name}
                   </Link>
-                  <span className="ml-1.5 text-sage-dim">{timeAgo(c.createdAt)}</span>
+                  <span className="ml-1.5 text-text-3">{timeAgo(c.createdAt)}</span>
                 </p>
-                <p className="mt-0.5 text-[13px] whitespace-pre-line break-words text-[#d6ece0]">{c.body}</p>
+                <p className="mt-0.5 text-caption whitespace-pre-line break-words text-text-1">{c.body}</p>
               </div>
               {c.canDelete && (
                 <Button variant="quiet" size="icon" aria-label="Delete comment" onClick={() => void remove(c.id)}>
@@ -282,15 +282,15 @@ function Comments({ post, onRequireSignIn }: { post: PostView; onRequireSignIn: 
             maxLength={1000}
             onChange={(e) => setBody(e.target.value)}
             placeholder="Write a thoughtful comment…"
-            className="h-10 min-w-0 flex-1 rounded-[9px] border border-[#2b5844] bg-[#081d17] px-3 text-sm outline-none focus:border-mint"
+            className="h-10 min-w-0 flex-1 rounded-s border border-control-border bg-surface-raised px-3 text-sm outline-none focus:border-signal"
           />
           <Button type="submit" size="sm" disabled={sending || !body.trim()}>
             Post
           </Button>
         </form>
       ) : (
-        <p className="text-xs text-sage">
-          <Link to="/login" className="text-mint-soft hover:underline">
+        <p className="text-xs text-text-2">
+          <Link to="/login" className="text-signal hover:underline">
             Sign in
           </Link>{' '}
           to comment.

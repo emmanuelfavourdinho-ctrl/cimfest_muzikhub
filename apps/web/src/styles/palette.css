@@ -38,6 +38,7 @@
   --p-warning: #f2c86a;
   --p-success: #8bd99a;
   --p-violet: #c090fa;
+  --p-info: #9cc8f5; /* 9.9:1 on base */
 
   /* Hairlines: lime at low opacity (decorative). Control borders need ≥3:1 → 40%. */
   --p-line: rgb(203 239 52 / 0.12);

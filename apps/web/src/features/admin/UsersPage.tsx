@@ -107,34 +107,34 @@ export function UsersPage() {
                 rows.map((u) => (
                   <tr key={u.id}>
                     <td>
-                      <Link to={`/admin/users/${u.id}`} className="flex items-center gap-2.5 hover:text-mint">
-                        <Avatar name={u.name} image={u.image} className="size-8 text-[10px]" />
+                      <Link to={`/admin/users/${u.id}`} className="flex items-center gap-2.5 hover:text-signal">
+                        <Avatar name={u.name} image={u.image} className="size-8 text-xs" />
                         <span>
                           <span className="block font-semibold">{u.name}</span>
-                          <span className="text-xs text-sage">@{u.username}</span>
+                          <span className="text-xs text-text-2">@{u.username}</span>
                         </span>
                       </Link>
                     </td>
                     {showEmail && (
-                      <td className="text-sage">
+                      <td className="text-text-2">
                         {u.email} {u.emailVerified ? '' : <Tag color="gray">unverified</Tag>}
                       </td>
                     )}
                     <td>
                       <StatusTag status={u.status} />
                       {u.statusUntil && (
-                        <span className="ml-1 text-[11px] text-sage">until {new Date(u.statusUntil).toLocaleDateString()}</span>
+                        <span className="ml-1 text-xs text-text-2">until {new Date(u.statusUntil).toLocaleDateString()}</span>
                       )}
                     </td>
                     <td className="space-x-1">
                       <RoleTag role={u.role} />
                       {u.creativeRoles.slice(0, 2).map((r) => (
-                        <span key={r} className="text-xs text-sage">
+                        <span key={r} className="text-xs text-text-2">
                           {CREATIVE_ROLES[r as keyof typeof CREATIVE_ROLES]}
                         </span>
                       ))}
                     </td>
-                    <td className="whitespace-nowrap text-sage">
+                    <td className="whitespace-nowrap text-text-2">
                       <Ago iso={u.joinedAt} />
                     </td>
                   </tr>
