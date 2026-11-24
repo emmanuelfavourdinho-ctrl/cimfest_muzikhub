@@ -1,0 +1,25 @@
+# Local development database for MuzikHub only.
+# Bound to 127.0.0.1:5435 so it is not reachable from the network and does not
+# collide with other local Postgres instances (5432–5434 are already in use here).
+services:
+  db:
+    image: postgres:18-alpine
+    container_name: muzikhub-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-muzikhub}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-muzikhub_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-muzikhub}
+    ports:
+      - "127.0.0.1:5435:5432"
+    volumes:
+      - muzikhub-db-data:/var/lib/postgresql
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  muzikhub-db-data:

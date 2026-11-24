@@ -1,0 +1,94 @@
+[
+  {
+    "slug": "red-studio",
+    "width": 1280,
+    "height": 1006,
+    "srcset": [
+      {
+        "w": 480,
+        "url": "https://res.cloudinary.com/ews3bgwv/image/upload/c_limit,f_auto,q_auto,w_480/v1795478016/muzikhub/brand/landing/red-studio"
+      },
+      {
+        "w": 768,
+        "url": "https://res.cloudinary.com/ews3bgwv/image/upload/c_limit,f_auto,q_auto,w_768/v1795478016/muzikhub/brand/landing/red-studio"
+      },
+      {
+        "w": 1080,
+        "url": "https://res.cloudinary.com/ews3bgwv/image/upload/c_limit,f_auto,q_auto,w_1080/v1795478016/muzikhub/brand/landing/red-studio"
+      },
+      {
+        "w": 1280,
+        "url": "https://res.cloudinary.com/ews3bgwv/image/upload/c_limit,f_auto,q_auto,w_1280/v1795478016/muzikhub/brand/landing/red-studio"
+      }
+    ],
+    "blur": "https://res.cloudinary.com/ews3bgwv/image/upload/c_limit,e_blur:800,f_auto,q_auto,w_64/v1795478016/muzikhub/brand/landing/red-studio"
+  },
+  {
+    "slug": "coral-portrait",
+    "width": 737,
+    "height": 1080,
+    "srcset": [
+      {
+        "w": 480,
+        "url": "https://res.cloudinary.com/ews3bgwv/image/upload/c_limit,f_auto,q_auto,w_480/v1795478021/muzikhub/brand/landing/coral-portrait"
+      },
+      {
+        "w": 737,
+        "url": "https://res.cloudinary.com/ews3bgwv/image/upload/c_limit,f_auto,q_auto,w_737/v1795478021/muzikhub/brand/landing/coral-portrait"
+      }
+    ],
+    "blur": "https://res.cloudinary.com/ews3bgwv/image/upload/c_limit,e_blur:800,f_auto,q_auto,w_64/v1795478021/muzikhub/brand/landing/coral-portrait"
+  },
+  {
+    "slug": "stage-saxophone",
+    "width": 333,
+    "height": 500,
+    "srcset": [
+      {
+        "w": 333,
+        "url": "https://res.cloudinary.com/ews3bgwv/image/upload/c_limit,f_auto,q_auto,w_333/v1795478026/muzikhub/brand/landing/stage-saxophone"
+      }
+    ],
+    "blur": "https://res.cloudinary.com/ews3bgwv/image/upload/c_limit,e_blur:800,f_auto,q_auto,w_64/v1795478026/muzikhub/brand/landing/stage-saxophone"
+  },
+  {
+    "slug": "blue-studio",
+    "width": 1080,
+    "height": 955,
+    "srcset": [
+      {
+        "w": 480,
+        "url": "https://res.cloudinary.com/ews3bgwv/image/upload/c_limit,f_auto,q_auto,w_480/v1795478029/muzikhub/brand/landing/blue-studio"
+      },
+      {
+        "w": 768,
+        "url": "https://res.cloudinary.com/ews3bgwv/image/upload/c_limit,f_auto,q_auto,w_768/v1795478029/muzikhub/brand/landing/blue-studio"
+      },
+      {
+        "w": 1080,
+        "url": "https://res.cloudinary.com/ews3bgwv/image/upload/c_limit,f_auto,q_auto,w_1080/v1795478029/muzikhub/brand/landing/blue-studio"
+      }
+    ],
+    "blur": "https://res.cloudinary.com/ews3bgwv/image/upload/c_limit,e_blur:800,f_auto,q_auto,w_64/v1795478029/muzikhub/brand/landing/blue-studio"
+  },
+  {
+    "slug": "pointing-studio",
+    "width": 900,
+    "height": 900,
+    "srcset": [
+      {
+        "w": 480,
+        "url": "https://res.cloudinary.com/ews3bgwv/image/upload/c_limit,f_auto,q_auto,w_480/v1795478034/muzikhub/brand/landing/pointing-studio"
+      },
+      {
+        "w": 768,
+        "url": "https://res.cloudinary.com/ews3bgwv/image/upload/c_limit,f_auto,q_auto,w_768/v1795478034/muzikhub/brand/landing/pointing-studio"
+      },
+      {
+        "w": 900,
+        "url": "https://res.cloudinary.com/ews3bgwv/image/upload/c_limit,f_auto,q_auto,w_900/v1795478034/muzikhub/brand/landing/pointing-studio"
+      }
+    ],
+    "blur": "https://res.cloudinary.com/ews3bgwv/image/upload/c_limit,e_blur:800,f_auto,q_auto,w_64/v1795478034/muzikhub/brand/landing/pointing-studio"
+  }
+]

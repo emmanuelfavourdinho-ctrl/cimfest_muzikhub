@@ -1,0 +1,583 @@
+// MuzikHub database schema.
+// The connection URL is configured in prisma.config.ts (from DATABASE_URL).
+// Enum values must match the keys in packages/shared/src/taxonomy.ts and links.ts.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────────────────────
+// Identity — tables required by Better Auth, plus MuzikHub fields.
+// ─────────────────────────────────────────────────────────────
+
+enum PrimaryUse {
+  CREATOR
+  FAN
+  PROFESSIONAL
+}
+
+/// Global platform role. Community roles are separate and scoped (CLAUDE.md §19.1).
+enum PlatformRole {
+  USER
+  MODERATOR
+  ADMIN
+}
+
+/// Approved 2026-11-24. Enforced on the server (see lib/account-status.ts).
+enum AccountStatus {
+  ACTIVE
+  /// Can sign in and browse; cannot publish, interact, message or collaborate.
+  RESTRICTED
+  /// Temporary: mandatory reason and expiry (statusUntil). Cannot sign in until it expires.
+  SUSPENDED
+  /// Indefinite. Only an administrator can reinstate.
+  BANNED
+  DEACTIVATED
+}
+
+model User {
+  id                  String          @id
+  name                String
+  email               String          @unique
+  emailVerified       Boolean         @default(false)
+  image               String?
+  /// Lower-case, unique handle used in profile URLs (Better Auth username plugin).
+  username            String?         @unique
+  /// Username as the user typed it (original capitalisation).
+  displayUsername     String?
+  primaryUse          PrimaryUse?
+  /// Server-controlled. Never accepted from client input.
+  platformRole        PlatformRole    @default(USER)
+  /// Server-controlled. See AccountStatus.
+  status              AccountStatus   @default(ACTIVE)
+  /// Reason shown to the user for RESTRICTED / SUSPENDED / BANNED.
+  statusReason        String?
+  /// When a SUSPENDED account is automatically reinstated.
+  statusUntil         DateTime?
+  statusChangedAt     DateTime?
+  /// Better Auth two-factor plugin. Required for MODERATOR and ADMIN.
+  twoFactorEnabled    Boolean         @default(false)
+  twoFactors          TwoFactor[]
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  sessions            Session[]
+  accounts            Account[]
+  profile             Profile?
+  mediaAssets         MediaAsset[]
+  portfolioItems      PortfolioItem[]
+  posts               Post[]
+  postLikes           PostLike[]
+  comments            Comment[]
+  reports             Report[]
+  /// People this user follows / people following this user.
+  following           Follow[]        @relation("Follower")
+  followers           Follow[]        @relation("Following")
+  sentConnections     Connection[]    @relation("ConnectionRequester")
+  receivedConnections Connection[]    @relation("ConnectionAddressee")
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+/// Better Auth two-factor plugin. Secret and backup codes are encrypted by Better Auth.
+model TwoFactor {
+  id                      String    @id
+  secret                  String
+  backupCodes             String
+  userId                  String
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  verified                Boolean?  @default(true)
+  failedVerificationCount Int?      @default(0)
+  lockedUntil             DateTime?
+
+  @@index([secret])
+  @@index([userId])
+  @@map("two_factor")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Professional profiles
+// ─────────────────────────────────────────────────────────────
+
+enum CreativeRole {
+  ARTIST
+  SINGER
+  RAPPER
+  SONGWRITER
+  PRODUCER
+  BEATMAKER
+  DJ
+  AUDIO_ENGINEER
+  RECORDING_ENGINEER
+  MIXING_MASTERING_ENGINEER
+  COMPOSER
+  INSTRUMENTALIST
+  DANCER
+  MANAGER
+  RECORD_LABEL
+  PROMOTER
+  EVENT_ORGANIZER
+  MARKETER
+  TALENT_SCOUT
+  OTHER
+}
+
+enum CareerStage {
+  EMERGING
+  DEVELOPING
+  ESTABLISHED
+}
+
+enum LinkPlatform {
+  SPOTIFY
+  APPLE_MUSIC
+  YOUTUBE
+  SOUNDCLOUD
+  AUDIOMACK
+  BOOMPLAY
+  DEEZER
+  BANDCAMP
+  INSTAGRAM
+  TIKTOK
+  FACEBOOK
+  X
+  LINKEDIN
+  WEBSITE
+}
+
+/// One per user, created together with the account.
+model Profile {
+  userId                String         @id
+  user                  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio                   String?
+  location              String?
+  /// A person can hold several professional identities (CLAUDE.md §4).
+  roles                 CreativeRole[]
+  /// Keys from GENRES in packages/shared (validated by the API).
+  genres                String[]
+  skills                String[]
+  /// Keys from GOALS in packages/shared.
+  goals                 String[]
+  careerStage           CareerStage?
+  /// Verified images (MediaAsset). Unique: an asset can fill only one slot.
+  avatarAssetId         String?        @unique
+  avatarAsset           MediaAsset?    @relation("ProfileAvatar", fields: [avatarAssetId], references: [id], onDelete: SetNull)
+  coverAssetId          String?        @unique
+  coverAsset            MediaAsset?    @relation("ProfileCover", fields: [coverAssetId], references: [id], onDelete: SetNull)
+  /// Furthest onboarding step reached, so setup resumes where it stopped.
+  onboardingStep        Int            @default(0)
+  onboardingCompletedAt DateTime?
+  links                 ProfileLink[]
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  // GIN indexes make "has any of these roles/genres" filters fast for discovery.
+  @@index([roles], type: Gin)
+  @@index([genres], type: Gin)
+  @@map("profile")
+}
+
+model ProfileLink {
+  id        String       @id @default(cuid())
+  profileId String
+  profile   Profile      @relation(fields: [profileId], references: [userId], onDelete: Cascade)
+  /// Derived from the URL's hostname on the server — never taken from the client.
+  platform  LinkPlatform
+  url       String
+  position  Int
+
+  @@unique([profileId, url])
+  @@index([profileId, position])
+  @@map("profile_link")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Media (Cloudinary). The file lives in Cloudinary; this row is our
+// record of who owns it, what it is, and whether it has been verified.
+// ─────────────────────────────────────────────────────────────
+
+enum MediaKind {
+  IMAGE
+  AUDIO
+  VIDEO
+}
+
+enum MediaPurpose {
+  AVATAR
+  COVER
+  PORTFOLIO
+  POST
+}
+
+enum MediaStatus {
+  /// Signature issued; the browser may be uploading. Not usable yet.
+  PENDING
+  /// Verified against Cloudinary (size, format, duration). Usable.
+  READY
+  /// Removal requested; a Cloudinary delete is pending or will be retried by cleanup.
+  DELETING
+}
+
+model MediaAsset {
+  id               String       @id @default(cuid())
+  ownerId          String
+  owner            User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  kind             MediaKind
+  purpose          MediaPurpose
+  status           MediaStatus  @default(PENDING)
+  /// Cloudinary public_id, generated by the server: <folder>/<env>/<ownerId>/<id>
+  publicId         String       @unique
+  format           String?
+  bytes            Int?
+  width            Int?
+  height           Int?
+  durationSec      Float?
+  /// Cloudinary version, used in delivery URLs for cache busting.
+  version          Int?
+  originalFilename String?
+  createdAt        DateTime     @default(now())
+  readyAt          DateTime?
+
+  profileAvatar  Profile?       @relation("ProfileAvatar")
+  profileCover   Profile?       @relation("ProfileCover")
+  portfolioMedia PortfolioItem? @relation("PortfolioMedia")
+  portfolioCover PortfolioItem? @relation("PortfolioCover")
+  postMedia      PostMedia?
+
+  @@index([ownerId, status])
+  @@index([status, createdAt])
+  @@map("media_asset")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Portfolios
+// ─────────────────────────────────────────────────────────────
+
+enum PortfolioType {
+  AUDIO
+  BEAT
+  VIDEO
+  IMAGE
+  PROJECT
+}
+
+enum PortfolioStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+/// Approved 2026-11-23: public or private only.
+enum Visibility {
+  PUBLIC
+  PRIVATE
+}
+
+model PortfolioItem {
+  id               String          @id @default(cuid())
+  ownerId          String
+  owner            User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  type             PortfolioType
+  title            String
+  description      String?
+  /// Keys from GENRES in packages/shared.
+  genres           String[]
+  /// Free-text credits, e.g. "Produced by …, mixed by …".
+  credits          String?
+  /// Optional https link (YouTube, SoundCloud, Spotify…); platform derived server-side.
+  externalUrl      String?
+  externalPlatform LinkPlatform?
+  mediaAssetId     String?         @unique
+  mediaAsset       MediaAsset?     @relation("PortfolioMedia", fields: [mediaAssetId], references: [id], onDelete: SetNull)
+  coverAssetId     String?         @unique
+  coverAsset       MediaAsset?     @relation("PortfolioCover", fields: [coverAssetId], references: [id], onDelete: SetNull)
+  status           PortfolioStatus @default(DRAFT)
+  visibility       Visibility      @default(PUBLIC)
+  featured         Boolean         @default(false)
+  publishedAt      DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  /// Feed showcase posts pointing at this item (deleted with it).
+  posts            Post[]
+  /// Moderation removal (soft). The owner still sees it, marked, in their studio.
+  removedAt        DateTime?
+  removedById      String?
+  removalReason    String?
+
+  @@index([ownerId, status])
+  @@index([status, visibility, publishedAt])
+  @@index([genres], type: Gin)
+  @@map("portfolio_item")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Feed
+// ─────────────────────────────────────────────────────────────
+
+enum PostType {
+  TEXT
+  IMAGE
+  AUDIO
+  VIDEO
+  /// Shares a published portfolio item.
+  SHOWCASE
+}
+
+model Post {
+  id              String         @id @default(cuid())
+  authorId        String
+  author          User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  type            PostType
+  body            String?
+  portfolioItemId String?
+  portfolioItem   PortfolioItem? @relation(fields: [portfolioItemId], references: [id], onDelete: Cascade)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  editedAt        DateTime?
+  /// Moderation removal (soft): hidden everywhere, kept for history and possible restore.
+  removedAt       DateTime?
+  removedById     String?
+  removalReason   String?
+  media           PostMedia[]
+  likes           PostLike[]
+  comments        Comment[]
+
+  /// Feed pages are read newest-first with a (createdAt, id) cursor.
+  @@index([createdAt(sort: Desc), id(sort: Desc)])
+  @@index([authorId, createdAt(sort: Desc)])
+  @@index([portfolioItemId])
+  @@map("post")
+}
+
+model PostMedia {
+  postId   String
+  post     Post       @relation(fields: [postId], references: [id], onDelete: Cascade)
+  /// Unique: one asset belongs to one post.
+  assetId  String     @unique
+  asset    MediaAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  position Int
+
+  @@id([postId, assetId])
+  @@map("post_media")
+}
+
+model PostLike {
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  /// One like per person per post.
+  @@id([postId, userId])
+  @@index([userId])
+  @@map("post_like")
+}
+
+model Comment {
+  id            String    @id @default(cuid())
+  postId        String
+  post          Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId      String
+  author        User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  body          String
+  createdAt     DateTime  @default(now())
+  removedAt     DateTime?
+  removedById   String?
+  removalReason String?
+
+  @@index([postId, createdAt])
+  @@map("comment")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Reports — stored now; the moderation queue arrives in Milestone 5.
+// ─────────────────────────────────────────────────────────────
+
+enum ReportTargetType {
+  POST
+  COMMENT
+  PORTFOLIO_ITEM
+  PROFILE
+}
+
+enum ReportReason {
+  SPAM
+  HARASSMENT
+  HATE
+  SEXUAL_CONTENT
+  VIOLENCE
+  COPYRIGHT
+  IMPERSONATION
+  OTHER
+}
+
+enum ReportStatus {
+  PENDING
+  UNDER_REVIEW
+  RESOLVED
+  DISMISSED
+}
+
+model Report {
+  id           String           @id @default(cuid())
+  reporterId   String
+  reporter     User             @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  targetType   ReportTargetType
+  targetId     String
+  reason       ReportReason
+  details      String?
+  status       ReportStatus     @default(PENDING)
+  /// Staff member handling it (MODERATOR or ADMIN).
+  assigneeId   String?
+  /// Escalated reports can only be resolved or dismissed by an ADMIN.
+  escalated    Boolean          @default(false)
+  resolution   String?
+  resolvedById String?
+  resolvedAt   DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @default(now()) @updatedAt
+  notes        ReportNote[]
+
+  /// Reporting the same thing twice doesn't create duplicates.
+  @@unique([reporterId, targetType, targetId])
+  @@index([status, createdAt])
+  @@index([targetType, targetId])
+  @@index([assigneeId, status])
+  @@map("report")
+}
+
+/// Internal moderation notes. Never shown to the reporter or the reported user. Not editable.
+model ReportNote {
+  id        String   @id @default(cuid())
+  reportId  String
+  report    Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  authorId  String
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([reportId, createdAt])
+  @@map("report_note")
+}
+
+/// Append-only record of administrative actions. UPDATE/DELETE/TRUNCATE are blocked by a
+/// database trigger (see migration). actorId is not a foreign key, so history survives deletions.
+model AuditLog {
+  id         String   @id @default(cuid())
+  /// null for system actions (CLI, automatic suspension expiry).
+  actorId    String?
+  actorRole  String?
+  /// e.g. "cli:admin:grant-initial", "system:suspension-expiry"
+  actorLabel String?
+  action     String
+  targetType String
+  targetId   String
+  reason     String?
+  before     Json?
+  after      Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@index([targetType, targetId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([createdAt])
+  @@map("audit_log")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Relationships — two separate systems (CLAUDE.md §10).
+// ─────────────────────────────────────────────────────────────
+
+/// One-way, no approval needed. Self-follows are blocked by a CHECK constraint (migration SQL).
+model Follow {
+  followerId  String
+  follower    User     @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  followingId String
+  following   User     @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@id([followerId, followingId])
+  @@index([followingId])
+  @@map("follow")
+}
+
+enum ConnectionStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  /// Withdrawn by the requester while pending.
+  CANCELLED
+  /// An accepted connection that either person ended.
+  REMOVED
+}
+
+/// Mutual, needs acceptance. At most one PENDING or ACCEPTED row per pair of people,
+/// in either direction — enforced by a partial unique index (migration SQL).
+model Connection {
+  id          String           @id @default(cuid())
+  requesterId String
+  requester   User             @relation("ConnectionRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  addresseeId String
+  addressee   User             @relation("ConnectionAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+  status      ConnectionStatus @default(PENDING)
+  message     String?
+  createdAt   DateTime         @default(now())
+  respondedAt DateTime?
+  updatedAt   DateTime         @updatedAt
+
+  @@index([addresseeId, status])
+  @@index([requesterId, status])
+  @@map("connection")
+}

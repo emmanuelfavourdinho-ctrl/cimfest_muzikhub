@@ -1,0 +1,61 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Generated Prisma client
+apps/api/src/generated/
+
+# Environment files — NEVER commit real secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor / OS
+.DS_Store
+.idea/
+*.swp
+
+# Test coverage
+coverage/
+
+# Playwright output
+e2e/.results/
+e2e/.screenshots/
+playwright-report/
+
+# Private keys and credential stores (public CA certificates in apps/api/certs/*.crt ARE committed)
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+credentials*.json
+service-account*.json
+
+# Database dumps and local databases
+*.dump
+*.backup
+*.bak
+*.sqlite
+*.sqlite3
+*.db
+dumps/
+
+# Local Supabase CLI state
+supabase/.temp/
+supabase/.branches/
+
+# Original landing photos — served from Cloudinary (manifest in apps/web/src/features/home/hero-photos.json);
+# the local originals stay on disk but out of Git history.
+apps/web/public/assets/landing/
+
+# Editor / tool settings
+.vscode/
+.claude/settings.local.json

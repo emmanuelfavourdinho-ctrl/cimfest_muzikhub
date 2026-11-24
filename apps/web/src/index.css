@@ -1,0 +1,125 @@
+@import 'tailwindcss';
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/inter";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * MuzikHub design tokens — taken from the approved prototype (Downloads/index.html).
+ * Palette: Deep Forest (surfaces), Emerald (actions), Mint (highlights), Off White (text).
+ * The prototype is dark-only, so there is a single theme.
+ */
+@theme inline {
+    --font-sans: 'Inter Variable', Inter, Arial, sans-serif;
+    --font-heading: var(--font-sans);
+
+    /* Brand palette (raw values — prefer the semantic tokens below in components) */
+    --color-forest-950: #061612;   /* page background */
+    --color-forest-925: #071c17;   /* sidebar */
+    --color-forest-900: #092019;
+    --color-forest-850: #0d2720;   /* panel */
+    --color-forest-800: #102e26;   /* raised panel / inputs */
+    --color-forest-700: #143a2c;   /* hover / active nav */
+    --color-line: #21463a;
+    --color-line-strong: #2b604b;
+    --color-emerald: #17d995;
+    --color-emerald-deep: #08b781;
+    --color-mint: #73e1b8;
+    --color-mint-soft: #91f9c7;
+    --color-offwhite: #f1f9f5;
+    --color-sage: #9bb8aa;         /* muted text */
+    --color-sage-dim: #638579;     /* subtle text */
+    --color-gold: #f2c86a;
+    --color-violet: #c090fa;
+
+    --radius-panel: 18px;
+
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+}
+
+:root {
+    color-scheme: dark;
+    --background: #061612;
+    --foreground: #f1f9f5;
+    --card: #0d2720;
+    --card-foreground: #f1f9f5;
+    --popover: #0e2b21;
+    --popover-foreground: #f1f9f5;
+    --primary: #17d995;
+    --primary-foreground: #032216;
+    --secondary: #163c2f;
+    --secondary-foreground: #a8f5cf;
+    --muted: #102e25;
+    --muted-foreground: #9bb8aa;
+    --accent: #143a2c;
+    --accent-foreground: #edf9f1;
+    --destructive: #ff8f93;
+    --border: #21463a;
+    --input: #2b5e49;
+    --ring: #17d995;
+    --radius: 0.625rem;
+}
+
+/*
+ * Landing hero: a very slow, subtle zoom on the visible photo (1.0 → 1.06 over 14 s).
+ * Only when the user hasn't asked for reduced motion.
+ */
+@keyframes hero-kenburns {
+  from { transform: scale(1) translate3d(0, 0, 0); }
+  to { transform: scale(1.06) translate3d(-1%, -0.5%, 0); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .hero-kenburns {
+    animation: hero-kenburns 14s ease-out forwards;
+    will-change: transform;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply text-foreground antialiased;
+    /* Prototype `.app` background: a single soft emerald glow over deep forest. */
+    background: radial-gradient(ellipse at 60% -20%, #0d4e35 0%, transparent 36%) no-repeat, #061612;
+    min-height: 100svh;
+  }
+  h1, h2, h3 {
+    letter-spacing: -0.02em;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+}

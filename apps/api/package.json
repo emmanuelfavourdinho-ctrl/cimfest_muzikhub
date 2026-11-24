@@ -1,0 +1,46 @@
+{
+  "name": "@muzikhub/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --clear-screen=false src/server.ts",
+    "build": "prisma generate && tsc -p tsconfig.build.json",
+    "start": "node dist/server.js",
+    "typecheck": "prisma generate && tsc -p tsconfig.json --noEmit",
+    "test": "prisma generate && vitest run",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:studio": "prisma studio",
+    "db:check": "tsx src/scripts/db-check.ts",
+    "media:cleanup": "tsx src/scripts/media-cleanup.ts",
+    "brand:upload": "tsx src/scripts/upload-brand-assets.ts",
+    "admin:grant-initial": "tsx src/scripts/admin-grant-initial.ts",
+    "admin:reset-two-factor": "tsx src/scripts/admin-reset-two-factor.ts"
+  },
+  "dependencies": {
+    "@muzikhub/shared": "*",
+    "@prisma/adapter-pg": "7.10.1",
+    "@prisma/client": "7.10.1",
+    "better-auth": "^1.7.27",
+    "cloudinary": "^2.11.0",
+    "cors": "^2.8.6",
+    "express": "^5.3.0",
+    "helmet": "^8.3.0",
+    "pg": "^8.23.1",
+    "resend": "^6.39.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.0.0",
+    "@types/pg": "^8.23.1",
+    "@types/supertest": "^6.0.3",
+    "prisma": "7.10.1",
+    "supertest": "^7.3.2",
+    "tsx": "^4.23.15",
+    "vitest": "^5.1.1"
+  }
+}

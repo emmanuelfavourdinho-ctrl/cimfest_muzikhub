@@ -1,0 +1,71 @@
+# MuzikHub
+
+A professional music-industry networking and discovery platform: profiles, creative work, discovery, relationships, communities, collaboration and opportunities in one place.
+
+> **Status:** Milestones 1–2 (accounts, profiles, portfolios, Cloudinary media, feed, discovery, follows and connections) and the Admin Console (phases 1–4) are implemented and tested. See [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md) for exactly what works, what is partial, and what is blocked.
+
+## Requirements
+
+- Node.js ≥ 22.12 (developed on Node 26, npm 11)
+- Docker (local PostgreSQL)
+
+## Quick start
+
+```bash
+npm install
+
+# API environment (git-ignored). Then put a secret in BETTER_AUTH_SECRET:
+cp .env.example apps/api/.env
+openssl rand -base64 32               # → BETTER_AUTH_SECRET
+# Fill in CLOUDINARY_CLOUD_NAME / _API_KEY (15-digit number) / _API_SECRET for uploads
+
+npm run db:up                         # Postgres on localhost:5435 (creates muzikhub + muzikhub_test)
+npm run db:migrate                    # apply migrations to the dev database
+npm run dev                           # API :4000 + web :5173
+```
+
+Open http://localhost:5173 and create an account.
+
+**Emails in development** (password reset, verification) are printed to the API terminal and not sent; copy the link from there. Production sends through **Resend** once a sending domain is verified (see docs/ARCHITECTURE.md §5d). The hosted database will be **Supabase PostgreSQL** (configuration documented, not deployed).
+
+> Existing database volume created before 2026-11-23? Create the test database once:
+> `docker exec muzikhub-db psql -U muzikhub -d postgres -c "create database muzikhub_test"`
+
+## Scripts (from the repository root)
+
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | shared (watch) + API (`tsx watch`) + web (Vite) |
+| `npm run build` | Production build of all three workspaces |
+| `npm run typecheck` | TypeScript checks everywhere |
+| `npm test` | Vitest: shared unit tests + API integration tests (uses `muzikhub_test`) |
+| `npm run test:e2e` | Playwright on the production build, mobile + desktop, with real Cloudinary uploads (cleaned up afterwards). Own servers on :4100/:5273. First time: `npx playwright install chromium` |
+| `npm run db:up` / `db:down` | Start / stop Postgres |
+| `npm run db:migrate` | Create & apply a migration after editing `schema.prisma` |
+| `npm run db:studio` | Browse data in Prisma Studio |
+| `npm run db:check -w @muzikhub/api` | **Read-only** check of the database in `apps/api/.env.supabase` (or `-- --env <file>`): wrong-CA refusal, verified TLS, server version, migration state. Never writes |
+| `npm run media:cleanup` | Retry failed Cloudinary deletions; remove abandoned uploads (> 24 h). Schedule daily in production |
+| `CLOUDINARY_LIVE=1 npx vitest run media.live` (in `apps/api`) | Opt-in test against the real Cloudinary account (uploads and deletes 3 tiny files) |
+| `RESEND_LIVE=1 npx vitest run mailer.live` (in `apps/api`) | Opt-in test: one email via Resend's test sender to the `delivered@resend.dev` sink (no real recipient) |
+| `npm run admin:grant-initial -w @muzikhub/api -- --email you@example.com` | Make an existing, **verified** account the first administrator (refuses if one exists; audited). Then sign in, open `/admin` and set up two-step verification |
+| `npm run admin:reset-two-factor -w @muzikhub/api` | Last-resort staff 2FA recovery from the server (asks for email, reason and confirmation; audited) |
+| `npm run brand:upload -w @muzikhub/api` | Upload the approved landing photographs to Cloudinary and regenerate `hero-photos.json` (safe to re-run; never deletes originals) |
+
+## Layout
+
+```text
+apps/web          React + Vite + Tailwind + shadcn/ui (React Router, TanStack Query, RHF)
+apps/api          Express API, Better Auth, Prisma schema + migrations
+packages/shared   Zod schemas, types and vocabularies used by both apps
+e2e/              Playwright end-to-end tests
+docs/             Product, architecture, database, API and status docs
+CLAUDE.md         Master product & engineering instructions (source of truth)
+```
+
+## Documentation
+
+- [PRODUCT_SPEC.md](docs/PRODUCT_SPEC.md) — scope, users, journeys
+- [ARCHITECTURE.md](docs/ARCHITECTURE.md) — how it fits together and why
+- [DATABASE.md](docs/DATABASE.md) — entities, relationships, planned tables
+- [API.md](docs/API.md) — endpoints and error contract
+- [IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md) — tested / partial / blocked

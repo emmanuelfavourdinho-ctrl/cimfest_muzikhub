@@ -1,0 +1,77 @@
+import cors from 'cors';
+import express, { type Express, Router } from 'express';
+import helmet from 'helmet';
+import { toNodeHandler } from 'better-auth/node';
+import { API_V1_PREFIX } from '@muzikhub/shared';
+import { env } from './config/env.js';
+import { auth } from './lib/auth.js';
+import { prisma } from './lib/prisma.js';
+import { errorHandler, notFound } from './middleware/error-handler.js';
+import type { DatabaseCheck } from './modules/health/health.service.js';
+import { healthRouter } from './modules/health/health.routes.js';
+import { meRouter, profilesRouter } from './modules/profiles/profiles.routes.js';
+import { mediaRouter } from './modules/media/media.routes.js';
+import { ownPortfolioRoute, portfolioRouter, profilePortfolioRoute } from './modules/portfolio/portfolio.routes.js';
+import { setMediaStorage } from './lib/media.js';
+import { commentsRouter, feedRouter, postsRouter, profilePostsRoute } from './modules/feed/feed.routes.js';
+import { connectionsRouter, usersRouter } from './modules/network/network.routes.js';
+import { discoverRouter } from './modules/discover/discover.routes.js';
+import { reportsRouter } from './modules/reports/reports.routes.js';
+import { adminRouter } from './modules/admin/admin.routes.js';
+import type { MediaStorage } from './lib/media-storage.js';
+
+export interface AppDependencies {
+  /** Returns true when the database answers. Injected so tests need no real DB. */
+  checkDatabase: DatabaseCheck;
+  /** Media provider. Defaults to Cloudinary; tests pass an in-memory fake. */
+  media?: MediaStorage;
+}
+
+const defaultDependencies: AppDependencies = {
+  checkDatabase: async () => {
+    await prisma.$queryRaw`SELECT 1`;
+    return true;
+  },
+};
+
+export function createApp(overrides: Partial<AppDependencies> = {}): Express {
+  const deps = { ...defaultDependencies, ...overrides };
+  if (deps.media) setMediaStorage(deps.media);
+  const app = express();
+
+  app.disable('x-powered-by');
+  app.set('trust proxy', 1); // correct client IPs/secure cookies behind one reverse proxy
+  app.use(helmet());
+  app.use(cors({ origin: env.CORS_ORIGINS, credentials: true }));
+
+  // Better Auth must be mounted BEFORE express.json(): it parses its own bodies.
+  app.all('/api/auth/{*any}', toNodeHandler(auth));
+
+  app.use(express.json({ limit: '1mb' }));
+
+  // Versioned REST API. Each feature module contributes one router.
+  const v1 = Router();
+  v1.use('/health', healthRouter(deps.checkDatabase));
+  // More specific routes first: /me/portfolio and /profiles/:username/portfolio.
+  v1.use('/me/portfolio', ownPortfolioRoute());
+  v1.use('/me', meRouter());
+  v1.use('/profiles/:username/portfolio', profilePortfolioRoute());
+  v1.use('/profiles/:username/posts', profilePostsRoute());
+  v1.use('/profiles', profilesRouter());
+  v1.use('/portfolio', portfolioRouter());
+  v1.use('/media', mediaRouter());
+  v1.use('/feed', feedRouter());
+  v1.use('/posts', postsRouter());
+  v1.use('/comments', commentsRouter());
+  v1.use('/users', usersRouter());
+  v1.use('/connections', connectionsRouter());
+  v1.use('/discover', discoverRouter());
+  v1.use('/reports', reportsRouter());
+  v1.use('/admin', adminRouter());
+  app.use(API_V1_PREFIX, v1);
+
+  app.use(notFound);
+  app.use(errorHandler);
+
+  return app;
+}
