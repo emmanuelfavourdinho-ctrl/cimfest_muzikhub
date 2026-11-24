@@ -123,10 +123,18 @@ export function AdminHeader({ title, description, actions }: { title: string; de
   );
 }
 
-/** Data-dense table that scrolls inside its own box on small screens (never the page). */
-export function DataTable({ children }: { children: ReactNode }) {
+/**
+ * Data-dense table that scrolls inside its own box on small screens (never the page). The scroll
+ * box is a focusable, labelled region so keyboard users can scroll it too (WCAG 2.1.1).
+ */
+export function DataTable({ children, label = 'Data table' }: { children: ReactNode; label?: string }) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-hairline-strong bg-surface-raised">
+    <div
+      role="region"
+      aria-label={label}
+      tabIndex={0}
+      className="overflow-x-auto rounded-xl border border-hairline-strong bg-surface-raised"
+    >
       <table className="w-full min-w-160 text-left text-caption [&_td]:border-t [&_td]:border-hairline-strong [&_td]:px-3 [&_td]:py-2.5 [&_td]:align-top [&_th]:px-3 [&_th]:py-2 [&_th]:text-xs [&_th]:font-semibold [&_th]:tracking-wide [&_th]:text-text-2 [&_th]:uppercase [&_tbody_tr:hover]:bg-surface-overlay">
         {children}
       </table>

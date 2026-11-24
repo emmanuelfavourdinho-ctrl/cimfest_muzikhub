@@ -22,6 +22,7 @@
 | `react/exhaustive-effect-dependencies` | Duplicates `react/exhaustive-deps` |
 | `oxc/no-async-endpoint-handlers` | Express 5 forwards rejected promises to the error handler |
 | `no-underscore-dangle` | Prisma's `_count` |
+| `jsx-a11y/no-noninteractive-tabindex`: allows `role="region"` (and `tabpanel`) | Scrollable areas such as admin tables must be keyboard-focusable (axe `scrollable-region-focusable`, WCAG 2.1.1); a labelled region is the standard pattern |
 | `jsx-a11y/interactive-supports-focus` (landing only) | The `tablist` container isn't meant to be focusable (WAI-ARIA tabs pattern); its tabs are |
 
 **Per-line exceptions** (each has a comment):

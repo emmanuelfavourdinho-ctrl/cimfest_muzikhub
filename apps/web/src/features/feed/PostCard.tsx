@@ -79,11 +79,12 @@ export function PostCard({ post }: { post: PostView }) {
   return (
     <Panel className="p-4 sm:p-5">
       <header className="flex items-center gap-3">
-        <Link to={`/u/${post.author.username}`} className="shrink-0">
+        {/* Same destination as the name link beside it: kept for mouse/touch, hidden from AT and Tab. */}
+        <Link to={`/u/${post.author.username}`} className="shrink-0" tabIndex={-1} aria-hidden="true">
           <Avatar name={post.author.name} image={post.author.image} className="size-10 text-xs" />
         </Link>
         <div className="min-w-0 flex-1">
-          <Link to={`/u/${post.author.username}`} className="block truncate text-sm font-semibold hover:text-signal">
+          <Link to={`/u/${post.author.username}`} className="block min-h-6 truncate text-sm leading-6 font-semibold hover:text-signal">
             {post.author.name}
           </Link>
           <p className="text-xs text-text-2">

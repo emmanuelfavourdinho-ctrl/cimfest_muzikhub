@@ -77,7 +77,7 @@ function AdminShell({ me, children, bare = false }: { me: AdminMe; children: Rea
           <Tag color={me.role === 'ADMIN' ? 'violet' : 'blue'}>{me.role === 'ADMIN' ? 'Admin' : 'Moderator'} console</Tag>
         </div>
         <Button asChild variant="quiet" size="sm">
-          <Link to="/home">
+          <Link to="/home" aria-label="Back to MuzikHub">
             <ArrowLeft /> <span className="hidden sm:inline">Back to MuzikHub</span>
           </Link>
         </Button>

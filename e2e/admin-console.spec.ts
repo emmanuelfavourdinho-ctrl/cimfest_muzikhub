@@ -100,7 +100,8 @@ test('admin: enrol in 2FA, sign in with a code, work a report end to end, restri
   await expect(page).toHaveURL(/\/admin\/reports$/);
 
   // ── Report lifecycle in the UI ──
-  await page.getByRole('link', { name: 'Spam or scam' }).first().click();
+  // This test's own report (other open reports may exist in the shared test database).
+  await page.getByRole('row').filter({ hasText: text }).getByRole('link', { name: 'Spam or scam' }).click();
   await expect(page.getByText(text)).toBeVisible();
   await page.getByRole('button', { name: 'Take this report' }).click();
   await expect(page.getByText('You are reviewing this report')).toBeVisible();

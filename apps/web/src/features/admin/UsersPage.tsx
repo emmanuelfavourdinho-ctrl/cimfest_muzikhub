@@ -90,7 +90,7 @@ export function UsersPage() {
           fetchNextPage={() => void query.fetchNextPage()}
           isError={query.isError}
         >
-          <DataTable>
+          <DataTable label="Members">
             <thead>
               <tr>
                 <th>Member</th>

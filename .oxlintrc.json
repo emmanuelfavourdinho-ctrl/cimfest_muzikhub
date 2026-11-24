@@ -29,7 +29,14 @@
     "react/incompatible-library": "off",
     "react/exhaustive-effect-dependencies": "off",
     "oxc/no-async-endpoint-handlers": "off",
-    "no-underscore-dangle": "off"
+    "no-underscore-dangle": "off",
+    "jsx-a11y/no-noninteractive-tabindex": [
+      "error",
+      {
+        "roles": ["tabpanel", "region"],
+        "tags": []
+      }
+    ]
   },
   "ignorePatterns": ["**/dist/**", "**/node_modules/**", "apps/api/src/generated/**", "e2e/.results/**", "brand-originals/**"],
   "overrides": [

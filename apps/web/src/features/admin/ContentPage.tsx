@@ -85,7 +85,7 @@ export function ContentPage() {
           fetchNextPage={() => void query.fetchNextPage()}
           isError={query.isError}
         >
-          <DataTable>
+          <DataTable label="Content">
             <thead>
               <tr>
                 <th>Content</th>

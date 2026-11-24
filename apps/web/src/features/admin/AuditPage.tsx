@@ -75,7 +75,7 @@ export function AuditPage() {
           fetchNextPage={() => void query.fetchNextPage()}
           isError={query.isError}
         >
-          <DataTable>
+          <DataTable label="Audit log">
             <thead>
               <tr>
                 <th>When</th>

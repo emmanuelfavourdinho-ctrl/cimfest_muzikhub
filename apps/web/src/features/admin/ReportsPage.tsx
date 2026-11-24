@@ -56,7 +56,7 @@ export function ReportsPage() {
           fetchNextPage={() => void query.fetchNextPage()}
           isError={query.isError}
         >
-          <DataTable>
+          <DataTable label="Reports">
             <thead>
               <tr>
                 <th>Reported</th>

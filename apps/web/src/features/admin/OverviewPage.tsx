@@ -99,7 +99,7 @@ export function OverviewPage() {
           </div>
           <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 border-t border-hairline-strong px-3 py-2.5 text-xs text-text-2">
             {Object.entries(users.byStatus).map(([s, n]) => (
-              <Link key={s} to={`/admin/users?status=${s}`} className="hover:text-foreground">
+              <Link key={s} to={`/admin/users?status=${s}`} className="inline-flex min-h-6 items-center gap-1 hover:text-foreground">
                 {s.charAt(0) + s.slice(1).toLowerCase()}: <strong className="text-foreground tabular-nums">{n}</strong>
               </Link>
             ))}

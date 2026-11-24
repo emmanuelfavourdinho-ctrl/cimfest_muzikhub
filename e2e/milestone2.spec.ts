@@ -55,7 +55,7 @@ test('creator uploads a profile photo and publishes a beat with real media; it r
   await page.goto('/settings/profile');
   await page.getByLabel('Upload a photo').setInputFiles(fixture('cover.png'));
   await expect(page.getByText('Profile photo updated')).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByAltText('Your profile photo')).toHaveAttribute('src', /res\.cloudinary\.com/);
+  await expect(page.getByAltText('Your current avatar')).toHaveAttribute('src', /res\.cloudinary\.com/);
 
   // Portfolio item: beat + cover, shared to the feed (checkbox ticked by default)
   await page.goto('/studio/new');
