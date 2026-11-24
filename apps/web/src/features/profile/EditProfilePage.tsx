@@ -27,7 +27,11 @@ import { PageHeader, PageLoading, Panel } from '@/components/ui/primitives';
 import { api, errorMessage } from '@/lib/api';
 import { queryKeys, useMe, useUpdateProfile } from '@/lib/queries';
 import { LinksEditor } from './LinksEditor';
+import { cn } from '@/lib/cn';
 import { GenrePicker, GoalPicker, RolePicker } from './pickers';
+import { useEntitlements } from '@/lib/billing';
+import { ACCENT_BAR } from '@/features/billing/ui';
+import { PROFILE_ACCENT_KEYS, PROFILE_ACCENTS, type ProfileAccent } from '@muzikhub/shared';
 
 /** FR-06: update profile information and professional roles at any time. */
 export function EditProfilePage() {
@@ -54,6 +58,7 @@ export function EditProfilePage() {
           <LinksEditor initial={me.profile.links} onSaved={() => toast.success('Links saved')} />
         </Section>
         <PhotosSection me={me} />
+        <AccentSection me={me} />
       </div>
     </div>
   );
@@ -303,6 +308,51 @@ function IdentitySection({ me }: { me: Me }) {
           {pending ? 'Saving…' : 'Save identity'}
         </Button>
       </form>
+    </Section>
+  );
+}
+
+/** Paid benefit: an accent colour from the approved palette. The API checks the plan. */
+function AccentSection({ me }: { me: Me }) {
+  const ent = useEntitlements();
+  const allowed = ent.data?.limits.profileAccent ?? false;
+  const [accent, setAccent] = useState<ProfileAccent | null>(me.profile.accent);
+  const { save, error, pending } = useSave();
+  return (
+    <Section title="Profile accent" description="A colour for your profile header and photo ring. Part of Creator Plus and MuzikHub Pro.">
+      {!allowed ? (
+        <p className="text-small text-text-2">
+          Your plan doesn’t include an accent.{' '}
+          <Link to="/pricing" className="text-signal underline">
+            See plans
+          </Link>
+        </p>
+      ) : (
+        <>
+          <div role="radiogroup" aria-label="Accent colour" className="flex flex-wrap gap-2">
+            {([null, ...PROFILE_ACCENT_KEYS] as (ProfileAccent | null)[]).map((key) => (
+              <button
+                key={key ?? 'none'}
+                type="button"
+                role="radio"
+                aria-checked={accent === key}
+                onClick={() => setAccent(key)}
+                className={cn(
+                  'flex min-h-11 items-center gap-2 rounded-s border px-3 text-small',
+                  accent === key ? 'border-signal text-text-1' : 'border-control-border text-text-2',
+                )}
+              >
+                <span aria-hidden className={cn('size-4 rounded-full', key ? ACCENT_BAR[key] : 'border border-control-border')} />
+                {key ? PROFILE_ACCENTS[key] : 'Default'}
+              </button>
+            ))}
+          </div>
+          <FormError message={error} />
+          <Button className="mt-4" size="sm" disabled={pending} onClick={() => void save({ accent }, 'Accent saved')}>
+            {pending ? 'Saving…' : 'Save accent'}
+          </Button>
+        </>
+      )}
     </Section>
   );
 }

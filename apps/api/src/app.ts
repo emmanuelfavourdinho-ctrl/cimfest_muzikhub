@@ -28,6 +28,8 @@ import { paymentWebhookRouter } from './modules/payments/webhook.js';
 import { registerPaymentJobs } from './modules/payments/jobs.js';
 import { devSandboxEnabled } from './modules/payments/runtime.js';
 import { registerDevSandboxFulfiller } from './modules/payments/dev-fulfiller.js';
+import { registerSubscriptionFulfillers } from './modules/billing/fulfillers.js';
+import { notificationsRouter } from './modules/notifications/notifications.routes.js';
 
 export interface AppDependencies {
   /** Returns true when the database answers. Injected so tests need no real DB. */
@@ -60,6 +62,7 @@ export function createApp(overrides: Partial<AppDependencies> = {}): Express {
   // outside the v1 router's browser origin check (server-to-server, authenticated by signature).
   app.use('/api/v1/payments/webhooks', paymentWebhookRouter());
   registerPaymentJobs();
+  registerSubscriptionFulfillers();
 
   app.use(express.json({ limit: '1mb' }));
 
@@ -92,6 +95,7 @@ export function createApp(overrides: Partial<AppDependencies> = {}): Express {
   v1.use('/catalogue', catalogueRouter());
   v1.use('/billing', billingRouter());
   v1.use('/checkout', checkoutRouter());
+  v1.use('/notifications', notificationsRouter());
   // Development-only sandbox helpers (never mounted in production; see runtime.ts).
   if (devSandboxEnabled()) {
     v1.use('/dev/payments', devPaymentsRouter());

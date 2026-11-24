@@ -7,6 +7,7 @@ import { sweepIdempotencyKeys } from './middleware/idempotency.js';
 import { reconcilePayments } from './modules/payments/orders.service.js';
 import { paymentsRuntime } from './modules/payments/runtime.js';
 import { sweepWebhookEvents } from './modules/payments/webhook.js';
+import { subscriptionNoticesSweep } from './modules/billing/subscriptions.service.js';
 
 const app = createApp();
 
@@ -50,6 +51,12 @@ if (paymentsRuntime().mode !== 'off') {
   }, 60_000);
   reconcileTimer.unref();
 }
+// In-app subscription notices (ends soon / ended). Informational only: entitlements never depend on it.
+const noticesTimer = setInterval(() => {
+  subscriptionNoticesSweep().catch((e) => console.error('[billing] notices sweep failed:', (e as Error).message));
+}, 15 * 60_000);
+noticesTimer.unref();
+
 // Webhook events older than the retention period (90 days).
 const webhookSweep = setInterval(
   () => {

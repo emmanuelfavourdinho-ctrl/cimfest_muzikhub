@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Field, Input } from '@/components/ui/form';
 import { PageLoading } from '@/components/ui/primitives';
 import { LoadFailed } from '@/features/auth/guards';
-import { formatXaf } from '@/features/billing/PricingPage';
+import { formatXaf } from '@/features/billing/ui';
 import { errorMessage } from '@/lib/api';
 import { adminApi } from './admin-api';
 import { AdminHeader, Ago, DataTable, ReasonDialog, Tag, useAdminAction } from './ui';

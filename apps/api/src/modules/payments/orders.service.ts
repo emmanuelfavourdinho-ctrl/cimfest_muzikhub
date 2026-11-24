@@ -5,7 +5,6 @@ import {
   ORDER_STATUS_MESSAGES,
   ORDER_TTL_HOURS,
   PENDING_ORDER_CAP,
-  SELLABLE_PRODUCTS,
   type BillingProduct as SharedProduct,
   type OrderView,
 } from '@muzikhub/shared';
@@ -16,20 +15,19 @@ import { HttpError } from '../../lib/http-error.js';
 import { enqueue } from '../../lib/outbox.js';
 import { assertCanReadBilling } from '../../lib/policy.js';
 import { prisma } from '../../lib/prisma.js';
+import { dbNow } from '../../lib/db-time.js';
 import type { StaffContext } from '../../middleware/require-staff.js';
 import { fulfillerFor } from './fulfilment.js';
 import type { ProviderPayment } from './provider.js';
 import { callbackUrl, paymentsRuntime } from './runtime.js';
+import { isPurchasable } from './purchasable.js';
+import { notify } from '../notifications/notifications.service.js';
 import { nextStatus, triggerFromProvider, type Trigger } from './state-machine.js';
 
 type Tx = Prisma.TransactionClient;
 const OPEN: OrderStatus[] = ['PENDING', 'PROCESSING'];
 
-/** Database time (never the client's or this server's clock). Inside a transaction: its start time. */
-export async function dbNow(db: Tx | typeof prisma = prisma): Promise<Date> {
-  const [row] = await db.$queryRaw<{ now: Date }[]>`SELECT now() AS "now"`;
-  return row!.now;
-}
+export { dbNow };
 
 /** "mh_" + 128 random bits, base64url: opaque, unguessable, unique (DB constraint), no personal data. */
 export const newOrderReference = () => `mh_${randomBytes(16).toString('base64url')}`;
@@ -64,7 +62,7 @@ export const requestHashOf = (body: { product: string; option: string }) =>
 
 async function transition(
   tx: Tx,
-  order: Pick<Order, 'id' | 'status'>,
+  order: Order,
   to: OrderStatus,
   trigger: Trigger,
   data: Prisma.OrderUpdateManyMutationInput = {},
@@ -83,6 +81,35 @@ async function transition(
       actorId: event.actorId ?? null,
       detail: event.detail?.slice(0, 300) ?? null,
     },
+  });
+  await notifyOrderStatus(tx, order, to, trigger);
+}
+
+/** One in-app notification per meaningful outcome (same transaction as the change). */
+async function notifyOrderStatus(tx: Tx, order: Order, to: OrderStatus, trigger: Trigger) {
+  if (to === 'CANCELLED' && trigger === 'member.cancel') return; // they did it themselves
+  const item = `${label(order.product)}, ${CATALOGUE_OPTIONS[order.option].label}`;
+  const amount = `${order.amountXaf.toLocaleString('fr-FR')} FCFA`;
+  const messages: Partial<Record<OrderStatus, { title: string; body: string }>> = {
+    FULFILLED: { title: 'payment confirmed', body: `${item} (${amount}) is active. Your receipt is ready.` },
+    FAILED: { title: 'payment failed', body: `Your payment for ${item} didn't go through. MuzikHub hasn't charged you.` },
+    EXPIRED: { title: 'order expired', body: `Your order for ${item} expired before a payment was confirmed.` },
+    NEEDS_REVIEW: {
+      title: "we're checking a payment",
+      body: `We need to check your payment for ${item}. Nothing more is needed from you right now.`,
+    },
+    REFUNDED: { title: 'refund issued', body: `${amount} for ${item} has been refunded. The provider keeps its original fee.` },
+    CANCELLED: { title: 'payment cancelled', body: `The payment for ${item} was cancelled. Nothing was charged.` },
+  };
+  const m = messages[to];
+  if (!m) return;
+  const title = order.mode === 'SANDBOX' ? `Test payment: ${m.title}` : m.title.charAt(0).toUpperCase() + m.title.slice(1);
+  await notify(tx, order.userId, {
+    type: `payment.${to.toLowerCase()}`,
+    title,
+    body: m.body,
+    link: `/billing/orders/${order.reference}`,
+    dedupeKey: `order:${order.id}:${to}`,
   });
 }
 
@@ -135,8 +162,7 @@ export async function startCheckout(
       orderBy: [{ effectiveFrom: 'desc' }, { createdAt: 'desc' }],
     });
     if (item?.testOnly) assertTestItemAllowed();
-    const sellable = item && item.active && (item.testOnly || SELLABLE_PRODUCTS.includes(item.product as SharedProduct));
-    if (!item || !sellable) throw new HttpError(409, 'PRODUCT_NOT_AVAILABLE', 'That item is not available to buy yet.');
+    if (!item || !isPurchasable(item, mode)) throw new HttpError(409, 'PRODUCT_NOT_AVAILABLE', 'That item is not available to buy yet.');
 
     const order = await tx.order.create({
       data: {
@@ -215,6 +241,50 @@ export async function cancelOwnOrder(userId: string, reference: string): Promise
       .catch((e: Error) => console.warn(`[payments] cancel at provider failed ref=${order.reference}: ${e.message}`));
   }
   return toOrderView(await prisma.order.findUniqueOrThrow({ where: { id: order.id } }));
+}
+
+/** The member's own transaction history (newest first). */
+export async function ownOrders(userId: string, q: { cursor?: string; limit: number }) {
+  const rows = await prisma.order.findMany({
+    where: { userId },
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    take: q.limit + 1,
+    ...(q.cursor && { cursor: { id: q.cursor }, skip: 1 }),
+  });
+  const page = rows.slice(0, q.limit);
+  return { nextCursor: rows.length > q.limit ? page.at(-1)!.id : null, items: page.map(toOrderView) };
+}
+
+/** On-screen receipt for the owner: what was paid and what it granted. */
+export async function ownReceipt(userId: string, reference: string) {
+  const order = assertCanReadBilling({ userId }, await prisma.order.findUnique({ where: { reference }, include: { fulfilments: true } }), {
+    notFound: 'Order not found',
+  });
+  let granted: { label: string; from: string; to: string } | null = null;
+  const f = order.fulfilments[0];
+  if (f?.entitlementType === 'SUBSCRIPTION' && f.entitlementId) {
+    const sub = await prisma.subscription.findUnique({ where: { id: f.entitlementId } });
+    if (sub) granted = { label: label(sub.plan as BillingProduct), from: sub.periodStart.toISOString(), to: sub.periodEnd.toISOString() };
+  } else if (f?.entitlementType === 'PROMOTION' && f.entitlementId) {
+    const p = await prisma.promotion.findUnique({ where: { id: f.entitlementId } });
+    if (p) granted = { label: label(p.product), from: p.periodStart.toISOString(), to: p.periodEnd.toISOString() };
+  }
+  const v = toOrderView(order);
+  return {
+    reference: v.reference,
+    status: v.status,
+    statusMessage: v.statusMessage,
+    product: v.product,
+    option: v.option,
+    amountXaf: v.amountXaf,
+    currency: v.currency,
+    mode: v.mode,
+    provider: order.provider === 'fake' ? 'TEST PROVIDER' : 'Notch Pay',
+    createdAt: v.createdAt,
+    paidAt: order.paidAt?.toISOString() ?? null,
+    refundedAt: order.refundedAt?.toISOString() ?? null,
+    granted,
+  };
 }
 
 // ── Verification (webhook job and reconciliation share this) ─

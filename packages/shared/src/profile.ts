@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { CAREER_STAGE_KEYS, CREATIVE_ROLE_KEYS, GENRE_KEYS, GOAL_KEYS, PRIMARY_USE_KEYS } from './taxonomy.js';
-import { LINK_PLATFORM_KEYS, MAX_PROFILE_LINKS, normaliseHttpsUrl } from './links.js';
+import { LINK_PLATFORM_KEYS, normaliseHttpsUrl } from './links.js';
+import { MAX_LINKS_ANY_PLAN, PROFILE_ACCENT_KEYS } from './billing.js';
 import { mediaViewSchema } from './media.js';
 
 // ── Username ──────────────────────────────────────────────────
@@ -90,6 +91,8 @@ export const updateProfileSchema = z
     primaryUse: z.enum(PRIMARY_USE_KEYS),
     /** Furthest onboarding step reached, so setup can resume where the user left off. */
     onboardingStep: z.number().int().min(0).max(20),
+    /** Paid benefit (Creator Plus / Pro); the server checks the plan. null = default. */
+    accent: z.enum(PROFILE_ACCENT_KEYS).nullable(),
   })
   .partial()
   .strict();
@@ -114,7 +117,8 @@ export const profileLinkInputSchema = z.object({
 export const replaceLinksSchema = z.object({
   links: z
     .array(profileLinkInputSchema)
-    .max(MAX_PROFILE_LINKS, `Add up to ${MAX_PROFILE_LINKS} links`)
+    // Ceiling across plans; the server checks the member's own plan (entitlements).
+    .max(MAX_LINKS_ANY_PLAN, `Add up to ${MAX_LINKS_ANY_PLAN} links`)
     .refine((links) => new Set(links.map((l) => l.url)).size === links.length, 'Each link can only be added once'),
 });
 export type ReplaceLinksInput = z.input<typeof replaceLinksSchema>;
@@ -146,6 +150,8 @@ export const publicProfileSchema = z.object({
   skills: z.array(z.string()),
   careerStage: z.enum(CAREER_STAGE_KEYS).nullable(),
   links: z.array(profileLinkSchema),
+  /** Paid accent colour; null unless the owner is entitled right now. */
+  accent: z.enum(PROFILE_ACCENT_KEYS).nullable(),
   joinedAt: z.iso.datetime(),
   /** Derived from real follow/connection/portfolio rows. */
   stats: z.object({ followers: z.number(), following: z.number(), connections: z.number(), publishedWork: z.number() }),

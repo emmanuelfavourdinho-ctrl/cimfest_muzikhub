@@ -99,6 +99,20 @@ _Phase 0 audit 2026-11-24, updated at the end of **M0** (branch `chore/m0-founda
 | FR-45 | Pending, failed, cancelled, refunds | Done (sandbox) | `docs/payments-state-machine.md` (117-pair test), member cancel, reconciliation + expiry, NEEDS_REVIEW, admin refund (audited, fee not refunded, entitlement → REFUNDED) | Admin management screens (Phase 6) | |
 | FR-46 | Fulfil only after server-side verification | Done (sandbox; registry has no real fulfillers yet) | One transaction + unique (order, fulfiller); failure → FULFILMENT_PENDING, outbox retry, reconcile re-queue; tested no-duplicate | Real fulfillers: Phase 4 (promotions), Phase 5 (subscriptions) | |
 
+
+### 10a. Monetization delivery (owner milestone, 2026-11-24; sandbox only, live blocked)
+
+| ID | Item | Status | Evidence |
+|---|---|---|---|
+| MON-1 | Pricing page from the backend catalogue | Done | `/pricing`: plans, limits and benefits from `GET /catalogue`; prices only when purchasable; annual savings computed from catalogue prices; comparison, how-it-works, promotions; e2e:pricing (axe, overflow) |
+| MON-2 | Subscription purchase → verified fulfilment → entitlements | Done (TEST PROVIDER) | Subscription fulfillers → `grantSubscription`; review page with server preview; return page polls our own status; api:billing.subscriptions; e2e:subscriptions |
+| MON-3 | Manage: plan, dates, renew, upgrade/downgrade, cancel, transactions, receipts | Done | `/settings/billing`, `/billing/orders/:ref`; cancellation = no reminders, benefits to end date (plans never auto-renew) |
+| MON-4 | Creator Plus / Pro benefits enforced | Partial | Enforced server-side: audio 100 MB (Cloudinary Free caps verified: image 10 MB, video 100 MB, so those can't rise), 20 links, profile accent. Analytics: MON-5. **Not offered:** higher portfolio limits (Free has no portfolio cap to rise above) |
+| MON-5 | Analytics (views, plays, link clicks; per-item for Pro; plan history limits) | Not started | Next milestone |
+| MON-6 | Promotions in feed and Discover (Boost, Spotlight, moderation, expiry) | Not started | Milestone 3 |
+| MON-7 | Admin payment operations UI | Partial | Catalogue page exists; transactions, NEEDS_REVIEW and repair arrive in milestone 4 |
+| MON-8 | Notifications and receipts | Done for payments and subscriptions | In-app notifications (payment outcomes, cancellation, ends-soon, ended); on-screen receipts. Email: none (sending domain unverified) |
+
 ## 11. Real-time messaging (M10)
 
 | FR | Requirement | Status | Evidence | Gap | Depth |

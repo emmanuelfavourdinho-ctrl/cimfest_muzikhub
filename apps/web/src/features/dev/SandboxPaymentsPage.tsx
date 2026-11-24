@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { FlaskConical } from 'lucide-react';
-import { checkoutResultSchema, orderViewSchema, type OrderView } from '@muzikhub/shared';
+import { checkoutResultSchema } from '@muzikhub/shared';
 import { Button } from '@/components/ui/button';
-import { PageHeader, PageLoading, Panel, Pill } from '@/components/ui/primitives';
+import { PageHeader, PageLoading, Panel } from '@/components/ui/primitives';
 import { LoadFailed } from '@/features/auth/guards';
-import { formatXaf } from '@/features/billing/PricingPage';
+import { formatXaf } from '@/features/billing/ui';
 import { errorMessage, request } from '@/lib/api';
 
 /*
@@ -16,7 +16,6 @@ import { errorMessage, request } from '@/lib/api';
  */
 
 type Status = { mode: string; provider: string; testItem: { product: string; option: string; priceXaf: number } | null };
-const FINAL = new Set(['FULFILLED', 'FAILED', 'CANCELLED', 'EXPIRED', 'NEEDS_REVIEW', 'REFUNDED']);
 
 export function TestPaymentsBanner() {
   return (
@@ -29,28 +28,6 @@ export function TestPaymentsBanner() {
         <strong>Test payments.</strong> TEST PROVIDER only: no real money moves, and these orders never count as revenue.
       </p>
     </div>
-  );
-}
-
-function OrderCard({ order }: { order: OrderView }) {
-  return (
-    <Panel className="p-4" aria-label="Order status">
-      <div className="flex flex-wrap items-center gap-2">
-        <Pill variant={order.status === 'FULFILLED' ? 'signal' : 'gray'}>{order.status.replace('_', ' ').toLowerCase()}</Pill>
-        <Pill variant="gold">{order.mode.toLowerCase()}</Pill>
-      </div>
-      <p className="mt-3 text-body text-text-1">{order.statusMessage}</p>
-      <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-small text-text-2">
-        <dt>Item</dt>
-        <dd>
-          {order.product}, {order.option}
-        </dd>
-        <dt>Amount</dt>
-        <dd>{formatXaf(order.amountXaf)}</dd>
-        <dt>Reference</dt>
-        <dd className="break-all">{order.reference}</dd>
-      </dl>
-    </Panel>
   );
 }
 
@@ -174,52 +151,6 @@ export function FakeCheckoutPage() {
           </p>
         )}
       </Panel>
-    </div>
-  );
-}
-
-/**
- * /checkout/return — shows ONLY our own order status (never the provider's redirect parameters),
- * refreshing until it is final. Development builds only in Phase 3.
- */
-export function CheckoutReturnPage() {
-  const [params] = useSearchParams();
-  const reference = params.get('reference') ?? '';
-  const qc = useQueryClient();
-  const order = useQuery({
-    queryKey: ['order', reference],
-    queryFn: () => request(`/checkout/orders/${encodeURIComponent(reference)}`, orderViewSchema),
-    refetchInterval: (q) => (q.state.data && FINAL.has(q.state.data.status) ? false : 1500),
-  });
-  return (
-    <div className="mx-auto max-w-content">
-      <PageHeader eyebrow="Payment" title="Your order" />
-      {order.data?.mode === 'SANDBOX' && <TestPaymentsBanner />}
-      {order.isPending ? (
-        <PageLoading />
-      ) : order.isError ? (
-        <LoadFailed message={errorMessage(order.error)} onRetry={() => void order.refetch()} />
-      ) : (
-        <>
-          <OrderCard order={order.data} />
-          <div className="mt-4 flex flex-wrap gap-2">
-            {order.data.status === 'PENDING' && (
-              <Button
-                variant="outline"
-                onClick={async () => {
-                  await request(`/checkout/orders/${encodeURIComponent(reference)}/cancel`, orderViewSchema, { method: 'POST' });
-                  await qc.invalidateQueries({ queryKey: ['order', reference] });
-                }}
-              >
-                Cancel order
-              </Button>
-            )}
-            <Button variant="ghost" asChild>
-              <Link to="/dev/payments">Back to sandbox</Link>
-            </Button>
-          </div>
-        </>
-      )}
     </div>
   );
 }

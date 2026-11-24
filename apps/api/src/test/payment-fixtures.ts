@@ -2,6 +2,7 @@ import { grantSubscription } from '../modules/billing/entitlements.js';
 import { clearFulfillers, registerFulfiller } from '../modules/payments/fulfilment.js';
 import { FakePaymentProvider } from '../modules/payments/providers/fake.js';
 import { configurePayments } from '../modules/payments/runtime.js';
+import { registerSubscriptionFulfillers } from '../modules/billing/fulfillers.js';
 
 /**
  * TEST-ONLY fulfiller for TEST_ITEM orders (Phase 3 ships no real fulfillers). It grants a
@@ -27,6 +28,7 @@ export function useSandboxPayments({ supportsRefund = true } = {}) {
   const fake = new FakePaymentProvider({ checkoutBaseUrl: 'http://localhost:5173/dev/payments/checkout', supportsRefund });
   configurePayments({ mode: 'sandbox', provider: fake });
   clearFulfillers();
+  registerSubscriptionFulfillers();
   registerFulfiller('TEST_ITEM', testFulfiller);
   testFulfiller.failuresLeft = 0;
   testFulfiller.calls = 0;

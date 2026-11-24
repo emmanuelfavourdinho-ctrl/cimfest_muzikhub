@@ -5,6 +5,7 @@ import { CAREER_STAGES, CREATIVE_ROLES, GENRES, PRIMARY_USES, type PublicProfile
 import { ResponsiveImage } from '@/components/media/Media';
 import { Button } from '@/components/ui/button';
 import { InfiniteList } from '@/components/ui/InfiniteList';
+import { ACCENT_BAR, ACCENT_RING } from '@/features/billing/ui';
 import { Avatar, Eyebrow, PageLoading, Panel, Pill } from '@/components/ui/primitives';
 import { LoadFailed } from '@/features/auth/guards';
 import { PostCard } from '@/features/feed/PostCard';
@@ -57,14 +58,22 @@ function ProfileView({ profile, isOwner, signedIn }: { profile: PublicProfile; i
         ) : (
           <div className="h-full bg-[radial-gradient(ellipse_at_80%_0%,var(--p-glow)_0%,transparent_55%),linear-gradient(135deg,var(--p-overlay),var(--p-raised))]" />
         )}
-        <span aria-hidden className="absolute bottom-0 h-1 w-44 bg-[linear-gradient(90deg,var(--p-accent),transparent)]" />
+        {profile.accent ? (
+          // Paid accent (Creator Plus / Pro): the owner's chosen palette colour.
+          <span aria-hidden data-accent={profile.accent} className={cn('absolute bottom-0 h-1.5 w-full', ACCENT_BAR[profile.accent])} />
+        ) : (
+          <span aria-hidden className="absolute bottom-0 h-1 w-44 bg-[linear-gradient(90deg,var(--p-accent),transparent)]" />
+        )}
       </div>
 
       <div className="relative -mt-9 flex flex-col gap-3 px-3 sm:-mt-12 sm:flex-row sm:items-end sm:gap-5 sm:px-7">
         <Avatar
           name={profile.name}
           image={profile.image}
-          className="size-21 border-5 border-hairline-strong text-2xl ring-2 ring-control-border sm:size-26.25 sm:text-3xl"
+          className={cn(
+            'size-21 border-5 border-hairline-strong text-2xl ring-2 sm:size-26.25 sm:text-3xl',
+            profile.accent ? ACCENT_RING[profile.accent] : 'ring-control-border',
+          )}
         />
         <div className="min-w-0 flex-1 sm:pb-1">
           <Eyebrow>{profile.primaryUse === 'FAN' ? 'Member profile' : 'Creator profile'}</Eyebrow>

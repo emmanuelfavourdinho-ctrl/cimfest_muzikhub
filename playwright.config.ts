@@ -40,6 +40,8 @@ export default defineConfig({
         CORS_ORIGINS: WEB_URL,
         WEB_APP_URL: WEB_URL,
         PRISMA_HIDE_UPDATE_MESSAGE: '1',
+        // TEST PROVIDER only (no network, no money). Live payments are unreachable in code.
+        PAYMENTS_MODE: 'sandbox',
         ...cloudinaryEnv,
       },
     },

@@ -4,8 +4,16 @@ import { prisma } from '../../lib/prisma.js';
 import { limits } from '../../lib/rate-limit.js';
 import { currentUserId, requireAuth } from '../../middleware/require-auth.js';
 import type { StaffContext } from '../../middleware/require-staff.js';
-import { publicCatalogue } from './catalogue.service.js';
-import { getEntitlements } from './entitlements.js';
+import { currentRows, publicCatalogue } from './catalogue.service.js';
+import { getEntitlements, previewSubscription } from './entitlements.js';
+import { billingOverview, cancelSubscription } from './subscriptions.service.js';
+import { ownOrders, ownReceipt } from '../payments/orders.service.js';
+import { parseQuery } from '../../middleware/validate.js';
+import { HttpError } from '../../lib/http-error.js';
+import { z } from 'zod';
+
+const previewQuery = z.object({ product: z.enum(['CREATOR_PLUS', 'PRO']), option: z.enum(['MONTHLY', 'ANNUAL']) });
+const ordersQuery = z.object({ cursor: z.string().max(64).optional(), limit: z.coerce.number().int().min(1).max(50).default(20) });
 
 const toIso = <T extends { periodStart: Date; periodEnd: Date; createdAt: Date }>(r: T) => ({
   ...r,
@@ -29,6 +37,24 @@ export function billingRouter(): Router {
   router.use(requireAuth);
   router.get('/entitlements', async (_req, res) => {
     res.json(await getEntitlements(currentUserId(res.locals)));
+  });
+  router.get('/overview', async (_req, res) => {
+    res.json(await billingOverview(currentUserId(res.locals)));
+  });
+  router.get('/preview', async (req, res) => {
+    const q = parseQuery(previewQuery, req.query);
+    const item = (await currentRows()).find((r) => r.product === q.product && r.option === q.option);
+    if (!item) throw new HttpError(404, 'CATALOGUE_ITEM_NOT_FOUND', 'That plan option is not in the catalogue');
+    res.json(await previewSubscription(currentUserId(res.locals), q.product, item.durationDays));
+  });
+  router.post('/subscription/cancel', async (_req, res) => {
+    res.json(await cancelSubscription(currentUserId(res.locals)));
+  });
+  router.get('/orders', async (req, res) => {
+    res.json(await ownOrders(currentUserId(res.locals), parseQuery(ordersQuery, req.query)));
+  });
+  router.get('/orders/:reference', async (req, res) => {
+    res.json(await ownReceipt(currentUserId(res.locals), String(req.params.reference)));
   });
   router.get('/subscriptions/:id', async (req, res) => {
     const row = await prisma.subscription.findUnique({ where: { id: String(req.params.id) } });

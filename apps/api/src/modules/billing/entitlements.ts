@@ -38,6 +38,45 @@ export async function getEntitlements(userId: string, now = new Date(), db: Db =
   };
 }
 
+type Period = { plan: 'CREATOR_PLUS' | 'PRO'; periodStart: Date; periodEnd: Date };
+
+/** Where a new period of `plan` would start, given the member's unexpired ACTIVE periods. Pure. */
+export function periodStartFor(future: Period[], plan: 'CREATOR_PLUS' | 'PRO', now: Date): Date {
+  const latest = (rows: Period[]) => rows.reduce<Date | null>((m, s) => (!m || s.periodEnd > m ? s.periodEnd : m), null);
+  const samePlanEnd = latest(future.filter((s) => s.plan === plan));
+  const higherEnd = latest(future.filter((s) => RANK[s.plan] > RANK[plan]));
+  let start = now;
+  if (samePlanEnd && samePlanEnd > start) start = samePlanEnd;
+  if (higherEnd && higherEnd > start) start = higherEnd;
+  return start;
+}
+
+/**
+ * What buying `days` of `plan` would do, computed exactly as grantSubscription will (shown to the
+ * member before paying: no proration, upgrade now, downgrade later).
+ */
+export async function previewSubscription(userId: string, plan: 'CREATOR_PLUS' | 'PRO', days: number, now = new Date()) {
+  const ent = await getEntitlements(userId, now);
+  const future = await prisma.subscription.findMany({ where: { userId, status: 'ACTIVE', periodEnd: { gt: now } } });
+  const start = periodStartFor(future, plan, now);
+  const end = new Date(start.getTime() + days * DAY);
+  const kind: 'new' | 'extend' | 'upgrade' | 'downgrade' =
+    future.length === 0 ? 'new' : RANK[plan] > RANK[ent.plan] ? 'upgrade' : RANK[plan] < RANK[ent.plan] ? 'downgrade' : 'extend';
+  const d = (x: Date) => x.toISOString().slice(0, 10);
+  const note = {
+    new: `Starts now and ends on ${d(end)}. It does not renew automatically.`,
+    extend: `Added after your current period: runs ${d(start)} to ${d(end)}. It does not renew automatically.`,
+    upgrade: `Starts now and ends on ${d(end)}. No proration: days left on your current plan run alongside it and are not refunded.`,
+    downgrade: `Starts when your current plan ends (${d(start)}) and runs to ${d(end)}. You keep your current plan until then.`,
+  }[kind];
+  return { kind, plan, startsAt: start.toISOString(), endsAt: end.toISOString(), currentPlan: ent.plan, currentUntil: ent.planUntil, note };
+}
+
+/** The member's limits right now (Free by default). Every gated action calls this. */
+export async function limitsFor(userId: string, now = new Date()) {
+  return (await getEntitlements(userId, now)).limits;
+}
+
 /** Serialise grants for one key inside the caller's transaction (no double extension under concurrency). */
 async function lock(tx: Prisma.TransactionClient, key: string) {
   await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${key}))`;
@@ -62,13 +101,7 @@ export async function grantSubscription(
     where: { userId, status: 'ACTIVE', periodEnd: { gt: now } },
     orderBy: { periodEnd: 'desc' },
   });
-  const samePlanEnd = future.filter((s) => s.plan === plan).reduce<Date | null>((m, s) => (!m || s.periodEnd > m ? s.periodEnd : m), null);
-  const higherEnd = future
-    .filter((s) => RANK[s.plan] > RANK[plan])
-    .reduce<Date | null>((m, s) => (!m || s.periodEnd > m ? s.periodEnd : m), null);
-  let start = now;
-  if (samePlanEnd && samePlanEnd > start) start = samePlanEnd;
-  if (higherEnd && higherEnd > start) start = higherEnd;
+  const start = periodStartFor(future, plan, now);
   // Lower-plan periods queued to begin at or after this one's start haven't been used yet:
   // push them back by the new period so no paid, unused days are swallowed by the overlap.
   const queuedLower = future.filter((s) => RANK[s.plan] < RANK[plan] && s.periodStart >= start);

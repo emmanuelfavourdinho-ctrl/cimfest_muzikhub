@@ -177,3 +177,20 @@ Exact string match: no case folding and no trimming. **Anything else is `unknown
 
 ### State machine
 `docs/payments-state-machine.md` has the transition table: from, to, trigger, who and side effects, including NEEDS_REVIEW and FULFILMENT_PENDING. Tests cover all 117 status × trigger pairs and keep the document and the code in sync.
+
+## Monetization delivery decisions (milestone 1, 2026-11-24)
+
+- **When something can be bought** (`payments/purchasable.ts`, one rule for checkout and the pricing page):
+  - *off*: nothing.
+  - *sandbox*: test money only. A product can be bought **when a fulfiller is registered**, meaning its benefits are built. Test-only rows are never available in production.
+  - *live*: only owner-approved products (`SELLABLE_PRODUCTS`, empty) that an admin put on sale. Live mode itself is unreachable.
+
+  **No product is on sale for real money.**
+- **Media limits verified against the actual account** (Cloudinary Admin API `usage`, 2026-11-24): plan **Free**, per-file **image 10 MB**, **video 100 MB** (audio is stored as video).
+  - Free already uses the full image and video caps, so paid plans **cannot** honestly raise them.
+  - Paid plans raise **audio** (50 → 100 MB), **profile links** (10 → 20) and add a **profile accent** (approved palette roles: lime, gold, violet, sky, mint).
+  - **Higher portfolio limits are not offered**: Free has no portfolio cap, and adding one would reduce Free.
+- **When a plan lapses** (checked at request time): extra links stay stored but only the first 10 show publicly; the owner still sees and edits all of them, so nothing is silently deleted. The accent is hidden. Media already uploaded stays.
+- **Cancel:** plans are prepaid and never renew. Cancelling stops renewal reminders, and benefits continue to the end date. There's no automatic refund; an admin can refund on request.
+- **Notifications** are in-app only: payment outcomes, cancellation confirmation, a reminder 3 days before the end, and "plan ended". Each is sent at most once (unique dedupe key). Email is off until the sending domain is verified.
+- **Receipts** are on screen (`/billing/orders/:reference`) and show what was granted (the subscription period).

@@ -5,6 +5,7 @@ import {
   type ReplaceLinksInput,
   type UpdateProfileInput,
   replaceLinksSchema,
+  type PlanLimits,
 } from '@muzikhub/shared';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { HttpError } from '../../lib/http-error.js';
@@ -12,6 +13,7 @@ import { prisma } from '../../lib/prisma.js';
 import { releaseAssets, requireAttachable, toMediaView } from '../media/media.service.js';
 import { profileStats } from '../network/network.service.js';
 import { isVisibleStatus } from '../../lib/account-status.js';
+import { limitsFor } from '../billing/entitlements.js';
 
 const profileInclude = {
   profile: { include: { links: { orderBy: { position: 'asc' } }, avatarAsset: true, coverAsset: true } },
@@ -28,7 +30,7 @@ function requireProfile(user: UserWithProfile) {
 }
 
 /** Maps DB rows to the public shape. Deliberately omits email, status and role. */
-function toPublicProfile(user: UserWithProfile, stats: PublicProfile['stats']): PublicProfile {
+function toPublicProfile(user: UserWithProfile, stats: PublicProfile['stats'], limits: PlanLimits): PublicProfile {
   const { profile, username } = requireProfile(user);
   return {
     username,
@@ -42,13 +44,16 @@ function toPublicProfile(user: UserWithProfile, stats: PublicProfile['stats']): 
     genres: profile.genres as PublicProfile['genres'],
     skills: profile.skills,
     careerStage: profile.careerStage,
-    links: profile.links.map((l) => ({ id: l.id, platform: l.platform, url: l.url })),
+    // Links beyond the owner's current plan limit are kept but not shown (paid extras lapse;
+    // nothing is deleted). Same for the accent.
+    links: profile.links.slice(0, limits.profileLinks).map((l) => ({ id: l.id, platform: l.platform, url: l.url })),
+    accent: limits.profileAccent ? profile.accent : null,
     joinedAt: user.createdAt.toISOString(),
     stats,
   };
 }
 
-function toMe(user: UserWithProfile, stats: PublicProfile['stats']): Me {
+function toMe(user: UserWithProfile, stats: PublicProfile['stats'], limits: PlanLimits): Me {
   const { profile } = requireProfile(user);
   return {
     id: user.id,
@@ -60,7 +65,9 @@ function toMe(user: UserWithProfile, stats: PublicProfile['stats']): Me {
     statusUntil: user.statusUntil?.toISOString() ?? null,
     twoFactorEnabled: user.twoFactorEnabled,
     profile: {
-      ...toPublicProfile(user, stats),
+      ...toPublicProfile(user, stats, limits),
+      // The owner always sees every saved link (so a save never silently drops lapsed ones).
+      links: profile.links.map((l) => ({ id: l.id, platform: l.platform, url: l.url })),
       goals: profile.goals as Me['profile']['goals'],
       onboardingStep: profile.onboardingStep,
       onboardingCompletedAt: profile.onboardingCompletedAt?.toISOString() ?? null,
@@ -77,16 +84,20 @@ export async function getPublicProfile(username: string): Promise<PublicProfile>
   if (!user || !isVisibleStatus(user.status)) {
     throw new HttpError(404, 'PROFILE_NOT_FOUND', 'No profile with that username');
   }
-  return toPublicProfile(user, await profileStats(user.id));
+  return toPublicProfile(user, await profileStats(user.id), await limitsFor(user.id));
 }
 
 export async function getMe(userId: string): Promise<Me> {
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, include: profileInclude });
-  return toMe(user, await profileStats(userId));
+  return toMe(user, await profileStats(userId), await limitsFor(userId));
 }
 
 export async function updateProfile(userId: string, input: UpdateProfileInput): Promise<Me> {
   const { name, primaryUse, ...profileFields } = input;
+  // Choosing an accent is a paid benefit; clearing it is always allowed.
+  if (profileFields.accent && !(await limitsFor(userId)).profileAccent) {
+    throw new HttpError(403, 'PLAN_REQUIRED', 'A profile accent is part of Creator Plus and MuzikHub Pro.');
+  }
   await prisma.$transaction(async (tx) => {
     if (name !== undefined || primaryUse !== undefined) {
       await tx.user.update({ where: { id: userId }, data: { name, primaryUse } });
@@ -115,6 +126,10 @@ export async function updateProfile(userId: string, input: UpdateProfileInput): 
 export async function replaceLinks(userId: string, input: ReplaceLinksInput): Promise<Me> {
   // Parse again here so the service is safe even if called without the route's validation.
   const { links } = replaceLinksSchema.parse(input);
+  const limit = (await limitsFor(userId)).profileLinks;
+  if (links.length > limit) {
+    throw new HttpError(403, 'PLAN_LIMIT', `Your plan allows up to ${limit} links. Remove ${links.length - limit} to save.`);
+  }
   await prisma.$transaction([
     prisma.profileLink.deleteMany({ where: { profileId: userId } }),
     prisma.profileLink.createMany({

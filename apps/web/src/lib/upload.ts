@@ -1,4 +1,4 @@
-import { checkUpload, kindFromMime, type MediaPurpose, type MediaView, type SignedUpload } from '@muzikhub/shared';
+import { checkUpload, kindFromMime, type MediaKind, type MediaPurpose, type MediaView, type SignedUpload } from '@muzikhub/shared';
 import { api, ApiRequestError } from './api';
 
 export class UploadError extends Error {
@@ -13,6 +13,8 @@ export class UploadError extends Error {
 
 interface UploadOptions {
   purpose: MediaPurpose;
+  /** The member's plan limit for this kind (entitlements). The server re-checks it. */
+  maxBytes?: (kind: MediaKind) => number | undefined;
   onProgress?: (fraction: number) => void;
   signal?: AbortSignal;
 }
@@ -108,10 +110,10 @@ async function uploadChunked(signed: SignedUpload, file: File, onProgress: (n: n
  * Uploads one file: validate locally → ask the API for a signature → send the file
  * straight to Cloudinary (with progress, chunking and retries) → ask the API to verify it.
  */
-export async function uploadFile(file: File, { purpose, onProgress, signal }: UploadOptions): Promise<MediaView> {
+export async function uploadFile(file: File, { purpose, onProgress, signal, maxBytes }: UploadOptions): Promise<MediaView> {
   const kind = kindFromMime(file.type);
   if (!kind) throw new UploadError("This file type isn't supported.", false);
-  const problem = checkUpload(kind, purpose, file.size);
+  const problem = checkUpload(kind, purpose, file.size, maxBytes?.(kind));
   if (problem) throw new UploadError(problem, false);
 
   const signed = await api.createUpload({ kind, purpose, bytes: file.size, filename: file.name.slice(0, 200) });

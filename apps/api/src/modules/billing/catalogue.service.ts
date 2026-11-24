@@ -2,6 +2,9 @@ import {
   CATALOGUE_OPTIONS,
   CATALOGUE_SEED,
   FREE_LIMITS,
+  PLAN_LIMITS,
+  PLAN_NAMES,
+  planBenefits,
   SELLABLE_PRODUCTS,
   type AdminCatalogueRow,
   type BillingProduct,
@@ -13,6 +16,8 @@ import { writeAudit } from '../../lib/audit.js';
 import { HttpError } from '../../lib/http-error.js';
 import { prisma } from '../../lib/prisma.js';
 import type { StaffContext } from '../../middleware/require-staff.js';
+import { isPurchasable } from '../payments/purchasable.js';
+import { paymentsRuntime } from '../payments/runtime.js';
 
 /**
  * Versioned catalogue (ADR 0004): rows are only ever INSERTED. The row in force for a
@@ -40,12 +45,28 @@ const sellable = (p: BillingProduct) => SELLABLE_PRODUCTS.includes(p);
 
 export async function publicCatalogue(now = new Date()): Promise<PublicCatalogue> {
   const rows = await currentRows(now);
+  const { mode } = paymentsRuntime();
   return {
     currency: 'XAF',
+    paymentsMode: mode,
     free: { limits: FREE_LIMITS },
+    plans: (['FREE', 'CREATOR_PLUS', 'PRO'] as const).map((key) => ({
+      key,
+      name: PLAN_NAMES[key],
+      limits: PLAN_LIMITS[key],
+      benefits: planBenefits(key),
+    })),
     items: rows.map((r) => {
-      const onSale = r.active && sellable(r.product);
-      return { product: r.product, option: r.option, durationDays: r.durationDays, onSale, priceXaf: onSale ? r.priceXaf : null };
+      const onSale = mode === 'live' && r.active && sellable(r.product);
+      const purchasable = isPurchasable(r, mode);
+      return {
+        product: r.product,
+        option: r.option,
+        durationDays: r.durationDays,
+        onSale,
+        purchasable,
+        priceXaf: purchasable ? r.priceXaf : null,
+      };
     }),
   };
 }

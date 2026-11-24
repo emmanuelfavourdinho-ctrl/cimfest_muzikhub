@@ -290,4 +290,25 @@ export const operations: Operation[] = [
       body: reasonOnlySchema,
     },
   ),
+  // Subscriptions, receipts and notifications (monetization milestone 1)
+  op('GET', '/billing/overview', 'Billing', 'Your plan, its dates, and current, queued and ended periods', 'member'),
+  op(
+    'GET',
+    '/billing/preview',
+    'Billing',
+    'What buying a plan would do (new, extend, upgrade now, downgrade later), shown before paying',
+    'member',
+  ),
+  op(
+    'POST',
+    '/billing/subscription/cancel',
+    'Billing',
+    'Cancel: no reminders; benefits continue to the end date (plans never auto-renew)',
+    'member',
+  ),
+  op('GET', '/billing/orders', 'Billing', 'Your transaction history', 'member'),
+  op('GET', '/billing/orders/{reference}', 'Billing', 'On-screen receipt for one of your orders (owner only; others get 404)', 'member'),
+  op('GET', '/notifications', 'Notifications', 'Your notifications, newest first', 'member'),
+  op('GET', '/notifications/unread-count', 'Notifications', 'How many are unread', 'member'),
+  op('POST', '/notifications/read', 'Notifications', 'Mark some or all as read', 'member'),
 ];

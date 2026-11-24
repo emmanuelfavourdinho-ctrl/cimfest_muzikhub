@@ -89,6 +89,7 @@ model User {
   subscriptions           Subscription[]
   promotions              Promotion[]
   orders                  Order[]
+  notifications           Notification[]
 
   @@map("user")
 }
@@ -231,6 +232,8 @@ model Profile {
   links                 ProfileLink[]
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
+  /// Paid benefit (Creator Plus / Pro). Shown only while the owner is entitled (checked at read time).
+  accent                ProfileAccent?
 
   // GIN indexes make "has any of these roles/genres" filters fast for discovery.
   @@index([roles], type: Gin)
@@ -757,6 +760,14 @@ model ServiceCatalogue {
   @@map("service_catalogue")
 }
 
+enum ProfileAccent {
+  LIME
+  GOLD
+  VIOLET
+  SKY
+  MINT
+}
+
 enum SubscriptionPlan {
   CREATOR_PLUS
   PRO
@@ -777,6 +788,8 @@ model Subscription {
   periodStart DateTime
   periodEnd   DateTime
   status      EntitlementStatus @default(ACTIVE)
+  /// The member cancelled: no renewal reminders. Benefits continue until periodEnd (prepaid).
+  cancelledAt DateTime?
   createdAt   DateTime          @default(now())
 
   @@index([userId, periodEnd])
@@ -922,4 +935,28 @@ model WebhookEvent {
   @@unique([provider, providerEventId])
   @@index([receivedAt])
   @@map("payment_webhook_event")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Notifications (in-app). Created only from real events, server-side (CLAUDE.md §15).
+// ─────────────────────────────────────────────────────────────
+
+model Notification {
+  id        String    @id @default(cuid(2))
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// e.g. payment.succeeded, subscription.expiring, promotion.ended
+  type      String
+  title     String
+  body      String
+  /// In-app path to open (never an external URL).
+  link      String?
+  /// Makes "notify once" safe under retries (e.g. one expiry reminder per period).
+  dedupeKey String?   @unique
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+  @@map("notification")
 }

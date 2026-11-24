@@ -64,12 +64,14 @@ export function formatBytes(bytes: number): string {
 }
 
 /** Validation shared by browser and server. Returns a user-facing message, or null when OK. */
-export function checkUpload(kind: MediaKind, purpose: MediaPurpose, bytes: number): string | null {
+export function checkUpload(kind: MediaKind, purpose: MediaPurpose, bytes: number, maxBytes?: number): string | null {
   if (!PURPOSE_KINDS[purpose].includes(kind)) {
     return `A ${MEDIA_RULES[kind].label} can't be used here.`;
   }
   const rule = MEDIA_RULES[kind];
-  if (bytes > rule.maxBytes) return `This ${rule.label} is ${formatBytes(bytes)}. The limit is ${formatBytes(rule.maxBytes)}.`;
+  // maxBytes: the member's plan limit (entitlements); defaults to the Free limit.
+  const limit = maxBytes ?? rule.maxBytes;
+  if (bytes > limit) return `This ${rule.label} is ${formatBytes(bytes)}. The limit is ${formatBytes(limit)}.`;
   if (bytes <= 0) return 'This file is empty.';
   return null;
 }

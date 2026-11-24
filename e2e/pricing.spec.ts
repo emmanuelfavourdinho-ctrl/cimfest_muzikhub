@@ -53,15 +53,18 @@ async function noOverflow(page: Page) {
   expect(overflow, `no horizontal scroll on ${page.url()}`).toBeLessThanOrEqual(0);
 }
 
-test('pricing: Free with real limits, every paid product "Coming soon" with no price', async ({ page }) => {
+test('pricing: catalogue-driven plans, honest availability, accurate annual savings', async ({ page }) => {
   await page.goto('/pricing');
-  await expect(page.getByRole('heading', { name: 'MuzikHub is free to use' })).toBeVisible();
-  await expect(page.getByText('Up to 10 links on your profile')).toBeVisible();
-  for (const name of ['Creator Plus', 'MuzikHub Pro', 'Post Boost', 'Profile Spotlight']) {
-    const card = page.getByRole('region', { name });
-    await expect(card.getByText('Coming soon')).toBeVisible();
-    await expect(card).not.toContainText('FCFA');
-  }
+  await expect(page.getByRole('heading', { name: 'Free to build your presence' })).toBeVisible();
+  // Sandbox: the mandatory banner, and prices only for what can be bought (with test money).
+  await expect(page.getByText('Test payments.')).toBeVisible();
+  const plus = page.getByRole('region', { name: 'Creator Plus' });
+  await expect(plus).toContainText('1 500 FCFA');
+  await page.getByRole('button', { name: 'Annual' }).click();
+  await expect(plus).toContainText('15 000 FCFA');
+  await expect(plus).toContainText('Save 3 000 FCFA');
+  await expect(page.getByRole('region', { name: 'MuzikHub Pro' })).toContainText('Save 6 000 FCFA');
+  await expect(page.getByRole('region', { name: 'Plan comparison' })).toContainText('up to 20');
   await noOverflow(page);
   await axeClean(page, 'pricing page');
 });
@@ -104,7 +107,8 @@ test('admin: change a price with a reason; it is audited and still not shown pub
   await page.goto('/admin/audit');
   await expect(page.getByText('Changed price').first()).toBeVisible();
 
-  // Public page: still no price, because Post Boost isn't sellable yet.
-  await page.goto('/pricing');
-  await expect(page.getByRole('region', { name: 'Post Boost' })).not.toContainText(shown);
+  // The new version is what the public catalogue uses from now on (new orders only).
+  const cat = await (await page.request.get('/api/v1/catalogue')).json();
+  const boost = cat.items.find((i: { product: string; option: string }) => i.product === 'POST_BOOST' && i.option === 'DAYS_7');
+  expect(boost.onSale).toBe(false); // never on sale for real money without owner approval
 });

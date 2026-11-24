@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { Link } from 'react-router';
+import { useEntitlements } from '@/lib/billing';
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
 import { detectLinkPlatform, LINK_PLATFORMS, MAX_PROFILE_LINKS, normaliseHttpsUrl, type ProfileLink } from '@muzikhub/shared';
 import { Button } from '@/components/ui/button';
@@ -22,6 +24,8 @@ export function LinksEditor({
 }) {
   const [urls, setUrls] = useState<string[]>(initial.length > 0 ? initial.map((l) => l.url) : ['']);
   const [error, setError] = useState<string | null>(null);
+  // The member's plan decides how many links they can keep (the server checks it too).
+  const limit = useEntitlements().data?.limits.profileLinks ?? MAX_PROFILE_LINKS;
   const save = useReplaceLinks();
 
   const update = (index: number, value: string) => setUrls((list) => list.map((u, i) => (i === index ? value : u)));
@@ -106,13 +110,7 @@ export function LinksEditor({
         })}
       </ol>
       <div className="mt-4 flex flex-wrap items-center gap-3">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => setUrls((l) => [...l, ''])}
-          disabled={urls.length >= MAX_PROFILE_LINKS}
-        >
+        <Button type="button" variant="outline" size="sm" onClick={() => setUrls((l) => [...l, ''])} disabled={urls.length >= limit}>
           <Plus /> Add link
         </Button>
         <Button type="submit" size="sm" disabled={save.isPending}>
@@ -121,8 +119,17 @@ export function LinksEditor({
       </div>
       <p className="mt-3 text-xs text-text-3">
         Spotify, Apple Music, YouTube, SoundCloud, Audiomack, Boomplay, Deezer, Bandcamp, Instagram, TikTok, Facebook, X, LinkedIn or your
-        own website. Up to {MAX_PROFILE_LINKS}.
+        own website. Your plan allows up to {limit}.
       </p>
+      {urls.filter(Boolean).length > limit && (
+        <p role="alert" className="mt-2 text-small text-warning">
+          You have more links than your current plan shows ({limit}). Visitors see the first {limit}; remove some to save changes, or{' '}
+          <Link to="/pricing" className="underline">
+            see plans
+          </Link>
+          .
+        </p>
+      )}
     </form>
   );
 }

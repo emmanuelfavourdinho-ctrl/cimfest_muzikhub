@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { cn } from '@/lib/cn';
 import { RotateCcw, Upload, X } from 'lucide-react';
+import { useEntitlements } from '@/lib/billing';
 import { formatBytes, MEDIA_RULES, PURPOSE_KINDS, type MediaKind, type MediaPurpose, type MediaView } from '@muzikhub/shared';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
@@ -38,7 +39,10 @@ export function MediaUploader({
   const abort = useRef<AbortController | null>(null);
   const [state, setState] = useState<State>({ kind: 'idle' });
   const accept = kinds.map((k) => MEDIA_RULES[k].accept).join(',');
-  const limits = kinds.map((k) => `${MEDIA_RULES[k].label} up to ${formatBytes(MEDIA_RULES[k].maxBytes)}`).join(' · ');
+  const plan = useEntitlements().data?.limits;
+  const maxBytes = (k: MediaKind) =>
+    plan ? (k === 'IMAGE' ? plan.imageBytes : k === 'AUDIO' ? plan.audioBytes : plan.videoBytes) : MEDIA_RULES[k].maxBytes;
+  const limits = kinds.map((k) => `${MEDIA_RULES[k].label} up to ${formatBytes(maxBytes(k))}`).join(' · ');
 
   async function start(file: File) {
     abort.current = new AbortController();
@@ -46,6 +50,7 @@ export function MediaUploader({
     onBusyChange?.(true);
     try {
       const media = await uploadFile(file, {
+        maxBytes,
         purpose,
         signal: abort.current.signal,
         onProgress: (progress) => setState({ kind: 'uploading', file, progress }),

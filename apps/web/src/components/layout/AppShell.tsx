@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/cn';
-import { LogOut, Settings, ShieldCheck, UserRound } from 'lucide-react';
+import { CreditCard, LogOut, Settings, ShieldCheck, UserRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { CREATIVE_ROLES, PRIMARY_USES } from '@muzikhub/shared';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import { useMe } from '@/lib/queries';
 import { AccountStatusBanner } from '@/features/auth/AccountStatusBanner';
 import { VerifyEmailBanner } from '@/features/auth/VerifyEmailBanner';
 import { BrandMark } from './BrandMark';
+import { NotificationBell } from '@/features/billing/NotificationBell';
 import { mobileNav, primaryNav, type NavItem } from './navigation';
 
 /**
@@ -44,7 +45,10 @@ function TopBar() {
     <header className="sticky top-0 z-30 flex h-14.75 items-center justify-between border-b border-hairline-strong header-surface px-4 sm:h-16.5 sm:px-8">
       <BrandMark to={me ? '/home' : '/'} />
       {me ? (
-        <AccountMenu />
+        <div className="flex items-center gap-1 sm:gap-2">
+          <NotificationBell />
+          <AccountMenu />
+        </div>
       ) : (
         <div className="flex items-center gap-1 sm:gap-2">
           <Button asChild variant="quiet" size="sm">
@@ -105,6 +109,9 @@ function AccountMenu() {
             </div>
             <MenuLink to={`/u/${me.profile.username}`} icon={UserRound} onSelect={() => setOpen(false)}>
               View profile
+            </MenuLink>
+            <MenuLink to="/settings/billing" icon={CreditCard} onSelect={() => setOpen(false)}>
+              Billing
             </MenuLink>
             <MenuLink to="/settings/profile" icon={Settings} onSelect={() => setOpen(false)}>
               Edit profile
