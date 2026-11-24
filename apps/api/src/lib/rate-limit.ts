@@ -70,4 +70,16 @@ export const limits = {
   upload: rateLimit({ name: 'upload', windows: [{ ms: HOUR, max: 60 }] }),
   /** Applications, entries, interest — one per target, so a low ceiling only stops scripts. */
   apply: rateLimit({ name: 'apply', windows: [{ ms: HOUR, max: 30 }] }),
+  /** Starting payments: a real buyer needs a handful; scripts get stopped early. */
+  checkout: rateLimit({
+    name: 'checkout',
+    windows: [
+      { ms: MIN, max: 5 },
+      { ms: HOUR, max: 30 },
+    ],
+  }),
+  /** Provider webhooks, per IP (no session). Generous: retries and bursts are normal. */
+  webhook: rateLimit({ name: 'payment-webhook', windows: [{ ms: MIN, max: 300 }] }),
+  /** Public catalogue reads, per user or IP. */
+  catalogueRead: rateLimit({ name: 'catalogue-read', windows: [{ ms: MIN, max: 120 }] }),
 };

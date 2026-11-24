@@ -77,6 +77,9 @@ describe('rate limits on member write routes', () => {
       report: ['20/60min'],
       upload: ['60/60min'],
       apply: ['30/60min'],
+      checkout: ['5/1min', '30/60min'],
+      webhook: ['300/1min'],
+      catalogueRead: ['120/1min'],
     });
   });
 });

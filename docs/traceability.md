@@ -93,11 +93,11 @@ _Phase 0 audit 2026-11-24, updated at the end of **M0** (branch `chore/m0-founda
 | FR-39 | Show promotion options and costs | Partial | Versioned `service_catalogue` seeded from the confirmed table; `GET /api/v1/catalogue` + `/pricing` show every product as "Coming soon" with **no price** (nothing sellable: `SELLABLE_PRODUCTS = []`). Admin price editing audited (`billing.routes.test.ts`, `e2e/pricing.spec.ts`) | Benefits built and tested before any product goes on sale | |
 | FR-40 | Review campaign and track status | Not started (owner read endpoint only) | `GET /billing/promotions/:id` behind `lib/policy.ts` | Phase 4 | |
 | FR-41 | Admins manage campaigns | Partial | Admin catalogue prices/availability (`pricing.manage`), read-only billing records (`billing.view`); campaign management in Phase 6 | | |
-| FR-42 | Initiate payment | **Externally blocked** (live); not started (fake adapter) | ADR 0004 design; env names documented. No checkout yet | Notch Pay sandbox/merchant access and answers in decisions-and-risks §8.1 | L2 |
-| FR-43 | Verify outcome via provider | Not started; design in ADR 0004 | — | Webhook signature scheme (§8.1 q1) | |
-| FR-44 | Record transactions and statuses | Not started | — | | |
-| FR-45 | Pending, failed, cancelled, refunds | Not started | — | | |
-| FR-46 | Fulfil only after server-side verification | Not started | — | | |
+| FR-42 | Initiate payment | Partial: **TEST PROVIDER only**; live **Externally blocked** | `POST /checkout` (Idempotency-Key, reuse, cap 3, 3 h DB-time TTL, price snapshot, email-only to provider), `PAYMENTS_MODE` off/sandbox/live gates; `payments.test.ts`, `payments-env.test.ts`. Notch Pay adapter is a fail-closed stub | Notch Pay access + answers (decisions-and-risks §8.1); owner live approval | L2 |
+| FR-43 | Verify outcome via provider | Done for TEST PROVIDER; Notch Pay mapping ready (unit-tested), adapter blocked | Webhook = trigger only → outbox `payments.verify` → `getPayment` → state machine (amount/currency/reference match, unknown = not paid); signature in adapter; event-id de-dup | Notch Pay signature bytes/key (§8.1 q1) | |
+| FR-44 | Record transactions and statuses | Done (sandbox) | `payment_order` (+ CHECKs), `payment_order_event` history, `payment_webhook_event` (hash only, 90-day retention); admin list + LIVE-only revenue | | |
+| FR-45 | Pending, failed, cancelled, refunds | Done (sandbox) | `docs/payments-state-machine.md` (117-pair test), member cancel, reconciliation + expiry, NEEDS_REVIEW, admin refund (audited, fee not refunded, entitlement → REFUNDED) | Admin management screens (Phase 6) | |
+| FR-46 | Fulfil only after server-side verification | Done (sandbox; registry has no real fulfillers yet) | One transaction + unique (order, fulfiller); failure → FULFILMENT_PENDING, outbox retry, reconcile re-queue; tested no-duplicate | Real fulfillers: Phase 4 (promotions), Phase 5 (subscriptions) | |
 
 ## 11. Real-time messaging (M10)
 
@@ -148,7 +148,7 @@ _Phase 0 audit 2026-11-24, updated at the end of **M0** (branch `chore/m0-founda
 | Implemented and tested | 28 (FR-01–04, 06–13, 15–22, 34–37 at L1, 61, 62, 65, 66) |
 | Implemented, not fully tested | 2 (FR-05, FR-14) |
 | Partially implemented | 3 (FR-28, FR-54, FR-68) |
-| Externally blocked (expected) | 1: FR-42 live payments (Notch Pay access). Also expected: FR-43–46 and FR-55–60 become Blocked if provider access or TURN isn't available) |
+| Externally blocked (expected) | 1: FR-42 live payments (Notch Pay access; FR-43–46 are built against the TEST PROVIDER). Also expected: and FR-55–60 become Blocked if provider access or TURN isn't available) |
 | Not started | 40 |
 
 ## Non-functional requirements (SRS §5)

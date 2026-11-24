@@ -1,4 +1,5 @@
 import { Router, type Request } from 'express';
+import { z } from 'zod';
 import {
   adminContentQuerySchema,
   adminReportsQuerySchema,
@@ -8,6 +9,7 @@ import {
   can,
   FRESH_SESSION_MINUTES,
   MODERATION_TARGETS,
+  ORDER_STATUSES,
   moderationActionSchema,
   PERMISSIONS,
   grantOrganiserSchema,
@@ -27,7 +29,7 @@ import { paginate } from '../../lib/pagination.js';
 import { prisma } from '../../lib/prisma.js';
 import { rateLimit } from '../../lib/rate-limit.js';
 import { currentUserId, requireAuth } from '../../middleware/require-auth.js';
-import { assertCan, requirePermission, requireStaff, staffOf } from '../../middleware/require-staff.js';
+import { assertCan, assertFreshSession, requirePermission, requireStaff, staffOf } from '../../middleware/require-staff.js';
 import { parseQuery, validateBody } from '../../middleware/validate.js';
 import * as moderation from './moderation.service.js';
 import { overview } from './overview.service.js';
@@ -36,6 +38,13 @@ import * as users from './users.service.js';
 import { setOrganiser } from '../opportunities/opportunities.service.js';
 import * as catalogue from '../billing/catalogue.service.js';
 import { adminReadBilling } from '../billing/billing.routes.js';
+import * as payments from '../payments/orders.service.js';
+
+const adminOrdersQuerySchema = z.object({
+  status: z.enum(ORDER_STATUSES).optional(),
+  cursor: z.string().max(64).optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+});
 
 const param = (req: Request, name: string) => String((req.params as Record<string, string>)[name]);
 
@@ -157,6 +166,25 @@ export function adminRouter(): Router {
   router.get('/billing/promotions/:id', async (req, res) => {
     res.json(await adminReadBilling(staffOf(res.locals), 'promotion', param(req, 'id')));
   });
+
+  // ── Payments (Phase 3: read + refund; management screens in Phase 6) ──
+  router.get('/payments/summary', requirePermission('billing.view'), async (_req, res) => {
+    res.json(await payments.revenueSummary());
+  });
+  router.get('/payments/orders', requirePermission('billing.view'), async (req, res) => {
+    const q = parseQuery(adminOrdersQuerySchema, req.query);
+    res.json(await payments.adminOrders(q));
+  });
+  router.post(
+    '/payments/orders/:reference/refund',
+    requirePermission('payments.refund'),
+    validateBody(reasonOnlySchema),
+    async (req, res) => {
+      const staff = staffOf(res.locals);
+      assertFreshSession(staff);
+      res.json(await payments.refundOrder(staff, param(req, 'reference'), req.body.reason));
+    },
+  );
 
   // ── Audit log (administrators) ──
   router.get('/audit', async (req, res) => {

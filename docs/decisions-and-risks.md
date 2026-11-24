@@ -231,3 +231,8 @@ Copied from `docs/monetization-audit.md` §4–5. Live payments are **Externally
   - Revenue recognition for annual plans (deferred revenue) and for time-limited boosts.
   - Treatment of refunds and chargebacks, and record-keeping for the Notch Pay balance and withdrawals.
   - Whether pricing should be VAT-inclusive.
+
+### 8.3 Privacy notice: payment-related additions (draft input for legal review)
+- **Shared with Notch Pay:** the account **email address only**, to start a payment. Also our order reference, which contains no personal data, the amount and a description such as "MuzikHub: Post Boost, 7 days". Payment credentials (Mobile Money number, card) are entered on Notch Pay's page and never reach MuzikHub.
+- **Kept by MuzikHub:** orders (item, price, status history, provider transaction id) for accounting, kept for the period the accountant advises (§8.2). Webhook records hold no personal data (event id, type, order reference, body hash) and are deleted after 90 days.
+- **Later, when analytics ship:** aggregated daily counters only (Phase 5 decision).

@@ -34,7 +34,9 @@ NOTCHPAY_PRIVATE_KEY=
 NOTCHPAY_WEBHOOK_SECRET=
 ```
 
-The server reads them; nothing in the browser ever does. Nothing uses them yet (checkout arrives in Phase 3).
+The server reads them; nothing in the browser ever does. **Nothing uses them yet:** the Notch Pay adapter is a fail-closed stub until live access is approved.
+
+**Payments mode** (`PAYMENTS_MODE`, default `off`). To try the whole lifecycle locally with the labelled **TEST PROVIDER** (no money, no network), set `PAYMENTS_MODE=sandbox` in `apps/api/.env`, restart, and open http://localhost:5173/dev/payments. That page exists only in development builds. `npm run payments:reconcile -w @muzikhub/api` runs one reconciliation pass. See [ADR 0004](docs/adr/0004-payment-architecture.md) and [the state machine](docs/payments-state-machine.md).
 
 **Pricing catalogue:** `npm run catalogue:seed -w @muzikhub/api` adds the owner-confirmed catalogue rows (all off sale). It's idempotent and never changes an existing price; edit prices in the Admin Console → Pricing.
 

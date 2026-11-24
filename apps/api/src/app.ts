@@ -23,6 +23,11 @@ import { originCheck } from './middleware/origin-check.js';
 import { openApiDocument } from './openapi/document.js';
 import { applicationsRouter, opportunitiesRouter } from './modules/opportunities/opportunities.routes.js';
 import { billingRouter, catalogueRouter } from './modules/billing/billing.routes.js';
+import { checkoutRouter, devPaymentsRouter } from './modules/payments/payments.routes.js';
+import { paymentWebhookRouter } from './modules/payments/webhook.js';
+import { registerPaymentJobs } from './modules/payments/jobs.js';
+import { devSandboxEnabled } from './modules/payments/runtime.js';
+import { registerDevSandboxFulfiller } from './modules/payments/dev-fulfiller.js';
 
 export interface AppDependencies {
   /** Returns true when the database answers. Injected so tests need no real DB. */
@@ -50,6 +55,11 @@ export function createApp(overrides: Partial<AppDependencies> = {}): Express {
 
   // Better Auth must be mounted BEFORE express.json(): it parses its own bodies.
   app.all('/api/auth/{*any}', toNodeHandler(auth));
+
+  // Payment provider webhooks: raw bytes (signatures are over them), so BEFORE express.json(), and
+  // outside the v1 router's browser origin check (server-to-server, authenticated by signature).
+  app.use('/api/v1/payments/webhooks', paymentWebhookRouter());
+  registerPaymentJobs();
 
   app.use(express.json({ limit: '1mb' }));
 
@@ -81,6 +91,12 @@ export function createApp(overrides: Partial<AppDependencies> = {}): Express {
   v1.use('/applications', applicationsRouter());
   v1.use('/catalogue', catalogueRouter());
   v1.use('/billing', billingRouter());
+  v1.use('/checkout', checkoutRouter());
+  // Development-only sandbox helpers (never mounted in production; see runtime.ts).
+  if (devSandboxEnabled()) {
+    v1.use('/dev/payments', devPaymentsRouter());
+    registerDevSandboxFulfiller();
+  }
   v1.use('/admin', adminRouter());
   app.use(API_V1_PREFIX, v1);
 

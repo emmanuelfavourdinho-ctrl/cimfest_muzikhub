@@ -182,3 +182,12 @@ describe('ownership policy: entitlements, subscriptions, promotions', () => {
     expect((await admin.agent.get(`/api/v1/billing/subscriptions/${subscription.id}`)).status).toBe(404);
   });
 });
+
+describe('public catalogue rate limit', () => {
+  it('limits reads per caller (429 with Retry-After)', async () => {
+    let last = await request(app).get('/api/v1/catalogue');
+    for (let i = 0; i < 120 && last.status === 200; i += 1) last = await request(app).get('/api/v1/catalogue');
+    expect(last.status).toBe(429);
+    expect(last.headers['retry-after']).toBeTruthy();
+  });
+});

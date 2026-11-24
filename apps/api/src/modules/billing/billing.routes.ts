@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { assertCanReadBilling } from '../../lib/policy.js';
 import { prisma } from '../../lib/prisma.js';
+import { limits } from '../../lib/rate-limit.js';
 import { currentUserId, requireAuth } from '../../middleware/require-auth.js';
 import type { StaffContext } from '../../middleware/require-staff.js';
 import { publicCatalogue } from './catalogue.service.js';
@@ -16,7 +17,7 @@ const toIso = <T extends { periodStart: Date; periodEnd: Date; createdAt: Date }
 /** GET /api/v1/catalogue — public, read-only. Prices only for products that can be bought. */
 export function catalogueRouter(): Router {
   const router = Router();
-  router.get('/', async (_req, res) => {
+  router.get('/', limits.catalogueRead, async (_req, res) => {
     res.json(await publicCatalogue());
   });
   return router;

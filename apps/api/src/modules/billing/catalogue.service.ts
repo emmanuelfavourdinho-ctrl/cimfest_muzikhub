@@ -21,13 +21,17 @@ import type { StaffContext } from '../../middleware/require-staff.js';
  */
 const key = (r: { product: string; option: string }) => `${r.product}:${r.option}`;
 
-export async function currentRows(now = new Date()): Promise<ServiceCatalogue[]> {
+/** A real (non-test) catalogue row: its product is one of the shared, public products. */
+type CatalogueRow = ServiceCatalogue & { product: BillingProduct };
+const isPublicRow = (r: ServiceCatalogue): r is CatalogueRow => !r.testOnly && r.product !== 'TEST_ITEM';
+
+export async function currentRows(now = new Date()): Promise<CatalogueRow[]> {
   const rows = await prisma.serviceCatalogue.findMany({
     where: { effectiveFrom: { lte: now } },
     orderBy: [{ effectiveFrom: 'desc' }, { createdAt: 'desc' }],
   });
-  const seen = new Map<string, ServiceCatalogue>();
-  for (const r of rows) if (!seen.has(key(r))) seen.set(key(r), r);
+  const seen = new Map<string, CatalogueRow>();
+  for (const r of rows) if (isPublicRow(r) && !seen.has(key(r))) seen.set(key(r), r);
   const order = CATALOGUE_SEED.map(key);
   return [...seen.values()].sort((a, b) => order.indexOf(key(a)) - order.indexOf(key(b)));
 }

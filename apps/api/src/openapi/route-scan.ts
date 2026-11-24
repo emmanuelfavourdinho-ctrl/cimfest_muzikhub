@@ -30,11 +30,16 @@ export function scanRoutes(prefix = '/api/v1'): ScannedRoute[] {
       importOf.set(name, join(SRC, `${m[2]}.ts`));
   }
   const routes: ScannedRoute[] = [];
-  for (const m of app.matchAll(/v1\.use\('([^']+)',\s*(\w+)\(/g)) {
-    const [, mount, factory] = m;
-    const file = importOf.get(factory!);
+  // v1.use('/x', factory()) — and the few routers mounted on the app itself under /api/v1
+  // (e.g. raw-body webhooks, which must run before express.json()).
+  const mounts = [
+    ...[...app.matchAll(/v1\.use\('([^']+)',\s*(\w+)\(/g)].map((m) => [m[1]!, m[2]!] as const),
+    ...[...app.matchAll(/app\.use\('\/api\/v1(\/[^']+)',\s*(\w+)\(/g)].map((m) => [m[1]!, m[2]!] as const),
+  ];
+  for (const [mount, factory] of mounts) {
+    const file = importOf.get(factory);
     if (!file) continue;
-    const body = factoriesIn(file).get(factory!);
+    const body = factoriesIn(file).get(factory);
     if (!body) throw new Error(`router factory ${factory} not found in ${file}`);
     for (const r of body.matchAll(/router\.(get|post|put|patch|delete)\(\s*'([^']*)'/g)) {
       const sub = r[2] === '/' ? '' : r[2]!;

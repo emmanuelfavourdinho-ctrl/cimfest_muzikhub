@@ -20,6 +20,12 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
     return;
   }
 
+  // Body larger than the route's parser limit (express.json / express.raw).
+  if ((err as { type?: unknown })?.type === 'entity.too.large') {
+    sendProblem(res, 413, 'PAYLOAD_TOO_LARGE', 'Request body is too large', { instance });
+    return;
+  }
+
   // A database unique constraint was hit (e.g. the same media attached twice, a race on a
   // relationship). The constraint is the safety net; report it as a conflict, not a crash.
   if ((err as { code?: unknown })?.code === 'P2002') {

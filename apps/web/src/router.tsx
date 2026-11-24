@@ -99,6 +99,15 @@ export const router = createBrowserRouter([
       { path: '/p/:id', element: page(() => import('@/features/feed/PostPage'), 'PostPage') },
       { path: '/discover', element: page(() => import('@/features/discover/DiscoverPage'), 'DiscoverPage') },
       { path: '/pricing', element: page(() => import('@/features/billing/PricingPage'), 'PricingPage') },
+      // Development-only payment sandbox (Phase 3). `import.meta.env.DEV` is false in production
+      // builds, so these routes and their chunk are removed at build time. Not in any navigation.
+      ...(import.meta.env.DEV
+        ? [
+            { path: '/dev/payments', element: auth(() => import('@/features/dev/SandboxPaymentsPage'), 'SandboxPaymentsPage') },
+            { path: '/dev/payments/checkout', element: auth(() => import('@/features/dev/SandboxPaymentsPage'), 'FakeCheckoutPage') },
+            { path: '/checkout/return', element: auth(() => import('@/features/dev/SandboxPaymentsPage'), 'CheckoutReturnPage') },
+          ]
+        : []),
       { path: '/opportunities', element: page(() => import('@/features/opportunities/OpportunitiesPage'), 'OpportunitiesPage') },
       {
         path: '/opportunities/new',

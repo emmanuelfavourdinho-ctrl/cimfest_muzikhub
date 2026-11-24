@@ -88,6 +88,7 @@ model User {
   opportunityApplications OpportunityApplication[]
   subscriptions           Subscription[]
   promotions              Promotion[]
+  orders                  Order[]
 
   @@map("user")
 }
@@ -720,6 +721,9 @@ enum BillingProduct {
   PRO
   POST_BOOST
   PROFILE_SPOTLIGHT
+  /// Automated tests only (Phase 3). Allowed only on testOnly catalogue rows (CHECK), never in
+  /// the shared product list, so the admin API, seed and public catalogue can't reach it.
+  TEST_ITEM
 }
 
 enum CatalogueOption {
@@ -743,7 +747,10 @@ model ServiceCatalogue {
   effectiveFrom DateTime        @default(now())
   updatedById   String?
   reason        String?
+  /// Created only by test code (refused when NODE_ENV=production). CHECK: testOnly <=> TEST_ITEM.
+  testOnly      Boolean         @default(false)
   createdAt     DateTime        @default(now())
+  orders        Order[]
 
   @@unique([product, option, effectiveFrom])
   @@index([product, option, effectiveFrom])
@@ -798,4 +805,121 @@ model Promotion {
   @@index([targetType, targetId, periodEnd])
   @@index([userId])
   @@map("promotion")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Payments lifecycle (Phase 3, ADR 0004, docs/payments-state-machine.md)
+// ─────────────────────────────────────────────────────────────
+
+enum PaymentMode {
+  SANDBOX
+  LIVE
+}
+
+/// See docs/payments-state-machine.md for every allowed transition.
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  /// Payment verified with the provider; the benefit hasn't been granted yet (retried by the outbox).
+  FULFILMENT_PENDING
+  FULFILLED
+  FAILED
+  CANCELLED
+  EXPIRED
+  /// A payment we can't safely act on (late success, amount/currency mismatch, partial payment,
+  /// refund made outside MuzikHub). Never fulfilled automatically; an admin decides.
+  NEEDS_REVIEW
+  REFUNDED
+}
+
+/// One purchase attempt. Price, product and duration are snapshots taken at creation.
+model Order {
+  id                    String           @id @default(cuid(2))
+  /// Ours, sent to the provider: "mh_" + 128 random bits. No personal data.
+  reference             String           @unique
+  userId                String
+  user                  User             @relation(fields: [userId], references: [id], onDelete: Restrict)
+  mode                  PaymentMode
+  provider              String
+  catalogueId           String
+  catalogue             ServiceCatalogue @relation(fields: [catalogueId], references: [id], onDelete: Restrict)
+  product               BillingProduct
+  option                CatalogueOption
+  durationDays          Int
+  amountXaf             Int
+  currency              String           @default("XAF")
+  status                OrderStatus      @default(PENDING)
+  statusReason          String?
+  idempotencyKey        String
+  requestHash           String
+  checkoutUrl           String?
+  providerTransactionId String?
+  /// Database time at creation + our TTL (authoritative, independent of the provider's).
+  expiresAt             DateTime
+  paidAt                DateTime?
+  fulfilledAt           DateTime?
+  refundRequestedAt     DateTime?
+  refundedAt            DateTime?
+  refundReason          String?
+  refundedById          String?
+  /// Notch Pay keeps the original collection fee on refunds (Refunds → Limitations).
+  providerFeeRefunded   Boolean          @default(false)
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  events                OrderEvent[]
+  fulfilments           Fulfilment[]
+
+  @@unique([userId, idempotencyKey])
+  @@index([status, createdAt])
+  @@index([userId, status])
+  @@map("payment_order")
+}
+
+/// Append-only history of every status change (who/what caused it).
+model OrderEvent {
+  id         String       @id @default(cuid(2))
+  orderId    String
+  order      Order        @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  fromStatus OrderStatus?
+  toStatus   OrderStatus
+  trigger    String
+  actorId    String?
+  detail     String?
+  createdAt  DateTime     @default(now())
+
+  @@index([orderId, createdAt])
+  @@map("payment_order_event")
+}
+
+/// The benefit granted for an order. Unique per (order, fulfiller): a repeat does nothing.
+model Fulfilment {
+  id              String   @id @default(cuid(2))
+  orderId         String
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  fulfiller       String
+  /// "SUBSCRIPTION" | "PROMOTION" | null — the entitlement row a refund must mark REFUNDED.
+  entitlementType String?
+  entitlementId   String?
+  createdAt       DateTime @default(now())
+
+  @@unique([orderId, fulfiller])
+  @@map("payment_fulfilment")
+}
+
+/// Authenticated provider webhooks, kept for de-duplication and audit (no customer personal
+/// data, no raw body: only its SHA-256). Retention: 90 days (sweep in server.ts).
+model WebhookEvent {
+  id               String   @id @default(cuid(2))
+  provider         String
+  providerEventId  String
+  type             String
+  orderReference   String?
+  matchedOrder     Boolean
+  bodySha256       String
+  signatureVariant String?
+  receivedAt       DateTime @default(now())
+
+  @@unique([provider, providerEventId])
+  @@index([receivedAt])
+  @@map("payment_webhook_event")
 }

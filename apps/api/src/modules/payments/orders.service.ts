@@ -1,0 +1,446 @@
+import { createHash, randomBytes } from 'node:crypto';
+import {
+  BILLING_PRODUCTS,
+  CATALOGUE_OPTIONS,
+  ORDER_STATUS_MESSAGES,
+  ORDER_TTL_HOURS,
+  PENDING_ORDER_CAP,
+  SELLABLE_PRODUCTS,
+  type BillingProduct as SharedProduct,
+  type OrderView,
+} from '@muzikhub/shared';
+import { env } from '../../config/env.js';
+import { Prisma, type BillingProduct, type CatalogueOption, type Order, type OrderStatus } from '../../generated/prisma/client.js';
+import { writeAudit } from '../../lib/audit.js';
+import { HttpError } from '../../lib/http-error.js';
+import { enqueue } from '../../lib/outbox.js';
+import { assertCanReadBilling } from '../../lib/policy.js';
+import { prisma } from '../../lib/prisma.js';
+import type { StaffContext } from '../../middleware/require-staff.js';
+import { fulfillerFor } from './fulfilment.js';
+import type { ProviderPayment } from './provider.js';
+import { callbackUrl, paymentsRuntime } from './runtime.js';
+import { nextStatus, triggerFromProvider, type Trigger } from './state-machine.js';
+
+type Tx = Prisma.TransactionClient;
+const OPEN: OrderStatus[] = ['PENDING', 'PROCESSING'];
+
+/** Database time (never the client's or this server's clock). Inside a transaction: its start time. */
+export async function dbNow(db: Tx | typeof prisma = prisma): Promise<Date> {
+  const [row] = await db.$queryRaw<{ now: Date }[]>`SELECT now() AS "now"`;
+  return row!.now;
+}
+
+/** "mh_" + 128 random bits, base64url: opaque, unguessable, unique (DB constraint), no personal data. */
+export const newOrderReference = () => `mh_${randomBytes(16).toString('base64url')}`;
+
+const label = (product: BillingProduct) => (product === 'TEST_ITEM' ? 'Test item' : BILLING_PRODUCTS[product as SharedProduct]);
+
+export function toOrderView(o: Order): OrderView {
+  return {
+    reference: o.reference,
+    status: o.status,
+    statusMessage: ORDER_STATUS_MESSAGES[o.status],
+    product: label(o.product),
+    option: CATALOGUE_OPTIONS[o.option].label,
+    amountXaf: o.amountXaf,
+    currency: 'XAF',
+    mode: o.mode,
+    createdAt: o.createdAt.toISOString(),
+    expiresAt: o.expiresAt.toISOString(),
+    checkoutUrl: o.status === 'PENDING' ? o.checkoutUrl : null,
+  };
+}
+
+/** Test-only catalogue rows may never be bought in production (owner rule). */
+export function assertTestItemAllowed(nodeEnv: string = env.NODE_ENV) {
+  if (nodeEnv === 'production') throw new HttpError(409, 'PRODUCT_NOT_AVAILABLE', 'That item is not available to buy.');
+}
+
+export const requestHashOf = (body: { product: string; option: string }) =>
+  createHash('sha256')
+    .update(JSON.stringify({ product: body.product, option: body.option }))
+    .digest('hex');
+
+async function transition(
+  tx: Tx,
+  order: Pick<Order, 'id' | 'status'>,
+  to: OrderStatus,
+  trigger: Trigger,
+  data: Prisma.OrderUpdateManyMutationInput = {},
+  event: { actorId?: string; detail?: string } = {},
+) {
+  // Compare-and-set on the current status: a concurrent change makes this fail loudly instead of
+  // silently overwriting it.
+  const { count } = await tx.order.updateMany({ where: { id: order.id, status: order.status }, data: { ...data, status: to } });
+  if (count !== 1) throw new Error(`order ${order.id} changed concurrently (${order.status} → ${to})`);
+  await tx.orderEvent.create({
+    data: {
+      orderId: order.id,
+      fromStatus: order.status,
+      toStatus: to,
+      trigger,
+      actorId: event.actorId ?? null,
+      detail: event.detail?.slice(0, 300) ?? null,
+    },
+  });
+}
+
+async function lockOrder(tx: Tx, where: { reference: string } | { id: string }) {
+  const rows =
+    'reference' in where
+      ? await tx.$queryRaw<{ id: string }[]>`SELECT "id" FROM "payment_order" WHERE "reference" = ${where.reference} FOR UPDATE`
+      : await tx.$queryRaw<{ id: string }[]>`SELECT "id" FROM "payment_order" WHERE "id" = ${where.id} FOR UPDATE`;
+  return rows.length ? tx.order.findUniqueOrThrow({ where: { id: rows[0]!.id } }) : null;
+}
+
+// ── Checkout ─────────────────────────────────────────────────
+
+export async function startCheckout(
+  user: { id: string; email: string },
+  body: { product: BillingProduct; option: CatalogueOption },
+  idempotencyKey: string,
+): Promise<{ order: OrderView; reused: boolean; replayed: boolean; created: boolean }> {
+  const { mode, provider } = paymentsRuntime();
+  if (mode === 'off' || !provider) throw new HttpError(503, 'PAYMENTS_OFF', 'Payments are switched off. No money has been taken.');
+  if (mode === 'live') throw new HttpError(503, 'PAYMENTS_EXTERNALLY_BLOCKED', 'Live payments are not available yet.');
+  const requestHash = requestHashOf(body);
+
+  const outcome = await prisma.$transaction(async (tx) => {
+    // One checkout at a time per member: the pending cap and reuse checks can't race.
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`checkout:${user.id}`}))`;
+    const now = await dbNow(tx);
+
+    const same = await tx.order.findUnique({ where: { userId_idempotencyKey: { userId: user.id, idempotencyKey } } });
+    if (same) {
+      if (same.requestHash !== requestHash) {
+        throw new HttpError(422, 'IDEMPOTENCY_KEY_REUSED', 'This Idempotency-Key was already used for a different purchase.');
+      }
+      return { order: same, reused: false, replayed: true, created: false };
+    }
+
+    const open = await tx.order.findMany({ where: { userId: user.id, status: { in: OPEN }, expiresAt: { gt: now } } });
+    const existing = open.find((o) => o.product === body.product && o.option === body.option && o.checkoutUrl);
+    if (existing) return { order: existing, reused: true, replayed: false, created: false };
+    if (open.length >= PENDING_ORDER_CAP) {
+      throw new HttpError(
+        409,
+        'TOO_MANY_PENDING_ORDERS',
+        `You already have ${PENDING_ORDER_CAP} unfinished orders. Finish or cancel one first.`,
+      );
+    }
+
+    const item = await tx.serviceCatalogue.findFirst({
+      where: { product: body.product, option: body.option, effectiveFrom: { lte: now } },
+      orderBy: [{ effectiveFrom: 'desc' }, { createdAt: 'desc' }],
+    });
+    if (item?.testOnly) assertTestItemAllowed();
+    const sellable = item && item.active && (item.testOnly || SELLABLE_PRODUCTS.includes(item.product as SharedProduct));
+    if (!item || !sellable) throw new HttpError(409, 'PRODUCT_NOT_AVAILABLE', 'That item is not available to buy yet.');
+
+    const order = await tx.order.create({
+      data: {
+        reference: newOrderReference(),
+        userId: user.id,
+        mode: 'SANDBOX', // live is unreachable (see above and config/payments-approval.ts)
+        provider: provider.name,
+        catalogueId: item.id,
+        product: item.product,
+        option: item.option,
+        durationDays: item.durationDays,
+        amountXaf: item.priceXaf,
+        idempotencyKey,
+        requestHash,
+        createdAt: now,
+        expiresAt: new Date(now.getTime() + ORDER_TTL_HOURS * 3_600_000),
+      },
+    });
+    await tx.orderEvent.create({ data: { orderId: order.id, toStatus: 'PENDING', trigger: 'member.checkout', actorId: user.id } });
+    return { order, reused: false, replayed: false, created: true };
+  });
+
+  if (!outcome.created) return { ...outcome, order: toOrderView(outcome.order) };
+
+  // The provider call happens outside the transaction (network). If it fails the order is closed
+  // as FAILED; nothing was charged and the member can start again with a new key.
+  const order = outcome.order;
+  try {
+    const res = await provider.createCheckout({
+      reference: order.reference,
+      amountXaf: order.amountXaf,
+      currency: 'XAF',
+      email: user.email,
+      description: `MuzikHub: ${label(order.product)}, ${CATALOGUE_OPTIONS[order.option].label}`,
+      callbackUrl: callbackUrl(order.reference),
+    });
+    const saved = await prisma.order.update({
+      where: { id: order.id },
+      data: { checkoutUrl: res.checkoutUrl, providerTransactionId: res.providerTransactionId },
+    });
+    return { ...outcome, order: toOrderView(saved) };
+  } catch (error) {
+    await prisma.$transaction((tx) =>
+      transition(
+        tx,
+        order,
+        'FAILED',
+        'provider.failed',
+        { statusReason: 'checkout_init_failed' },
+        { detail: 'provider createCheckout failed' },
+      ),
+    );
+    if (error instanceof HttpError) throw error;
+    console.error(`[payments] createCheckout failed ref=${order.reference}: ${(error as Error).message}`);
+    throw new HttpError(502, 'PAYMENT_PROVIDER_ERROR', 'We could not start the payment. Nothing was charged; please try again.');
+  }
+}
+
+export async function ownOrder(userId: string, reference: string): Promise<OrderView> {
+  const order = await prisma.order.findUnique({ where: { reference } });
+  return toOrderView(assertCanReadBilling({ userId }, order, { notFound: 'Order not found' }));
+}
+
+export async function cancelOwnOrder(userId: string, reference: string): Promise<OrderView> {
+  const { provider } = paymentsRuntime();
+  const order = await prisma.$transaction(async (tx) => {
+    const o = assertCanReadBilling({ userId }, await lockOrder(tx, { reference }), { notFound: 'Order not found' });
+    if (!nextStatus(o.status, 'member.cancel')) throw new HttpError(409, 'ORDER_NOT_CANCELLABLE', 'This order can no longer be cancelled.');
+    await transition(tx, o, 'CANCELLED', 'member.cancel', {}, { actorId: userId });
+    return o;
+  });
+  // Best effort: a late success after this is caught by the state machine (→ NEEDS_REVIEW).
+  if (provider && provider.name === order.provider) {
+    await provider
+      .cancelPayment(order.reference)
+      .catch((e: Error) => console.warn(`[payments] cancel at provider failed ref=${order.reference}: ${e.message}`));
+  }
+  return toOrderView(await prisma.order.findUniqueOrThrow({ where: { id: order.id } }));
+}
+
+// ── Verification (webhook job and reconciliation share this) ─
+
+/** Applies a VERIFIED provider answer through the state machine. Idempotent; row-locked. */
+export async function applyProviderPayment(reference: string, payment: ProviderPayment, source: 'webhook' | 'reconcile') {
+  return prisma.$transaction(async (tx) => {
+    const order = await lockOrder(tx, { reference });
+    if (!order) return { changed: false as const, status: null };
+    const now = await dbNow(tx);
+    const trigger = triggerFromProvider(order, payment, now);
+    const to = trigger && nextStatus(order.status, trigger);
+    if (!trigger || !to) return { changed: false as const, status: order.status };
+    const paid =
+      trigger === 'provider.paid' ||
+      trigger === 'provider.paid_late' ||
+      trigger === 'provider.mismatch' ||
+      trigger === 'provider.incomplete';
+    await transition(
+      tx,
+      order,
+      to,
+      trigger,
+      {
+        ...(paid && !order.paidAt && { paidAt: now }),
+        ...(payment.providerTransactionId && { providerTransactionId: payment.providerTransactionId }),
+        ...(to === 'NEEDS_REVIEW' && { statusReason: trigger.replace('provider.', '') }),
+      },
+      { detail: `${source}: provider status "${payment.rawStatus}"` },
+    );
+    if (to === 'FULFILMENT_PENDING') await enqueue(tx, 'payments.fulfil', { orderId: order.id });
+    return { changed: true as const, status: to };
+  });
+}
+
+/** Outbox job `payments.verify`: ask the provider (server to server), then apply. */
+export async function verifyOrder(reference: string, source: 'webhook' | 'reconcile' = 'webhook') {
+  const order = await prisma.order.findUnique({ where: { reference }, select: { provider: true } });
+  if (!order) return { changed: false as const, status: null };
+  const { provider } = paymentsRuntime();
+  if (!provider || provider.name !== order.provider) throw new Error(`no ${order.provider} provider configured to verify ${reference}`);
+  const payment = await provider.getPayment(reference);
+  return applyProviderPayment(reference, payment, source);
+}
+
+// ── Fulfilment ───────────────────────────────────────────────
+
+/**
+ * Outbox job `payments.fulfil`. Status change and fulfilment record commit together; the unique
+ * (order, fulfiller) constraint makes a repeat a no-op. If the fulfiller throws, the whole
+ * transaction rolls back, the order stays FULFILMENT_PENDING and the outbox retries.
+ */
+export async function fulfilOrder(orderId: string) {
+  return prisma.$transaction(async (tx) => {
+    const order = await lockOrder(tx, { id: orderId });
+    if (!order || order.status !== 'FULFILMENT_PENDING') return { fulfilled: false, status: order?.status ?? null };
+    const fulfiller = fulfillerFor(order.product);
+    if (!fulfiller) throw new Error(`no fulfiller registered for ${order.product}`);
+    const result = await fulfiller.fulfil(tx, order);
+    await tx.fulfilment.create({ data: { orderId: order.id, fulfiller: fulfiller.key, ...result } });
+    await transition(tx, order, 'FULFILLED', 'fulfilment.done', { fulfilledAt: await dbNow(tx) }, { detail: fulfiller.key });
+    return { fulfilled: true, status: 'FULFILLED' as const };
+  });
+}
+
+// ── Refund (admin) ───────────────────────────────────────────
+
+export async function refundOrder(staff: StaffContext, reference: string, reason: string) {
+  const { provider } = paymentsRuntime();
+  const order = await prisma.order.findUnique({ where: { reference } });
+  if (!order) throw new HttpError(404, 'NOT_FOUND', 'Order not found');
+  if (!nextStatus(order.status, 'admin.refund'))
+    throw new HttpError(409, 'ORDER_NOT_REFUNDABLE', `A ${order.status} order can't be refunded.`);
+  if (!provider || provider.name !== order.provider || !provider.supportsRefund || !provider.refund) {
+    throw new HttpError(409, 'REFUND_NOT_SUPPORTED', 'Refunds are not available for this payment provider. Nothing was changed.');
+  }
+  // Claim the refund (one admin, one time) before calling the provider.
+  const claimed = await prisma.order.updateMany({
+    where: { id: order.id, status: order.status, refundRequestedAt: null },
+    data: { refundRequestedAt: await dbNow() },
+  });
+  if (claimed.count !== 1) throw new HttpError(409, 'REFUND_IN_PROGRESS', 'A refund for this order is already in progress.');
+  try {
+    await provider.refund({ reference, amountXaf: order.amountXaf, reason });
+  } catch (error) {
+    await prisma.order.update({ where: { id: order.id }, data: { refundRequestedAt: null } });
+    console.error(`[payments] refund failed ref=${reference}: ${(error as Error).message}`);
+    throw new HttpError(502, 'PAYMENT_PROVIDER_ERROR', 'The provider refused the refund. Nothing was changed.');
+  }
+  return prisma.$transaction(async (tx) => {
+    const current = (await lockOrder(tx, { id: order.id }))!;
+    const now = await dbNow(tx);
+    await transition(
+      tx,
+      current,
+      'REFUNDED',
+      'admin.refund',
+      { refundedAt: now, refundReason: reason, refundedById: staff.id, providerFeeRefunded: false },
+      { actorId: staff.id, detail: reason },
+    );
+    const fulfilments = await tx.fulfilment.findMany({ where: { orderId: order.id } });
+    for (const f of fulfilments) {
+      if (f.entitlementType === 'SUBSCRIPTION' && f.entitlementId)
+        await tx.subscription.update({ where: { id: f.entitlementId }, data: { status: 'REFUNDED' } });
+      if (f.entitlementType === 'PROMOTION' && f.entitlementId)
+        await tx.promotion.update({ where: { id: f.entitlementId }, data: { status: 'REFUNDED' } });
+    }
+    await writeAudit(tx, {
+      actor: { id: staff.id, role: staff.role, ip: staff.ip },
+      action: 'payment.refund',
+      target: { type: 'order', id: reference },
+      reason,
+      before: { status: current.status },
+      after: { status: 'REFUNDED', amountXaf: order.amountXaf, providerFeeRefunded: false, entitlementsRefunded: fulfilments.length },
+    });
+    return toOrderView(await tx.order.findUniqueOrThrow({ where: { id: order.id } }));
+  });
+}
+
+// ── Reconciliation ───────────────────────────────────────────
+
+/** Orders younger than this are left to the webhook. Documented in ADR 0004. */
+export const RECONCILE_MIN_AGE_MINUTES = 2;
+const FULFIL_RETRY_AFTER_MINUTES = 10;
+
+/**
+ * Re-checks open orders with the provider and applies the same state machine (covers lost
+ * webhooks and browsers that never come back). Expires orders past our TTL that the provider
+ * doesn't report as paid. Re-queues fulfilment that has stalled. Safe to run twice at once: every
+ * change goes through applyProviderPayment / transition under a row lock with compare-and-set.
+ */
+export async function reconcilePayments({ limit = 100 }: { limit?: number } = {}) {
+  const { provider } = paymentsRuntime();
+  const now = await dbNow();
+  const stats = { checked: 0, changed: 0, expired: 0, requeued: 0, errors: 0 };
+  if (provider) {
+    const open = await prisma.order.findMany({
+      where: {
+        status: { in: OPEN },
+        provider: provider.name,
+        createdAt: { lt: new Date(now.getTime() - RECONCILE_MIN_AGE_MINUTES * 60_000) },
+      },
+      orderBy: { createdAt: 'asc' },
+      take: limit,
+    });
+    for (const order of open) {
+      stats.checked += 1;
+      try {
+        const payment = await provider.getPayment(order.reference);
+        const r = await applyProviderPayment(order.reference, payment, 'reconcile');
+        if (r.changed) stats.changed += 1;
+        else if (order.expiresAt <= now) {
+          const expired = await prisma.$transaction(async (tx) => {
+            const o = await lockOrder(tx, { id: order.id });
+            if (!o || !nextStatus(o.status, 'system.expire') || o.expiresAt > (await dbNow(tx))) return false;
+            await transition(tx, o, 'EXPIRED', 'system.expire', {}, { detail: `reconcile: provider status "${payment.rawStatus}"` });
+            return true;
+          });
+          if (expired) stats.expired += 1;
+        }
+      } catch (e) {
+        stats.errors += 1;
+        console.error(`[payments] reconcile failed ref=${order.reference}: ${(e as Error).message}`);
+      }
+    }
+  }
+  // Paid but not yet fulfilled for a while, with no fulfil job waiting: queue one (idempotent).
+  const stalled = await prisma.$queryRaw<{ id: string }[]>`
+    SELECT o."id" FROM "payment_order" o
+    WHERE o."status" = 'FULFILMENT_PENDING' AND o."updatedAt" < ${new Date(now.getTime() - FULFIL_RETRY_AFTER_MINUTES * 60_000)}
+      AND NOT EXISTS (SELECT 1 FROM "outbox_event" e WHERE e."topic" = 'payments.fulfil'
+                      AND e."status" IN ('PENDING', 'PROCESSING') AND e."payload"->>'orderId' = o."id")
+    LIMIT ${limit}`;
+  for (const { id } of stalled) {
+    await enqueue(prisma, 'payments.fulfil', { orderId: id });
+    stats.requeued += 1;
+  }
+  return stats;
+}
+
+// ── Admin reads ──────────────────────────────────────────────
+
+/** Revenue counts LIVE orders only: sandbox orders are excluded forever (owner rule). */
+export async function revenueSummary() {
+  const live = await prisma.order.aggregate({
+    where: { mode: 'LIVE', status: { in: ['FULFILLED', 'FULFILMENT_PENDING'] } },
+    _sum: { amountXaf: true },
+    _count: true,
+  });
+  const byStatus = await prisma.order.groupBy({ by: ['mode', 'status'], _count: true });
+  return {
+    currency: 'XAF' as const,
+    liveRevenueXaf: live._sum.amountXaf ?? 0,
+    liveOrders: live._count,
+    counts: byStatus.map((r) => ({ mode: r.mode, status: r.status, count: r._count })),
+  };
+}
+
+export async function adminOrders(q: { status?: OrderStatus; cursor?: string; limit: number }) {
+  const rows = await prisma.order.findMany({
+    where: q.status ? { status: q.status } : {},
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    take: q.limit + 1,
+    ...(q.cursor && { cursor: { id: q.cursor }, skip: 1 }),
+    include: { user: { select: { id: true, name: true, username: true } }, events: { orderBy: { createdAt: 'asc' } } },
+  });
+  const page = rows.slice(0, q.limit);
+  return {
+    nextCursor: rows.length > q.limit ? page.at(-1)!.id : null,
+    items: page.map((o) => ({
+      ...toOrderView(o),
+      statusReason: o.statusReason,
+      provider: o.provider,
+      user: o.user,
+      paidAt: o.paidAt?.toISOString() ?? null,
+      refundedAt: o.refundedAt?.toISOString() ?? null,
+      providerFeeRefunded: o.providerFeeRefunded,
+      history: o.events.map((e) => ({
+        from: e.fromStatus,
+        to: e.toStatus,
+        trigger: e.trigger,
+        at: e.createdAt.toISOString(),
+        detail: e.detail,
+      })),
+    })),
+  };
+}
+
+export const isUniqueViolation = (e: unknown) => e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002';

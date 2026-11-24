@@ -4,6 +4,9 @@ import { prisma } from './lib/prisma.js';
 import { reinstateExpiredSuspensions } from './lib/account-status.js';
 import { dispatchOutbox } from './lib/outbox.js';
 import { sweepIdempotencyKeys } from './middleware/idempotency.js';
+import { reconcilePayments } from './modules/payments/orders.service.js';
+import { paymentsRuntime } from './modules/payments/runtime.js';
+import { sweepWebhookEvents } from './modules/payments/webhook.js';
 
 const app = createApp();
 
@@ -33,6 +36,28 @@ const idempotencySweep = setInterval(() => {
   sweepIdempotencyKeys().catch((e) => console.error('[idempotency] sweep failed:', (e as Error).message));
 }, 60 * 60_000);
 idempotencySweep.unref();
+
+// Payments (ADR 0004): reconcile open orders with the provider every minute (lost webhooks,
+// expiry, stalled fulfilment). Safe if it overlaps another run or instance (row locks + CAS).
+if (paymentsRuntime().mode !== 'off') {
+  let reconciling = false;
+  const reconcileTimer = setInterval(() => {
+    if (reconciling) return;
+    reconciling = true;
+    reconcilePayments()
+      .catch((e) => console.error('[payments] reconcile failed:', (e as Error).message))
+      .finally(() => (reconciling = false));
+  }, 60_000);
+  reconcileTimer.unref();
+}
+// Webhook events older than the retention period (90 days).
+const webhookSweep = setInterval(
+  () => {
+    sweepWebhookEvents().catch((e) => console.error('[payments] webhook sweep failed:', (e as Error).message));
+  },
+  6 * 60 * 60_000,
+);
+webhookSweep.unref();
 
 // Graceful shutdown: stop accepting connections, then close the DB pool.
 function shutdown(signal: string) {
