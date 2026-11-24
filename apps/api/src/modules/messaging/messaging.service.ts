@@ -81,9 +81,10 @@ async function unansweredAllowance(conversationId: string, senderId: string, rec
     },
   });
   if (connected) return null;
-  const replied = await prisma.message.count({ where: { conversationId, senderId: recipientId } });
+  // Only typed messages count (collaboration cards are system messages).
+  const replied = await prisma.message.count({ where: { conversationId, senderId: recipientId, kind: 'TEXT' } });
   if (replied) return null;
-  const sent = await prisma.message.count({ where: { conversationId, senderId } });
+  const sent = await prisma.message.count({ where: { conversationId, senderId, kind: 'TEXT' } });
   return Math.max(0, UNANSWERED_MESSAGE_CAP - sent);
 }
 

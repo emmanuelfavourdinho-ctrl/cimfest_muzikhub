@@ -32,7 +32,7 @@ export const primaryNav: NavItem[] = [
   { label: 'Network', icon: Contact, to: '/network' },
   { label: 'Creator studio', icon: Mic, to: '/studio' },
   { label: 'Communities', icon: UsersRound, to: '/communities' },
-  { label: 'Collaborate', icon: Users },
+  { label: 'Collaborate', icon: Users, to: '/collaborate' },
   { label: 'Opportunities', icon: Briefcase, to: '/opportunities' },
   { label: 'Plans', icon: Gem, to: '/pricing' },
   { label: 'Competitions', icon: Trophy },

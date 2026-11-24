@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { Ban, Check, Clock, MessageCircle, Plus, UserCheck, UserPlus, X } from 'lucide-react';
+import { Ban, Check, Clock, Handshake, MessageCircle, Plus, UserCheck, UserPlus, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { CONNECTION_MESSAGE_MAX } from '@muzikhub/shared';
 import { Button } from '@/components/ui/button';
@@ -94,6 +94,11 @@ export function RelationshipActions({ username, name }: { username: string; name
         }
       >
         <MessageCircle /> Message
+      </Button>
+      <Button asChild size="sm" variant="outline">
+        <Link to={`/collaborate/new?to=${encodeURIComponent(username)}`}>
+          <Handshake /> Collaborate
+        </Link>
       </Button>
       <Button
         size="sm"

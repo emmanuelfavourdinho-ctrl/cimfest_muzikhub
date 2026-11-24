@@ -36,6 +36,8 @@ import { communitiesRouter, communityCommentsRouter, discussionsRouter } from '.
 import { registerCommunityIntegrations } from './modules/communities/registry.js';
 import { conversationsRouter } from './modules/messaging/messaging.routes.js';
 import { registerMessagingIntegrations } from './modules/messaging/registry.js';
+import { collaborationsRouter } from './modules/collaboration/collaboration.routes.js';
+import { registerCollaborationHooks } from './modules/collaboration/collaboration.service.js';
 import { promotedRouter } from './modules/promotions/promotions.routes.js';
 import { registerPromotionFulfillers } from './modules/promotions/fulfillers.js';
 
@@ -74,6 +76,7 @@ export function createApp(overrides: Partial<AppDependencies> = {}): Express {
   registerPromotionFulfillers();
   registerCommunityIntegrations();
   registerMessagingIntegrations();
+  registerCollaborationHooks();
 
   app.use(express.json({ limit: '1mb' }));
 
@@ -113,6 +116,7 @@ export function createApp(overrides: Partial<AppDependencies> = {}): Express {
   v1.use('/discussions', discussionsRouter());
   v1.use('/community-comments', communityCommentsRouter());
   v1.use('/conversations', conversationsRouter());
+  v1.use('/collaborations', collaborationsRouter());
   v1.use('/promoted', promotedRouter());
   // Development-only sandbox helpers (never mounted in production; see runtime.ts).
   if (devSandboxEnabled()) {
