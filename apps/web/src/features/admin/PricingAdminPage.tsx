@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { BILLING_PRODUCTS, CATALOGUE_OPTIONS, type AdminCatalogueRow } from '@muzikhub/shared';
 import { Button } from '@/components/ui/button';
+import { Dialog } from '@/components/ui/Dialog';
 import { Field, Input } from '@/components/ui/form';
 import { PageLoading } from '@/components/ui/primitives';
 import { LoadFailed } from '@/features/auth/guards';
@@ -17,6 +18,7 @@ import { AdminHeader, Ago, DataTable, ReasonDialog, Tag, useAdminAction } from '
 export function PricingAdminPage() {
   const { data, isPending, isError, error, refetch } = useQuery({ queryKey: ['admin', 'catalogue'], queryFn: adminApi.catalogue });
   const [editing, setEditing] = useState<AdminCatalogueRow | null>(null);
+  const [historyOf, setHistoryOf] = useState<AdminCatalogueRow | null>(null);
   const [price, setPrice] = useState('');
   const act = useAdminAction();
   const parsed = Number(price);
@@ -63,7 +65,15 @@ export function PricingAdminPage() {
                     'Initial catalogue'
                   )}
                 </td>
-                <td className="text-right">
+                <td className="text-right whitespace-nowrap">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-label={`Price history of ${BILLING_PRODUCTS[r.product]}, ${CATALOGUE_OPTIONS[r.option].label}`}
+                    onClick={() => setHistoryOf(r)}
+                  >
+                    History
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
@@ -81,6 +91,7 @@ export function PricingAdminPage() {
           </tbody>
         </DataTable>
       )}
+      {historyOf && <PriceHistory row={historyOf} onClose={() => setHistoryOf(null)} />}
       <ReasonDialog
         open={editing !== null}
         onClose={() => setEditing(null)}
@@ -101,5 +112,38 @@ export function PricingAdminPage() {
         </Field>
       </ReasonDialog>
     </div>
+  );
+}
+
+/** Every version of one item (rows are only ever added): who changed it, when and why. */
+function PriceHistory({ row, onClose }: { row: AdminCatalogueRow; onClose: () => void }) {
+  const q = useQuery({
+    queryKey: ['admin', 'catalogue', 'history', row.product, row.option],
+    queryFn: () => adminApi.priceHistory(row.product, row.option),
+  });
+  return (
+    <Dialog open onClose={onClose} title={`Price history: ${BILLING_PRODUCTS[row.product]}, ${CATALOGUE_OPTIONS[row.option].label}`}>
+      {q.isPending ? (
+        <PageLoading />
+      ) : q.isError ? (
+        <p className="text-sm text-danger">{errorMessage(q.error)}</p>
+      ) : (
+        <ol className="space-y-2 text-sm">
+          {q.data.items.map((v, i) => (
+            <li key={v.id} className="rounded-s border border-hairline-strong p-3">
+              <p className="font-semibold tabular-nums">
+                {formatXaf(v.priceXaf)} {i === 0 && <Tag color="green">Current</Tag>} {v.active && <Tag color="gold">On sale</Tag>}
+              </p>
+              <p className="text-xs text-text-2">
+                {v.updatedBy ? `${v.updatedBy}, ` : 'Initial catalogue, '}
+                <Ago iso={v.effectiveFrom} />
+              </p>
+              {v.reason && <p className="mt-1 text-xs text-text-3">“{v.reason}”</p>}
+            </li>
+          ))}
+        </ol>
+      )}
+      <p className="mt-3 text-xs text-text-3">Orders keep the price they were created with; a change only affects new orders.</p>
+    </Dialog>
   );
 }

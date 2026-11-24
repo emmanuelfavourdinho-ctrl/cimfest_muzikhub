@@ -10,6 +10,8 @@ import {
   FRESH_SESSION_MINUTES,
   MODERATION_TARGETS,
   ORDER_STATUSES,
+  BILLING_PRODUCT_KEYS,
+  CATALOGUE_OPTION_KEYS,
   moderationActionSchema,
   PERMISSIONS,
   grantOrganiserSchema,
@@ -43,9 +45,12 @@ import * as promotions from '../promotions/promotions.service.js';
 
 const adminOrdersQuerySchema = z.object({
   status: z.enum(ORDER_STATUSES).optional(),
+  mode: z.enum(['SANDBOX', 'LIVE']).optional(),
   cursor: z.string().max(64).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),
 });
+
+const historyQuerySchema = z.object({ product: z.enum(BILLING_PRODUCT_KEYS), option: z.enum(CATALOGUE_OPTION_KEYS) });
 
 const param = (req: Request, name: string) => String((req.params as Record<string, string>)[name]);
 
@@ -151,6 +156,10 @@ export function adminRouter(): Router {
   router.get('/catalogue', requirePermission('pricing.manage'), async (_req, res) => {
     res.json({ items: await catalogue.adminCatalogue() });
   });
+  router.get('/catalogue/history', requirePermission('pricing.manage'), async (req, res) => {
+    const q = parseQuery(historyQuerySchema, req.query);
+    res.json({ items: await catalogue.priceHistory(q.product, q.option) });
+  });
   router.post('/catalogue/price', requirePermission('pricing.manage'), validateBody(changePriceSchema), async (req, res) => {
     const b = req.body;
     res.json({ items: await catalogue.changePrice(staffOf(res.locals), b.product, b.option, b.priceXaf, b.reason) });
@@ -176,6 +185,35 @@ export function adminRouter(): Router {
     const q = parseQuery(adminOrdersQuerySchema, req.query);
     res.json(await payments.adminOrders(q));
   });
+  router.get('/payments/orders/:reference', requirePermission('billing.view'), async (req, res) => {
+    res.json(await payments.adminOrderDetail(param(req, 'reference')));
+  });
+  router.post(
+    '/payments/orders/:reference/recheck',
+    requirePermission('payments.repair'),
+    validateBody(reasonOnlySchema),
+    async (req, res) => {
+      res.json(await payments.adminRecheck(staffOf(res.locals), param(req, 'reference'), req.body.reason));
+    },
+  );
+  router.post(
+    '/payments/orders/:reference/retry-fulfilment',
+    requirePermission('payments.repair'),
+    validateBody(reasonOnlySchema),
+    async (req, res) => {
+      res.json(await payments.adminRetryFulfilment(staffOf(res.locals), param(req, 'reference'), req.body.reason));
+    },
+  );
+  router.post(
+    '/payments/orders/:reference/approve-late',
+    requirePermission('payments.repair'),
+    validateBody(reasonOnlySchema),
+    async (req, res) => {
+      const staff = staffOf(res.locals);
+      assertFreshSession(staff);
+      res.json(await payments.adminApproveLate(staff, param(req, 'reference'), req.body.reason));
+    },
+  );
   router.post(
     '/payments/orders/:reference/refund',
     requirePermission('payments.refund'),

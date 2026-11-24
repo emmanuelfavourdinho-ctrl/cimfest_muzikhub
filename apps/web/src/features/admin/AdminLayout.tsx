@@ -33,6 +33,8 @@ const NAV = [
   { to: '/admin/reports', label: 'Reports', icon: Flag, permission: 'reports.manage' },
   { to: '/admin/users', label: 'Users', icon: Users, permission: 'users.view' },
   { to: '/admin/content', label: 'Content', icon: Layers, permission: 'content.moderate' },
+  { to: '/admin/payments', label: 'Payments', icon: Wallet, permission: 'billing.view' },
+  { to: '/admin/promotions', label: 'Promotions', icon: Megaphone, permission: 'content.moderate' },
   { to: '/admin/pricing', label: 'Pricing', icon: Tags, permission: 'pricing.manage' },
   { to: '/admin/audit', label: 'Audit log', icon: ScrollText, permission: 'audit.view' },
 ] as const;
@@ -41,7 +43,6 @@ const NAV = [
 const PENDING = [
   { label: 'Communities', icon: UsersRound },
   { label: 'Competitions & opportunities', icon: Trophy },
-  { label: 'Finance', icon: Wallet },
   { label: 'Announcements', icon: Megaphone },
 ];
 

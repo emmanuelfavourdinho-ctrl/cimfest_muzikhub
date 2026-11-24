@@ -18,6 +18,7 @@ const TRIGGERS: Trigger[] = [
   'member.cancel',
   'fulfilment.done',
   'fulfilment.impossible',
+  'admin.approve_late',
   'admin.refund',
 ];
 
@@ -55,13 +56,13 @@ const EXPECTED: Partial<Record<OrderStatus, Partial<Record<Trigger, OrderStatus>
   FAILED: { 'provider.paid_late': 'NEEDS_REVIEW', 'provider.mismatch': 'NEEDS_REVIEW' },
   CANCELLED: { 'provider.paid_late': 'NEEDS_REVIEW', 'provider.mismatch': 'NEEDS_REVIEW' },
   EXPIRED: { 'provider.paid_late': 'NEEDS_REVIEW', 'provider.mismatch': 'NEEDS_REVIEW' },
-  NEEDS_REVIEW: { 'admin.refund': 'REFUNDED' },
+  NEEDS_REVIEW: { 'admin.refund': 'REFUNDED', 'admin.approve_late': 'FULFILMENT_PENDING' },
   REFUNDED: {},
 };
 
 describe('order state machine: every (status, trigger) pair', () => {
   const cases = ORDER_STATUSES.flatMap((from) => TRIGGERS.map((t) => [from, t, EXPECTED[from]?.[t] ?? null] as const));
-  it(`covers ${ORDER_STATUSES.length} × ${TRIGGERS.length} = ${cases.length} pairs`, () => expect(cases).toHaveLength(126));
+  it(`covers ${ORDER_STATUSES.length} × ${TRIGGERS.length} = ${cases.length} pairs`, () => expect(cases).toHaveLength(135));
   it.each(cases)('%s + %s → %s', (from, trigger, to) => {
     expect(nextStatus(from, trigger)).toBe(to);
   });

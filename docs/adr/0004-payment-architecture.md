@@ -211,3 +211,20 @@ Exact string match: no case folding and no trimming. **Anything else is `unknown
   - Staff with `content.moderate` can end any promotion with a reason (audited).
   - Suspended or banned authors drop out at once (visibility filter).
   - Refunds for ended promotions are an admin decision.
+
+## Admin payment operations (milestone 4, 2026-11-24)
+- **Permissions** (`packages/shared/src/admin.ts`):
+  - `billing.view` (read orders, summary): ADMIN.
+  - `payments.refund`: ADMIN.
+  - `payments.repair`: ADMIN.
+  - `pricing.manage`: ADMIN.
+  - `content.moderate` (end promotions): MODERATOR and ADMIN.
+
+  Moderators have no financial access. FINANCE_ADMIN is still deferred. Until it exists, financial writes are limited to ADMINs, and each needs a reason and an audit entry; refund and late approval also need a sign-in under 15 minutes old.
+- **Repairs never force a status:**
+  - *Re-check* asks the provider and applies the normal state machine.
+  - *Retry fulfilment* re-queues an idempotent job (one fulfilment per order).
+  - *Approve late payment* (new transition `admin.approve_late`, NEEDS_REVIEW → FULFILMENT_PENDING) is allowed **only** for `paid_late`, and **only** if the provider confirms at that moment that it's paid with the same amount, currency and reference.
+
+  Mismatches, partial payments and impossible fulfilments can only be refunded.
+- **Revenue counts LIVE orders only.** Sandbox orders are listed and labelled, but they never count.

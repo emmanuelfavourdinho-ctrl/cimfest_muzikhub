@@ -1,4 +1,4 @@
-import type { AdminCatalogueRow, BillingProduct, CatalogueOption } from '@muzikhub/shared';
+import type { AdminCatalogueRow, BillingProduct, CatalogueOption, OrderStatus } from '@muzikhub/shared';
 import type { AccountStatus, MediaView, Permission, PersonSummary, PlatformRole, SetAccountStatusInput } from '@muzikhub/shared';
 import { request } from '@/lib/api';
 
@@ -141,6 +141,59 @@ export interface ContentRow {
 }
 
 type Page<T> = { items: T[]; nextCursor: string | null };
+
+export interface AdminOrderRow {
+  reference: string;
+  status: OrderStatus;
+  statusMessage: string;
+  statusReason: string | null;
+  product: string;
+  option: string;
+  amountXaf: number;
+  mode: 'SANDBOX' | 'LIVE';
+  provider: string;
+  createdAt: string;
+  paidAt: string | null;
+  user: { id: string; name: string; username: string | null };
+}
+export interface AdminOrderDetail extends AdminOrderRow {
+  expiresAt: string;
+  providerTransactionId: string | null;
+  targetId: string | null;
+  fulfilledAt: string | null;
+  refundedAt: string | null;
+  refundReason: string | null;
+  providerFeeRefunded: boolean;
+  history: { from: OrderStatus | null; to: OrderStatus; trigger: string; actorId: string | null; detail: string | null; at: string }[];
+  fulfilments: { fulfiller: string; entitlementType: string | null; entitlementId: string | null; at: string }[];
+  webhooks: { eventId: string; type: string; matched: boolean; at: string }[];
+  actions: { recheck: boolean; retryFulfilment: boolean; approveLate: boolean; refund: boolean };
+}
+export interface PaymentsSummary {
+  liveRevenueXaf: number;
+  liveOrders: number;
+  counts: { mode: 'SANDBOX' | 'LIVE'; status: OrderStatus; count: number }[];
+}
+export interface AdminPromotion {
+  id: string;
+  product: 'POST_BOOST' | 'PROFILE_SPOTLIGHT';
+  targetType: 'POST' | 'PROFILE';
+  targetId: string;
+  user: { id: string; name: string; username: string | null };
+  periodStart: string;
+  periodEnd: string;
+  status: string;
+  running: boolean;
+  endedReason: string | null;
+}
+export interface PriceVersion {
+  id: string;
+  priceXaf: number;
+  active: boolean;
+  effectiveFrom: string;
+  updatedBy: string | null;
+  reason: string | null;
+}
 type Q = Record<string, string | undefined>;
 
 export const adminApi = {
@@ -181,6 +234,16 @@ export const adminApi = {
   restoreContent: (type: string, id: string, reason: string) =>
     request<unknown>(`/admin/content/${type}/${encodeURIComponent(id)}/restore`, null, { method: 'POST', body: { reason } }),
   audit: (query: Q) => request<Page<AuditEntry>>('/admin/audit', null, { query }),
+  paymentsSummary: () => request<PaymentsSummary>('/admin/payments/summary', null),
+  paymentOrders: (query: Q) => request<Page<AdminOrderRow>>('/admin/payments/orders', null, { query }),
+  paymentOrder: (ref: string) => request<AdminOrderDetail>(`/admin/payments/orders/${encodeURIComponent(ref)}`, null),
+  paymentAction: (ref: string, action: 'recheck' | 'retry-fulfilment' | 'approve-late' | 'refund', reason: string) =>
+    request<unknown>(`/admin/payments/orders/${encodeURIComponent(ref)}/${action}`, null, { method: 'POST', body: { reason } }),
+  promotions: (state: 'running' | 'all') => request<{ items: AdminPromotion[] }>('/admin/promotions', null, { query: { state } }),
+  endPromotion: (id: string, reason: string) =>
+    request<unknown>(`/admin/promotions/${encodeURIComponent(id)}/end`, null, { method: 'POST', body: { reason } }),
+  priceHistory: (product: string, option: string) =>
+    request<{ items: PriceVersion[] }>('/admin/catalogue/history', null, { query: { product, option } }),
   catalogue: () => request<{ items: AdminCatalogueRow[] }>('/admin/catalogue', null),
   changePrice: (product: BillingProduct, option: CatalogueOption, priceXaf: number, reason: string) =>
     request<{ items: AdminCatalogueRow[] }>('/admin/catalogue/price', null, {

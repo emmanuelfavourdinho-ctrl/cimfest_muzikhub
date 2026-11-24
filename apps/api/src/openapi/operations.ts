@@ -350,4 +350,37 @@ export const operations: Operation[] = [
     'staff',
     { body: reasonOnlySchema },
   ),
+  // Admin payment operations (monetization milestone 4)
+  op('GET', '/admin/catalogue/history', 'Admin', 'Every price version of one item: who, when, why (pricing.manage)', 'staff'),
+  op(
+    'GET',
+    '/admin/payments/orders/{reference}',
+    'Admin',
+    'Order detail: history, fulfilment, webhooks and allowed actions (billing.view)',
+    'staff',
+  ),
+  op(
+    'POST',
+    '/admin/payments/orders/{reference}/recheck',
+    'Admin',
+    'Repair: re-verify with the provider and apply the state machine (payments.repair, reason, audited)',
+    'staff',
+    { body: reasonOnlySchema },
+  ),
+  op(
+    'POST',
+    '/admin/payments/orders/{reference}/retry-fulfilment',
+    'Admin',
+    'Repair: queue fulfilment again for a paid order (payments.repair, reason, audited)',
+    'staff',
+    { body: reasonOnlySchema },
+  ),
+  op(
+    'POST',
+    '/admin/payments/orders/{reference}/approve-late',
+    'Admin',
+    'Repair: approve a late payment the provider re-confirms now (payments.repair, fresh session, reason, audited)',
+    'staff',
+    { body: reasonOnlySchema },
+  ),
 ];

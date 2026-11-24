@@ -19,6 +19,7 @@ export type Trigger =
   | 'member.cancel'
   | 'fulfilment.done'
   | 'fulfilment.impossible'
+  | 'admin.approve_late'
   | 'admin.refund';
 
 export interface Transition {
@@ -93,6 +94,13 @@ export const TRANSITIONS: readonly Transition[] = [
     trigger: 'fulfilment.impossible',
     who: 'fulfilment job',
     effects: 'paid, but the target can no longer receive it (e.g. the post was removed); nothing granted; admin review',
+  },
+  {
+    from: ['NEEDS_REVIEW'],
+    to: 'FULFILMENT_PENDING',
+    trigger: 'admin.approve_late',
+    who: 'ADMIN (payments.repair, fresh session, reason)',
+    effects: 'only a late success the provider re-confirms now (paid, same amount, currency and reference); enqueue payments.fulfil; audit',
   },
   {
     from: ['FULFILMENT_PENDING', 'FULFILLED', 'NEEDS_REVIEW'],

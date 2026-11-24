@@ -512,9 +512,9 @@ export async function revenueSummary() {
   };
 }
 
-export async function adminOrders(q: { status?: OrderStatus; cursor?: string; limit: number }) {
+export async function adminOrders(q: { status?: OrderStatus; mode?: 'SANDBOX' | 'LIVE'; cursor?: string; limit: number }) {
   const rows = await prisma.order.findMany({
-    where: q.status ? { status: q.status } : {},
+    where: { ...(q.status && { status: q.status }), ...(q.mode && { mode: q.mode }) },
     orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
     take: q.limit + 1,
     ...(q.cursor && { cursor: { id: q.cursor }, skip: 1 }),
@@ -543,3 +543,140 @@ export async function adminOrders(q: { status?: OrderStatus; cursor?: string; li
 }
 
 export const isUniqueViolation = (e: unknown) => e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002';
+
+// ── Admin operations (milestone 4): detail and narrowly-scoped, audited repairs ──
+
+/** Everything an operator needs about one order: history, fulfilment, webhooks, allowed actions. */
+export async function adminOrderDetail(reference: string) {
+  const o = await prisma.order.findUnique({
+    where: { reference },
+    include: {
+      user: { select: { id: true, name: true, username: true } },
+      events: { orderBy: { createdAt: 'asc' } },
+      fulfilments: true,
+    },
+  });
+  if (!o) throw new HttpError(404, 'NOT_FOUND', 'Order not found');
+  const hooks = await prisma.webhookEvent.findMany({ where: { orderReference: reference }, orderBy: { receivedAt: 'asc' } });
+  const { provider } = paymentsRuntime();
+  const sameProvider = provider?.name === o.provider;
+  return {
+    ...toOrderView(o),
+    statusReason: o.statusReason,
+    provider: o.provider === 'fake' ? 'TEST PROVIDER' : 'Notch Pay',
+    providerTransactionId: o.providerTransactionId,
+    targetId: o.targetId,
+    user: o.user,
+    paidAt: o.paidAt?.toISOString() ?? null,
+    fulfilledAt: o.fulfilledAt?.toISOString() ?? null,
+    refundedAt: o.refundedAt?.toISOString() ?? null,
+    refundReason: o.refundReason,
+    providerFeeRefunded: o.providerFeeRefunded,
+    history: o.events.map((e) => ({
+      from: e.fromStatus,
+      to: e.toStatus,
+      trigger: e.trigger,
+      actorId: e.actorId,
+      detail: e.detail,
+      at: e.createdAt.toISOString(),
+    })),
+    fulfilments: o.fulfilments.map((f) => ({
+      fulfiller: f.fulfiller,
+      entitlementType: f.entitlementType,
+      entitlementId: f.entitlementId,
+      at: f.createdAt.toISOString(),
+    })),
+    webhooks: hooks.map((h) => ({ eventId: h.providerEventId, type: h.type, matched: h.matchedOrder, at: h.receivedAt.toISOString() })),
+    actions: {
+      recheck: sameProvider && ['PENDING', 'PROCESSING', 'NEEDS_REVIEW'].includes(o.status),
+      retryFulfilment: o.status === 'FULFILMENT_PENDING',
+      approveLate: sameProvider && o.status === 'NEEDS_REVIEW' && o.statusReason === 'paid_late',
+      refund: Boolean(sameProvider && provider?.supportsRefund && nextStatus(o.status, 'admin.refund') && !o.refundRequestedAt),
+    },
+  };
+}
+
+const auditRepair = (tx: Tx, staff: StaffContext, action: string, reference: string, reason: string, before: object, after: object) =>
+  writeAudit(tx, {
+    actor: { id: staff.id, role: staff.role, ip: staff.ip },
+    action,
+    target: { type: 'order', id: reference },
+    reason,
+    before: before as Prisma.InputJsonValue,
+    after: after as Prisma.InputJsonValue,
+  });
+
+/** Repair: ask the provider again now and apply the state machine (never forces a status). */
+export async function adminRecheck(staff: StaffContext, reference: string, reason: string) {
+  const before = await prisma.order.findUnique({ where: { reference } });
+  if (!before) throw new HttpError(404, 'NOT_FOUND', 'Order not found');
+  const result = await verifyOrder(reference, 'reconcile');
+  await prisma.$transaction((tx) =>
+    auditRepair(
+      tx,
+      staff,
+      'payment.recheck',
+      reference,
+      reason,
+      { status: before.status },
+      { status: result.status, changed: result.changed },
+    ),
+  );
+  return adminOrderDetail(reference);
+}
+
+/** Repair: queue fulfilment again for a paid order stuck before fulfilment (idempotent). */
+export async function adminRetryFulfilment(staff: StaffContext, reference: string, reason: string) {
+  await prisma.$transaction(async (tx) => {
+    const o = await lockOrder(tx, { reference });
+    if (!o) throw new HttpError(404, 'NOT_FOUND', 'Order not found');
+    if (o.status !== 'FULFILMENT_PENDING')
+      throw new HttpError(409, 'NOT_FULFILMENT_PENDING', 'Only paid orders waiting for fulfilment can be retried.');
+    await enqueue(tx, 'payments.fulfil', { orderId: o.id });
+    await auditRepair(tx, staff, 'payment.retry_fulfilment', reference, reason, { status: o.status }, { queued: true });
+  });
+  return adminOrderDetail(reference);
+}
+
+/**
+ * Repair: approve a LATE success. Allowed only when the order is NEEDS_REVIEW because the payment
+ * arrived after our expiry, AND the provider confirms right now that it is paid with exactly the
+ * order's amount, currency and reference. Then it is fulfilled like any verified payment.
+ */
+export async function adminApproveLate(staff: StaffContext, reference: string, reason: string) {
+  const { provider } = paymentsRuntime();
+  const o = await prisma.order.findUnique({ where: { reference } });
+  if (!o) throw new HttpError(404, 'NOT_FOUND', 'Order not found');
+  if (o.status !== 'NEEDS_REVIEW' || o.statusReason !== 'paid_late') {
+    throw new HttpError(409, 'NOT_APPROVABLE', 'Only late payments under review can be approved. Use a refund for anything else.');
+  }
+  if (!provider || provider.name !== o.provider)
+    throw new HttpError(409, 'PROVIDER_UNAVAILABLE', 'The provider for this order is not configured.');
+  const p = await provider.getPayment(reference);
+  if (!(p.status === 'paid' && p.reference === o.reference && p.amountXaf === o.amountXaf && p.currency === o.currency)) {
+    throw new HttpError(409, 'NOT_VERIFIED', 'The provider does not confirm this payment in full right now. Nothing was changed.');
+  }
+  await prisma.$transaction(async (tx) => {
+    const current = (await lockOrder(tx, { reference }))!;
+    if (!nextStatus(current.status, 'admin.approve_late')) throw new HttpError(409, 'NOT_APPROVABLE', 'This order changed; reload it.');
+    await transition(
+      tx,
+      current,
+      'FULFILMENT_PENDING',
+      'admin.approve_late',
+      { statusReason: null },
+      { actorId: staff.id, detail: reason },
+    );
+    await enqueue(tx, 'payments.fulfil', { orderId: current.id });
+    await auditRepair(
+      tx,
+      staff,
+      'payment.approve_late',
+      reference,
+      reason,
+      { status: 'NEEDS_REVIEW' },
+      { status: 'FULFILMENT_PENDING', providerStatus: p.rawStatus },
+    );
+  });
+  return adminOrderDetail(reference);
+}

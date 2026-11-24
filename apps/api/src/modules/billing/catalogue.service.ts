@@ -149,6 +149,27 @@ export async function setAvailability(
   return adminCatalogue();
 }
 
+/** Every version of one catalogue item, newest first (who changed it, when, why). */
+export async function priceHistory(product: BillingProduct, option: CatalogueOption) {
+  const rows = await prisma.serviceCatalogue.findMany({
+    where: { product, option, testOnly: false },
+    orderBy: [{ effectiveFrom: 'desc' }, { createdAt: 'desc' }],
+  });
+  const users = await prisma.user.findMany({
+    where: { id: { in: rows.map((r) => r.updatedById).filter((x): x is string => Boolean(x)) } },
+    select: { id: true, name: true },
+  });
+  const name = new Map(users.map((u) => [u.id, u.name]));
+  return rows.map((r) => ({
+    id: r.id,
+    priceXaf: r.priceXaf,
+    active: r.active,
+    effectiveFrom: r.effectiveFrom.toISOString(),
+    updatedBy: r.updatedById ? (name.get(r.updatedById) ?? 'Former staff') : null,
+    reason: r.reason,
+  }));
+}
+
 /** Idempotent seed of the owner-confirmed catalogue: adds only (product, option) pairs that have no row yet. All inactive. */
 export async function seedCatalogue() {
   let added = 0;

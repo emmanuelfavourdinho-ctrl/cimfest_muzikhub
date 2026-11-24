@@ -41,6 +41,7 @@ export const PERMISSIONS = {
   /** Read any member's subscriptions, promotions (and later orders). FINANCE_ADMIN later. */
   'billing.view': ['ADMIN'],
   'payments.refund': ['ADMIN'],
+  'payments.repair': ['ADMIN'],
 } as const satisfies Record<string, readonly PlatformRole[]>;
 export type Permission = keyof typeof PERMISSIONS;
 
