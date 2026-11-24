@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { ImagePlus, Music2, Video, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { MAX_POST_IMAGES, POST_BODY_MAX, type MediaKind, type MediaView } from '@muzikhub/shared';
@@ -40,6 +40,9 @@ export function Composer() {
   const [media, setMedia] = useState<MediaView[]>([]);
   const [posting, setPosting] = useState(false);
   const [uploading, setUploading] = useState(false);
+  // One Idempotency-Key per distinct post: a double tap or a retry after a dropped connection
+  // replays the first result instead of posting twice; edited content gets a fresh key.
+  const attempt = useRef<{ content: string; key: string } | null>(null);
   // Restricted accounts can't post (the server refuses too); the banner explains why.
   if (!me || me.accountStatus !== 'ACTIVE') return null;
 
@@ -52,7 +55,11 @@ export function Composer() {
   async function post() {
     setPosting(true);
     try {
-      await api.createPost({ body: body.trim(), mediaIds: media.map((m) => m.id) });
+      const input = { body: body.trim(), mediaIds: media.map((m) => m.id) };
+      const content = JSON.stringify(input);
+      if (attempt.current?.content !== content) attempt.current = { content, key: crypto.randomUUID() };
+      await api.createPost(input, attempt.current.key);
+      attempt.current = null;
       update('');
       setMedia([]);
       setAttachKind(null);

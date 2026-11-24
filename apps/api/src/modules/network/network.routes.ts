@@ -4,6 +4,7 @@ import { currentUserId, optionalAuth, requireAuth, requireFullAccess, viewerId }
 import { parseQuery, validateBody } from '../../middleware/validate.js';
 import * as network from './network.service.js';
 import { limits } from '../../lib/rate-limit.js';
+import { idempotent } from '../../middleware/idempotency.js';
 
 /** /api/v1/users/:username/… — follow, follower lists, relationship state. */
 export function usersRouter(): Router {
@@ -38,7 +39,7 @@ export function connectionsRouter(): Router {
     const { filter, ...page } = parseQuery(connectionListQuerySchema, req.query);
     res.json(await network.listConnections(currentUserId(res.locals), filter, page));
   });
-  router.post('/', limits.connectionRequest, requireFullAccess, validateBody(createConnectionSchema), async (req, res) => {
+  router.post('/', limits.connectionRequest, requireFullAccess, validateBody(createConnectionSchema), idempotent(), async (req, res) => {
     res.status(201).json(await network.requestConnection(currentUserId(res.locals), req.body.username, req.body.message));
   });
   router.post('/:id/accept', requireFullAccess, async (req, res) => {

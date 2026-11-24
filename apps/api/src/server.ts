@@ -2,6 +2,8 @@ import { env } from './config/env.js';
 import { createApp } from './app.js';
 import { prisma } from './lib/prisma.js';
 import { reinstateExpiredSuspensions } from './lib/account-status.js';
+import { dispatchOutbox } from './lib/outbox.js';
+import { sweepIdempotencyKeys } from './middleware/idempotency.js';
 
 const app = createApp();
 
@@ -14,6 +16,23 @@ const suspensionSweep = setInterval(() => {
   reinstateExpiredSuspensions().catch((e) => console.error('[suspensions] sweep failed:', (e as Error).message));
 }, 5 * 60_000);
 suspensionSweep.unref();
+
+// Transactional outbox worker (ADR 0003): deliver due events every 2 s, one batch at a time.
+let dispatching = false;
+const outboxWorker = setInterval(() => {
+  if (dispatching) return;
+  dispatching = true;
+  dispatchOutbox()
+    .catch((e) => console.error('[outbox] dispatch failed:', (e as Error).message))
+    .finally(() => (dispatching = false));
+}, 2_000);
+outboxWorker.unref();
+
+// Expired Idempotency-Key records (24 h TTL).
+const idempotencySweep = setInterval(() => {
+  sweepIdempotencyKeys().catch((e) => console.error('[idempotency] sweep failed:', (e as Error).message));
+}, 60 * 60_000);
+idempotencySweep.unref();
 
 // Graceful shutdown: stop accepting connections, then close the DB pool.
 function shutdown(signal: string) {

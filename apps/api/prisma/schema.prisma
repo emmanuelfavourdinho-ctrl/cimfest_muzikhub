@@ -581,3 +581,58 @@ model Connection {
   @@index([requesterId, status])
   @@map("connection")
 }
+
+// ─────────────────────────────────────────────────────────────
+// Reliability infrastructure (M0, ADR 0003)
+// ─────────────────────────────────────────────────────────────
+
+enum IdempotencyStatus {
+  IN_PROGRESS
+  COMPLETED
+}
+
+/// One row per (user, Idempotency-Key) for unsafe-to-retry writes. A repeat with the same
+/// request replays the stored response; a different request with the same key is refused.
+/// Rows expire after 24 h and are swept.
+model IdempotencyKey {
+  id             String            @id @default(cuid(2))
+  userId         String
+  key            String
+  method         String
+  path           String
+  requestHash    String
+  status         IdempotencyStatus @default(IN_PROGRESS)
+  responseStatus Int?
+  responseBody   Json?
+  createdAt      DateTime          @default(now())
+  expiresAt      DateTime
+
+  @@unique([userId, key])
+  @@index([expiresAt])
+  @@map("idempotency_key")
+}
+
+enum OutboxStatus {
+  PENDING
+  PROCESSING
+  DONE
+  FAILED
+}
+
+/// Transactional outbox: written in the same transaction as the change it describes, then
+/// delivered by a worker with retries (notifications, emails, realtime fan-out).
+model OutboxEvent {
+  id          String       @id @default(cuid(2))
+  topic       String
+  payload     Json
+  status      OutboxStatus @default(PENDING)
+  attempts    Int          @default(0)
+  availableAt DateTime     @default(now())
+  lockedAt    DateTime?
+  lastError   String?
+  createdAt   DateTime     @default(now())
+  processedAt DateTime?
+
+  @@index([status, availableAt])
+  @@map("outbox_event")
+}

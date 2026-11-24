@@ -54,14 +54,24 @@ function toQueryString(query?: Query): string {
 export async function request<T>(
   path: string,
   schema: z.ZodType<T> | null,
-  init: { method?: string; body?: unknown; query?: Query; signal?: AbortSignal } = {},
+  init: {
+    method?: string;
+    body?: unknown;
+    query?: Query;
+    signal?: AbortSignal;
+    /** Makes a create safe to retry: the server replays the first result (ADR 0003). */
+    idempotencyKey?: string;
+  } = {},
 ): Promise<T> {
   let res: Response;
   try {
     res = await fetch(`${API_BASE}${API_V1_PREFIX}${path}${toQueryString(init.query)}`, {
       method: init.method ?? 'GET',
       credentials: 'include', // send the session cookie
-      headers: init.body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
+      headers: {
+        ...(init.body !== undefined && { 'Content-Type': 'application/json' }),
+        ...(init.idempotencyKey && { 'Idempotency-Key': init.idempotencyKey }),
+      },
       body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
       signal: init.signal,
     });
@@ -122,7 +132,8 @@ export const api = {
   feed: (tab: FeedTab, cursor?: string) => request('/feed', postPageSchema, { query: { tab, cursor } }),
   profilePosts: (username: string, cursor?: string) => request(`/profiles/${path(username)}/posts`, postPageSchema, { query: { cursor } }),
   post: (id: string) => request(`/posts/${path(id)}`, postSchema),
-  createPost: (input: CreatePostInput) => request('/posts', postSchema, { method: 'POST', body: input }),
+  createPost: (input: CreatePostInput, idempotencyKey?: string) =>
+    request('/posts', postSchema, { method: 'POST', body: input, idempotencyKey }),
   updatePost: (id: string, body: string) => request(`/posts/${path(id)}`, postSchema, { method: 'PATCH', body: { body } }),
   deletePost: (id: string) => request(`/posts/${path(id)}`, null, { method: 'DELETE' }),
   setLike: (id: string, liked: boolean) => request(`/posts/${path(id)}/like`, likeStateSchema, { method: liked ? 'PUT' : 'DELETE' }),

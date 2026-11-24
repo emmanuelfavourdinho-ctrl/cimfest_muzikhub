@@ -11,6 +11,7 @@ import {
 import { parseQuery, validateBody } from '../../middleware/validate.js';
 import * as feed from './feed.service.js';
 import { limits } from '../../lib/rate-limit.js';
+import { idempotent } from '../../middleware/idempotency.js';
 
 const id = (req: { params: Record<string, string | string[] | undefined> }) => String(req.params.id);
 
@@ -35,6 +36,7 @@ export function postsRouter(): Router {
     requireFullAccess,
     requireVerifiedEmail,
     validateBody(createPostSchema),
+    idempotent(),
     async (req, res) => {
       res.status(201).json(await feed.createPost(currentUserId(res.locals), req.body));
     },
@@ -67,6 +69,7 @@ export function postsRouter(): Router {
     requireFullAccess,
     requireVerifiedEmail,
     validateBody(createCommentSchema),
+    idempotent(),
     async (req, res) => {
       res.status(201).json(await feed.addComment(currentUserId(res.locals), id(req), req.body.body));
     },
