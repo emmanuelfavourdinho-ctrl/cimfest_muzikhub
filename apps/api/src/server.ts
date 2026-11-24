@@ -8,6 +8,7 @@ import { reconcilePayments } from './modules/payments/orders.service.js';
 import { paymentsRuntime } from './modules/payments/runtime.js';
 import { sweepWebhookEvents } from './modules/payments/webhook.js';
 import { subscriptionNoticesSweep } from './modules/billing/subscriptions.service.js';
+import { sweepAnalytics } from './modules/analytics/analytics.service.js';
 
 const app = createApp();
 
@@ -56,6 +57,12 @@ const noticesTimer = setInterval(() => {
   subscriptionNoticesSweep().catch((e) => console.error('[billing] notices sweep failed:', (e as Error).message));
 }, 15 * 60_000);
 noticesTimer.unref();
+
+// Analytics retention: de-dup rows after 2 days, daily counters after 400 days.
+const analyticsSweep = setInterval(() => {
+  sweepAnalytics().catch((e) => console.error('[analytics] sweep failed:', (e as Error).message));
+}, 60 * 60_000);
+analyticsSweep.unref();
 
 // Webhook events older than the retention period (90 days).
 const webhookSweep = setInterval(

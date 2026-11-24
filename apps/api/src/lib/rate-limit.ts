@@ -80,6 +80,8 @@ export const limits = {
   }),
   /** Provider webhooks, per IP (no session). Generous: retries and bursts are normal. */
   webhook: rateLimit({ name: 'payment-webhook', windows: [{ ms: MIN, max: 300 }] }),
+  /** Analytics beacons (plays, link clicks), per user or IP. */
+  analyticsEvent: rateLimit({ name: 'analytics-event', windows: [{ ms: MIN, max: 120 }] }),
   /** Public catalogue reads, per user or IP. */
   catalogueRead: rateLimit({ name: 'catalogue-read', windows: [{ ms: MIN, max: 120 }] }),
 };

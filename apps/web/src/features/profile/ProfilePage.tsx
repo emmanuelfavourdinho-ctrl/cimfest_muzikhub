@@ -116,7 +116,7 @@ function ProfileView({ profile, isOwner, signedIn }: { profile: PublicProfile; i
         </div>
       </div>
 
-      <SocialLinks links={profile.links} className="mt-5 px-3 sm:px-7" />
+      <SocialLinks links={profile.links} className="mt-5 px-3 sm:px-7" trackClicks />
 
       <div role="tablist" aria-label="Profile sections" className="mt-5 flex gap-1 overflow-x-auto border-b border-hairline-strong">
         {TABS.map((t) => (

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { track, type TrackSubject } from '@/lib/analytics';
+import { useRef, useState } from 'react';
 import { cn } from '@/lib/cn';
 import { ImageOff, Music2, Play } from 'lucide-react';
 import type { MediaView } from '@muzikhub/shared';
@@ -65,8 +66,9 @@ export function ResponsiveImage({
 }
 
 /** Native audio element (accessible, keyboard-friendly). preload="none": nothing downloads until play. */
-export function AudioPlayer({ media, title }: { media: MediaView; title: string }) {
+export function AudioPlayer({ media, title, track: subject }: { media: MediaView; title: string; track?: TrackSubject }) {
   const [failed, setFailed] = useState(false);
+  const counted = useRef(false);
   return (
     <div className="flex items-center gap-3 rounded-xl border border-control-border bg-surface-overlay p-3">
       <span aria-hidden className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-surface-chip text-signal">
@@ -87,6 +89,12 @@ export function AudioPlayer({ media, title }: { media: MediaView; title: string 
             preload="none"
             src={media.urls.src}
             onError={() => setFailed(true)}
+            onPlay={() => {
+              if (subject && !counted.current) {
+                counted.current = true;
+                track('PLAY', subject);
+              }
+            }}
             className="h-9 w-full"
             aria-label={`Play ${title}`}
           />
@@ -100,7 +108,7 @@ export function AudioPlayer({ media, title }: { media: MediaView; title: string 
  * Shows only the poster until the user presses play; the video itself is never
  * fetched or autoplayed before that (CLAUDE.md low-bandwidth rules).
  */
-export function VideoPlayer({ media, title }: { media: MediaView; title: string }) {
+export function VideoPlayer({ media, title, track: subject }: { media: MediaView; title: string; track?: TrackSubject }) {
   const [playing, setPlaying] = useState(false);
   const ratio = media.width && media.height ? `${media.width} / ${media.height}` : '16 / 9';
   if (playing) {
@@ -123,7 +131,10 @@ export function VideoPlayer({ media, title }: { media: MediaView; title: string 
   return (
     <button
       type="button"
-      onClick={() => setPlaying(true)}
+      onClick={() => {
+        setPlaying(true);
+        if (subject) track('PLAY', subject);
+      }}
       className="group relative block w-full overflow-hidden rounded-xl bg-black"
       style={{ aspectRatio: ratio }}
       aria-label={`Play video: ${title}`}
@@ -145,9 +156,10 @@ export function VideoPlayer({ media, title }: { media: MediaView; title: string 
   );
 }
 
-export function MediaBlock({ media, title }: { media: MediaView; title: string }) {
-  if (media.kind === 'AUDIO') return <AudioPlayer media={media} title={title} />;
-  if (media.kind === 'VIDEO') return <VideoPlayer media={media} title={title} />;
+/** `track`: count plays for the owner's analytics (the server validates and de-duplicates). */
+export function MediaBlock({ media, title, track: subject }: { media: MediaView; title: string; track?: TrackSubject }) {
+  if (media.kind === 'AUDIO') return <AudioPlayer media={media} title={title} track={subject} />;
+  if (media.kind === 'VIDEO') return <VideoPlayer media={media} title={title} track={subject} />;
   return <ResponsiveImage media={media} alt={title} className="rounded-xl" maxVariant="large" sizes="(min-width: 1024px) 560px, 100vw" />;
 }
 

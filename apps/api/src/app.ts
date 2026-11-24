@@ -30,6 +30,7 @@ import { devSandboxEnabled } from './modules/payments/runtime.js';
 import { registerDevSandboxFulfiller } from './modules/payments/dev-fulfiller.js';
 import { registerSubscriptionFulfillers } from './modules/billing/fulfillers.js';
 import { notificationsRouter } from './modules/notifications/notifications.routes.js';
+import { analyticsRouter } from './modules/analytics/analytics.routes.js';
 
 export interface AppDependencies {
   /** Returns true when the database answers. Injected so tests need no real DB. */
@@ -96,6 +97,7 @@ export function createApp(overrides: Partial<AppDependencies> = {}): Express {
   v1.use('/billing', billingRouter());
   v1.use('/checkout', checkoutRouter());
   v1.use('/notifications', notificationsRouter());
+  v1.use('/analytics', analyticsRouter());
   // Development-only sandbox helpers (never mounted in production; see runtime.ts).
   if (devSandboxEnabled()) {
     v1.use('/dev/payments', devPaymentsRouter());

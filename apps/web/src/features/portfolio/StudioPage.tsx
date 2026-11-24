@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { cn } from '@/lib/cn';
-import { Plus } from 'lucide-react';
+import { ChartColumn, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { InfiniteList } from '@/components/ui/InfiniteList';
 import { PageHeader, PageLoading, Panel } from '@/components/ui/primitives';
@@ -30,11 +30,18 @@ export function StudioPage() {
         title="Your portfolio"
         description="Showcase your music and creative work. Drafts and archived work are only visible to you."
         actions={
-          <Button asChild>
-            <Link to="/studio/new">
-              <Plus /> Add work
-            </Link>
-          </Button>
+          <>
+            <Button asChild variant="outline">
+              <Link to="/studio/analytics">
+                <ChartColumn /> Analytics
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link to="/studio/new">
+                <Plus /> Add work
+              </Link>
+            </Button>
+          </>
         }
       />
       <div role="tablist" aria-label="Filter by status" className="mb-5 flex gap-1 overflow-x-auto border-b border-hairline-strong">

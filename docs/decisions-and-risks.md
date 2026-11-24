@@ -235,4 +235,8 @@ Copied from `docs/monetization-audit.md` §4–5. Live payments are **Externally
 ### 8.3 Privacy notice: payment-related additions (draft input for legal review)
 - **Shared with Notch Pay:** the account **email address only**, to start a payment. Also our order reference, which contains no personal data, the amount and a description such as "MuzikHub: Post Boost, 7 days". Payment credentials (Mobile Money number, card) are entered on Notch Pay's page and never reach MuzikHub.
 - **Kept by MuzikHub:** orders (item, price, status history, provider transaction id) for accounting, kept for the period the accountant advises (§8.2). Webhook records hold no personal data (event id, type, order reference, body hash) and are deleted after 90 days.
-- **Later, when analytics ship:** aggregated daily counters only (Phase 5 decision).
+- **Analytics (shipped, monetization milestone 2):**
+  - Only aggregated daily counters per profile, item and day are kept, for up to 400 days.
+  - De-duplication uses an HMAC of the user id, or of the IP plus user agent, with a key that rotates daily. It's kept 2 days, then deleted. It can't be linked across days or reversed.
+  - The owner's own visits and obvious bots aren't counted. Creators see totals only.
+  - The draft Privacy page now has "Creator analytics" and "Payments" sections, pending legal review.

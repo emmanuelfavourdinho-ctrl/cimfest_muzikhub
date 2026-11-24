@@ -143,7 +143,11 @@ export function PostCard({ post }: { post: PostView }) {
       )}
       {other.map((m) => (
         <div key={m.id} className="mt-3">
-          <MediaBlock media={m} title={post.body?.slice(0, 60) || `Post by ${post.author.name}`} />
+          <MediaBlock
+            media={m}
+            title={post.body?.slice(0, 60) || `Post by ${post.author.name}`}
+            track={{ subjectType: 'POST', subjectId: post.id }}
+          />
         </div>
       ))}
       {post.portfolioItem && (
@@ -151,7 +155,11 @@ export function PostCard({ post }: { post: PostView }) {
           <PortfolioCard item={post.portfolioItem} />
           {post.portfolioItem.media && post.portfolioItem.media.kind === 'AUDIO' && (
             <div className="mt-2">
-              <MediaBlock media={post.portfolioItem.media} title={post.portfolioItem.title} />
+              <MediaBlock
+                media={post.portfolioItem.media}
+                title={post.portfolioItem.title}
+                track={{ subjectType: 'PORTFOLIO_ITEM', subjectId: post.portfolioItem.id }}
+              />
             </div>
           )}
         </div>

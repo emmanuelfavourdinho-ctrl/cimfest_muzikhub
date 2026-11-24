@@ -79,7 +79,7 @@ export const operations: Operation[] = [
   op('POST', '/me/onboarding/complete', 'Me', 'Mark onboarding finished', 'member'),
   op('GET', '/me/portfolio', 'Portfolio', "The signed-in user's portfolio, drafts included", 'member'),
 
-  op('GET', '/profiles/{username}', 'Profiles', 'Public profile', 'optional'),
+  op('GET', '/profiles/{username}', 'Profiles', 'Counts a profile view for the owner’s analytics. Public profile', 'optional'),
   op('GET', '/profiles/{username}/portfolio', 'Portfolio', "A profile's published portfolio", 'optional'),
   op('GET', '/profiles/{username}/posts', 'Feed', "A profile's posts", 'optional'),
 
@@ -311,4 +311,23 @@ export const operations: Operation[] = [
   op('GET', '/notifications', 'Notifications', 'Your notifications, newest first', 'member'),
   op('GET', '/notifications/unread-count', 'Notifications', 'How many are unread', 'member'),
   op('POST', '/notifications/read', 'Notifications', 'Mark some or all as read', 'member'),
+  // Analytics (monetization milestone 2): aggregated daily counters only
+  op(
+    'POST',
+    '/analytics/events',
+    'Analytics',
+    'Play or link-click beacon; validated, de-duplicated (once per viewer per day), owner and bots excluded; always 204',
+    'optional',
+    {
+      rateLimit: 'analytics-event',
+    },
+  ),
+  op(
+    'GET',
+    '/analytics/summary',
+    'Analytics',
+    'Your totals and daily series, limited to your plan’s history (Creator Plus 30 days, Pro 365)',
+    'member',
+  ),
+  op('GET', '/analytics/items', 'Analytics', 'Per-item plays and clicks (MuzikHub Pro)', 'member'),
 ];

@@ -103,6 +103,7 @@ export const router = createBrowserRouter([
       { path: '/checkout/return', element: auth(() => import('@/features/billing/CheckoutReturnPage'), 'CheckoutReturnPage') },
       { path: '/billing/orders/:reference', element: auth(() => import('@/features/billing/ReceiptPage'), 'ReceiptPage') },
       { path: '/settings/billing', element: auth(() => import('@/features/billing/BillingPage'), 'BillingPage') },
+      { path: '/studio/analytics', element: auth(() => import('@/features/analytics/AnalyticsPage'), 'AnalyticsPage') },
       { path: '/notifications', element: auth(() => import('@/features/billing/NotificationsPage'), 'NotificationsPage') },
       // Development-only payment sandbox (Phase 3). `import.meta.env.DEV` is false in production
       // builds, so these routes and their chunk are removed at build time. Not in any navigation.

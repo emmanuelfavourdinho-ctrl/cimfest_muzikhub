@@ -73,6 +73,27 @@ export function PrivacyPage() {
           ),
         },
         {
+          heading: 'Creator analytics',
+          body: (
+            <p>
+              When someone views a profile, plays a work or opens a link on it, MuzikHub adds one to a daily count for that profile or item.
+              Each visitor counts at most once per item per day: to check that, we keep a scrambled code (made with a key that changes every
+              day and can’t be turned back into who you are) for two days, then delete it. We don’t keep a list of who viewed or played
+              what, and creators only ever see totals. Daily counts are kept for up to 400 days.
+            </p>
+          ),
+        },
+        {
+          heading: 'Payments',
+          body: (
+            <p>
+              To start a payment, MuzikHub sends our payment provider your account email address, an order reference with no personal
+              details in it, the amount and what you’re buying. You enter your Mobile Money or card details on the provider’s page; they
+              never reach MuzikHub. We keep a record of your orders (item, price, status and dates) for accounting.
+            </p>
+          ),
+        },
+        {
           heading: 'Who can see what',
           body: (
             <p>

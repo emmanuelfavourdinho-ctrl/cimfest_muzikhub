@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { Archive, ExternalLink, Pencil, Send, Trash2 } from 'lucide-react';
 import { GENRES, LINK_PLATFORMS, PORTFOLIO_TYPES } from '@muzikhub/shared';
 import { MediaBlock, ResponsiveImage } from '@/components/media/Media';
+import { track } from '@/lib/analytics';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/Dialog';
 import { Avatar, Eyebrow, PageLoading, Panel, Pill } from '@/components/ui/primitives';
@@ -57,7 +58,7 @@ export function PortfolioItemPage() {
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.4fr_1fr]">
         <div className="space-y-3">
           {item.media && item.media.kind !== 'AUDIO' ? (
-            <MediaBlock media={item.media} title={item.title} />
+            <MediaBlock media={item.media} title={item.title} track={{ subjectType: 'PORTFOLIO_ITEM', subjectId: item.id }} />
           ) : item.cover ? (
             <ResponsiveImage
               media={item.cover}
@@ -68,7 +69,9 @@ export function PortfolioItemPage() {
               sizes="(min-width: 1024px) 560px, 100vw"
             />
           ) : null}
-          {item.media?.kind === 'AUDIO' && <MediaBlock media={item.media} title={item.title} />}
+          {item.media?.kind === 'AUDIO' && (
+            <MediaBlock media={item.media} title={item.title} track={{ subjectType: 'PORTFOLIO_ITEM', subjectId: item.id }} />
+          )}
         </div>
 
         <div>
@@ -97,7 +100,12 @@ export function PortfolioItemPage() {
           )}
           {item.externalUrl && item.externalPlatform && (
             <Button asChild variant="outline" size="sm" className="mt-4">
-              <a href={item.externalUrl} target="_blank" rel="noopener noreferrer nofollow">
+              <a
+                href={item.externalUrl}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                onClick={() => track('LINK_CLICK', { subjectType: 'PORTFOLIO_ITEM', subjectId: item.id })}
+              >
                 <PlatformIcon platform={item.externalPlatform} className="size-4" />
                 {item.externalPlatform === 'WEBSITE' ? 'Open link' : `Open on ${LINK_PLATFORMS[item.externalPlatform].label}`}
                 <ExternalLink />

@@ -90,6 +90,7 @@ model User {
   promotions              Promotion[]
   orders                  Order[]
   notifications           Notification[]
+  analyticsDaily          AnalyticsDaily[]
 
   @@map("user")
 }
@@ -959,4 +960,49 @@ model Notification {
   @@index([userId, createdAt])
   @@index([userId, readAt])
   @@map("notification")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Analytics: aggregated daily counters only (owner decision). No per-event rows are kept.
+// ─────────────────────────────────────────────────────────────
+
+enum AnalyticsEvent {
+  PROFILE_VIEW
+  PLAY
+  LINK_CLICK
+}
+
+enum AnalyticsSubject {
+  PROFILE
+  PORTFOLIO_ITEM
+  POST
+  PROFILE_LINK
+}
+
+/// One counter per owner, UTC day, event and subject. This is the only analytics data kept long-term.
+model AnalyticsDaily {
+  ownerId     String
+  owner       User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  day         DateTime         @db.Date
+  event       AnalyticsEvent
+  subjectType AnalyticsSubject
+  subjectId   String
+  count       Int              @default(0)
+
+  @@id([ownerId, day, event, subjectType, subjectId])
+  @@index([ownerId, day])
+  @@map("analytics_daily")
+}
+
+/// De-duplication only: "this viewer already counted for this subject today". viewerHash is an
+/// HMAC with a key that changes every day, so it can't be linked across days or reversed to a
+/// person. Rows older than 2 days are deleted (server.ts sweep).
+model AnalyticsSeen {
+  day        DateTime       @db.Date
+  event      AnalyticsEvent
+  subjectId  String
+  viewerHash String
+
+  @@id([day, event, subjectId, viewerHash])
+  @@map("analytics_seen")
 }

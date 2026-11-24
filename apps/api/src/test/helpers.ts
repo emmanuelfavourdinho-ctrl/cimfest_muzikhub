@@ -42,7 +42,7 @@ export async function resetDatabase() {
     throw new Error('resetDatabase called outside the test database');
   }
   await prisma.$executeRawUnsafe(
-    'TRUNCATE TABLE "user", "verification", "idempotency_key", "outbox_event", "service_catalogue", "payment_webhook_event" CASCADE',
+    'TRUNCATE TABLE "user", "verification", "idempotency_key", "outbox_event", "service_catalogue", "payment_webhook_event", "analytics_seen" CASCADE',
   );
   // audit_log is append-only; TRUNCATE is permitted only inside a transaction that opts in.
   await prisma.$transaction([

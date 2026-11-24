@@ -1,3 +1,4 @@
+import { track } from '@/lib/analytics';
 import { cn } from '@/lib/cn';
 import { Globe, Link2 } from 'lucide-react';
 import {
@@ -48,7 +49,8 @@ export function PlatformIcon({ platform, className }: { platform: LinkPlatform; 
   return <Fallback aria-hidden className={cn('size-4.5', className)} />;
 }
 
-export function SocialLinks({ links, className }: { links: ProfileLink[]; className?: string }) {
+/** `trackClicks`: count clicks for the owner's analytics (public profile only, not previews). */
+export function SocialLinks({ links, className, trackClicks }: { links: ProfileLink[]; className?: string; trackClicks?: boolean }) {
   if (links.length === 0) return null;
   return (
     <ul className={cn('flex flex-wrap gap-2', className)} aria-label="External profiles">
@@ -59,6 +61,7 @@ export function SocialLinks({ links, className }: { links: ProfileLink[]; classN
           <li key={link.id}>
             <a
               href={link.url}
+              onClick={trackClicks ? () => track('LINK_CLICK', { subjectType: 'PROFILE_LINK', subjectId: link.id }) : undefined}
               target="_blank"
               rel="noopener noreferrer nofollow"
               title={link.platform === 'WEBSITE' ? host : label}
