@@ -128,7 +128,7 @@ export interface ReportDetail extends ReportRow {
 
 export interface ContentRow {
   id: string;
-  kind: 'post' | 'comment' | 'portfolio-item';
+  kind: 'post' | 'comment' | 'portfolio-item' | 'community' | 'competition';
   title: string | null;
   excerpt: string | null;
   author: PersonSummary;

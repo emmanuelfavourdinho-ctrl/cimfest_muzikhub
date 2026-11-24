@@ -19,6 +19,7 @@
     "admin:grant-initial": "tsx src/scripts/admin-grant-initial.ts",
     "admin:reset-two-factor": "tsx src/scripts/admin-reset-two-factor.ts",
     "catalogue:seed": "tsx src/scripts/seed-catalogue.ts",
+    "demo:seed": "tsx src/scripts/seed-demo.ts",
     "payments:reconcile": "tsx src/scripts/reconcile-payments.ts"
   },
   "dependencies": {

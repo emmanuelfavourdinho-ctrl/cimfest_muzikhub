@@ -191,6 +191,11 @@ describe('platform moderation, reports and preferences', () => {
     );
     const staff = await makeStaff(app, 'MODERATOR');
     const queue = await staff.agent.get('/api/v1/admin/reports?open=true');
+    const communities = await staff.agent.get('/api/v1/admin/content?type=community');
+    expect(communities.body.items.find((i: { id: string }) => i.id === c.id)).toMatchObject({
+      kind: 'community',
+      link: `/communities/${c.slug}`,
+    });
     expect(queue.body.items[0].target).toMatchObject({
       exists: true,
       moderationType: 'discussion',

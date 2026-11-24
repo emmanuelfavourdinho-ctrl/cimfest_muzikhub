@@ -114,7 +114,7 @@ export async function overview(staff: StaffContext) {
       withoutTwoFactor: staff2fa.filter((s) => !s.twoFactorEnabled).reduce((n, s) => n + s._count._all, 0),
     },
     /** Pillars that don't exist yet — shown as "not built", never as zero. */
-    pending: ['communities', 'competitions', 'opportunities', 'payments', 'announcements'],
+    pending: ['opportunities', 'announcements'],
     recentAudit,
   };
 }

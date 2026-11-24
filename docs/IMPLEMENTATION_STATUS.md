@@ -132,7 +132,8 @@ Monorepo, Postgres + Prisma migrations, API conventions, prototype design system
 | 3. Reports queue and lifecycle (assign, notes, escalate, resolve/dismiss, related reports), content moderation (soft remove/restore; avatar/cover permanent removal) | ✅ `admin.moderation.test.ts` + Playwright report journey |
 | 4. Overview built from real data (users, content, moderation, staff 2FA coverage, weekly signups) | ✅ |
 | Responsive admin pages (320/375/430 px, no horizontal scroll) | ✅ Playwright |
-| 5. Community / competition / opportunity oversight | ⬜ added with those pillars; listed as pending in the overview |
+| 5. Community and competition oversight (Content tabs: list, remove, restore with reason; reports; competition disputes decided by an ADMIN) | ✅ `communities.test.ts`, `competitions.test.ts` |
+| 5. Opportunity oversight | ⬜ listed as pending in the overview and nav |
 | Announcements | ⬜ deferred (disabled "Pending" nav entry) |
 | 6. FINANCE_ADMIN and finance views | ⬜ deferred until payments |
 | Migration `admin_console_foundation` | ✅ dev + test DBs · ✅ Supabase (2026-11-24) |
@@ -141,17 +142,21 @@ Monorepo, Postgres + Prisma migrations, API conventions, prototype design system
 
 - Admin rate limits are kept in memory per API instance.
 - The audit triggers do not stop the database owner (who can drop them). In production, use a non-owner role for the API.
-- Moderators who belong to a community are not yet scoped to it, because communities don't exist yet.
+- Community roles (owner, admin, moderator) are scoped to their community and are separate from platform roles; a community moderator gets no Admin Console access.
 - No email is sent to members when their account status changes; they see the reason in an in-app banner, or a sign-in error if suspended or banned.
 
 ## Later milestones
 
 | Area | Status |
 |---|---|
-| Communities, collaboration requests, opportunities, competitions | ⬜ |
-| Messaging (Socket.IO), notifications, offline queue | ⬜ |
-| Audio/video calls (WebRTC) | ⬜ (TURN provider needed) |
-| Promotions, Notch Pay payments, service catalogue | ⬜ (test keys available; prices pending approval) |
+| Shared foundations: realtime channel (Socket.IO), blocking, notification preferences, message privacy | ✅ commit `2e4422a` |
+| Communities: discovery, membership policies, roles, discussions, mentions, accepted answers, scoped moderation | ✅ commit `4e19cf3` |
+| Messaging: one-to-one conversations, real-time delivery, read/delivered receipts, drafts, anti-spam, reports | ✅ commit `bac7ae6` (no offline send queue) |
+| Collaboration: structured requests, clarification in messages, shared projects with updates | ✅ commit `14489fb` |
+| Opportunities | ✅ commit `5ebed50` |
+| Competitions: versioned rules, entries, judges, scoring, results, disputes | ✅ commit `3bd6c2a` |
+| Audio/video calls (WebRTC) | ⛔ blocked: no TURN provider (D4). Not built, no UI. See `calling-assessment.md` |
+| Notch Pay payments, catalogue, subscriptions, promotions, analytics | ✅ against the sandbox/test provider; live payments blocked (`LIVE_PAYMENTS_APPROVED=false`, prices pending approval) |
 | PWA / offline shell | ⬜ |
 | Deployment (Vercel + Render + Supabase) | ⬜ needs approval; DB connection documented, not tested against Supabase |
 

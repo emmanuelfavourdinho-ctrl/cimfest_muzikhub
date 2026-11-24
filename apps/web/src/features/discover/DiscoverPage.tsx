@@ -81,6 +81,23 @@ export function DiscoverPage() {
         description="Search by name, skill, genre, location and the kind of talent you need."
       />
 
+      <nav aria-label="Also explore" className="-mt-2 mb-5 flex flex-wrap gap-2">
+        {[
+          { to: '/communities', label: 'Communities' },
+          { to: '/collaborate', label: 'Collaboration requests' },
+          { to: '/opportunities', label: 'Opportunities' },
+          { to: '/competitions', label: 'Competitions' },
+        ].map((l) => (
+          <Link
+            key={l.to}
+            to={l.to}
+            className="inline-flex min-h-11 items-center rounded-full border border-control-border bg-surface-raised px-4 text-xs font-semibold text-text-1 hover:border-signal hover:text-signal"
+          >
+            {l.label}
+          </Link>
+        ))}
+      </nav>
+
       <div role="tablist" aria-label="What to discover" className="mb-4 flex gap-1 border-b border-hairline-strong">
         {(['people', 'work'] as const).map((v) => (
           <button

@@ -127,7 +127,7 @@ export const adminReportsQuerySchema = pageQuerySchema.extend({
   escalated: z.enum(['true', 'false']).optional(),
 });
 export const adminContentQuerySchema = pageQuerySchema.extend({
-  type: z.enum(['post', 'comment', 'portfolio-item']).default('post'),
+  type: z.enum(['post', 'comment', 'portfolio-item', 'community', 'competition']).default('post'),
   state: z.enum(['visible', 'removed']).default('visible'),
   q: z.string().trim().max(80).optional(),
 });

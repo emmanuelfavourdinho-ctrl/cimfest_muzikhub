@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/cn';
 import {
   ArrowLeft,
+  Briefcase,
   Flag,
   Gauge,
   Layers,
@@ -14,7 +15,6 @@ import {
   Tags,
   Trophy,
   Users,
-  UsersRound,
   Wallet,
 } from 'lucide-react';
 import { BrandMark } from '@/components/layout/BrandMark';
@@ -42,7 +42,7 @@ const NAV = [
 
 /** Areas that need product pillars that don't exist yet — visible, disabled, labelled. */
 const PENDING = [
-  { label: 'Communities', icon: UsersRound },
+  { label: 'Opportunities', icon: Briefcase },
   { label: 'Announcements', icon: Megaphone },
 ];
 

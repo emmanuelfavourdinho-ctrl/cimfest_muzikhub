@@ -213,6 +213,55 @@ export async function listContent(staff: StaffContext, query: ContentQuery) {
       link: `/p/${c.postId}`,
     }));
   }
+  if (query.type === 'community') {
+    const page = await paginate(query, (args) =>
+      prisma.community.findMany({
+        where: { ...removed, ...(q && { OR: [{ name: q }, { description: q }] }) },
+        include: {
+          coverAsset: true,
+          members: { where: { role: 'OWNER' }, take: 1, include: { user: { select: personSelect } } },
+          createdBy: { select: personSelect },
+        },
+        orderBy: order,
+        ...args,
+      }),
+    );
+    return withReportCounts('COMMUNITY', page, (c) => ({
+      id: c.id,
+      kind: 'community' as const,
+      title: c.name,
+      excerpt: excerpt(c.description),
+      author: toPerson(c.members[0]?.user ?? c.createdBy),
+      thumbnail: c.coverAsset ? (toMediaView(c.coverAsset).urls.small ?? null) : null,
+      createdAt: c.createdAt.toISOString(),
+      removedAt: c.removedAt?.toISOString() ?? null,
+      removalReason: c.removalReason,
+      link: `/communities/${c.slug}`,
+    }));
+  }
+  if (query.type === 'competition') {
+    const page = await paginate(query, (args) =>
+      prisma.competition.findMany({
+        // Drafts are private to their organiser; oversight covers what members can see.
+        where: { ...removed, status: { not: 'DRAFT' }, ...(q && { OR: [{ title: q }, { description: q }] }) },
+        include: { coverAsset: true, organiser: { select: personSelect } },
+        orderBy: order,
+        ...args,
+      }),
+    );
+    return withReportCounts('COMPETITION', page, (c) => ({
+      id: c.id,
+      kind: 'competition' as const,
+      title: c.title,
+      excerpt: excerpt(c.description),
+      author: toPerson(c.organiser),
+      thumbnail: c.coverAsset ? (toMediaView(c.coverAsset).urls.small ?? null) : null,
+      createdAt: c.createdAt.toISOString(),
+      removedAt: c.removedAt?.toISOString() ?? null,
+      removalReason: c.removalReason,
+      link: `/competitions/${c.slug}`,
+    }));
+  }
   const page = await paginate(query, (args) =>
     prisma.portfolioItem.findMany({
       where: { ...removed, ...(q && { OR: [{ title: q }, { description: q }] }) },
@@ -239,7 +288,7 @@ export async function listContent(staff: StaffContext, query: ContentQuery) {
 }
 
 async function withReportCounts<T extends { id: string }, U extends { id: string }>(
-  targetType: 'POST' | 'COMMENT' | 'PORTFOLIO_ITEM',
+  targetType: 'POST' | 'COMMENT' | 'PORTFOLIO_ITEM' | 'COMMUNITY' | 'COMPETITION',
   page: { items: T[]; nextCursor: string | null },
   map: (row: T) => U,
 ) {

@@ -233,6 +233,13 @@ describe('moderation', () => {
       ).status,
     ).toBe(201);
     const mod = await makeStaff(app, 'MODERATOR');
+    const listed = await mod.agent.get('/api/v1/admin/content?type=competition');
+    expect(listed.status).toBe(200);
+    expect(listed.body.items.find((i: { id: string }) => i.id === c.id)).toMatchObject({
+      kind: 'competition',
+      openReports: 1,
+      link: `/competitions/${slug}`,
+    });
     expect(
       (
         await mod.agent
@@ -242,5 +249,7 @@ describe('moderation', () => {
       ).status,
     ).toBe(200);
     expect((await request(app).get(`/api/v1/competitions/${slug}`)).status).toBe(404);
+    const removed = await mod.agent.get('/api/v1/admin/content?type=competition&state=removed');
+    expect(removed.body.items.map((i: { id: string }) => i.id)).toContain(c.id);
   });
 });

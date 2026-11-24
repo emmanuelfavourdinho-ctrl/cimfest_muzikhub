@@ -12,12 +12,13 @@ import { flatten } from '@/lib/social-queries';
 import { adminApi, type ContentRow } from './admin-api';
 import { AdminHeader, Ago, DataTable, EmptyRow, FilterTabs, ReasonDialog, Tag, useAdminAction } from './ui';
 
-type Kind = 'post' | 'comment' | 'portfolio-item';
+type Kind = 'post' | 'comment' | 'portfolio-item' | 'community' | 'competition';
+const KINDS: Kind[] = ['post', 'comment', 'portfolio-item', 'community', 'competition'];
 
 /** Oversight of public user content: find it, remove it with a reason, restore it. */
 export function ContentPage() {
   const [params, setParams] = useSearchParams();
-  const type = (['post', 'comment', 'portfolio-item'].includes(params.get('type') ?? '') ? params.get('type') : 'post') as Kind;
+  const type = ((KINDS as string[]).includes(params.get('type') ?? '') ? params.get('type') : 'post') as Kind;
   const state = params.get('state') === 'removed' ? 'removed' : 'visible';
   const [q, setQ] = useState('');
   const [target, setTarget] = useState<ContentRow | null>(null);
@@ -54,6 +55,8 @@ export function ContentPage() {
           { value: 'post', label: 'Feed posts' },
           { value: 'portfolio-item', label: 'Portfolio' },
           { value: 'comment', label: 'Comments' },
+          { value: 'community', label: 'Communities' },
+          { value: 'competition', label: 'Competitions' },
         ]}
       />
       <div className="mb-4 flex flex-col gap-2 sm:flex-row">

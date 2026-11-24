@@ -200,7 +200,7 @@ describe('overview uses real data only', () => {
     expect(res.body.staff).toMatchObject({ admins: 1, moderators: 0, withoutTwoFactor: 0 });
     expect(res.body.users.weeklySignups).toHaveLength(12);
     expect(res.body.users.weeklySignups.at(-1).signups).toBe(3);
-    expect(res.body.pending).toEqual(expect.arrayContaining(['communities', 'competitions', 'opportunities', 'payments', 'announcements']));
+    expect(res.body.pending).toEqual(['opportunities', 'announcements']);
     expect(res.body).not.toHaveProperty('revenue');
   });
 });
