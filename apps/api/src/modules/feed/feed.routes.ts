@@ -1,6 +1,13 @@
 import { Router } from 'express';
 import { createCommentSchema, createPostSchema, feedQuerySchema, pageQuerySchema, updatePostSchema } from '@muzikhub/shared';
-import { currentUserId, optionalAuth, requireAuth, requireFullAccess, viewerId } from '../../middleware/require-auth.js';
+import {
+  currentUserId,
+  optionalAuth,
+  requireAuth,
+  requireFullAccess,
+  requireVerifiedEmail,
+  viewerId,
+} from '../../middleware/require-auth.js';
 import { parseQuery, validateBody } from '../../middleware/validate.js';
 import * as feed from './feed.service.js';
 import { limits } from '../../lib/rate-limit.js';
@@ -21,9 +28,17 @@ export function feedRouter(): Router {
 export function postsRouter(): Router {
   const router = Router();
 
-  router.post('/', requireAuth, limits.contentWrite, requireFullAccess, validateBody(createPostSchema), async (req, res) => {
-    res.status(201).json(await feed.createPost(currentUserId(res.locals), req.body));
-  });
+  router.post(
+    '/',
+    requireAuth,
+    limits.contentWrite,
+    requireFullAccess,
+    requireVerifiedEmail,
+    validateBody(createPostSchema),
+    async (req, res) => {
+      res.status(201).json(await feed.createPost(currentUserId(res.locals), req.body));
+    },
+  );
   router.get('/:id', optionalAuth, async (req, res) => {
     res.json(await feed.getPost(id(req), viewerId(res.locals)));
   });
@@ -45,9 +60,17 @@ export function postsRouter(): Router {
   router.get('/:id/comments', optionalAuth, async (req, res) => {
     res.json(await feed.listComments(id(req), viewerId(res.locals), parseQuery(pageQuerySchema, req.query)));
   });
-  router.post('/:id/comments', requireAuth, limits.contentWrite, requireFullAccess, validateBody(createCommentSchema), async (req, res) => {
-    res.status(201).json(await feed.addComment(currentUserId(res.locals), id(req), req.body.body));
-  });
+  router.post(
+    '/:id/comments',
+    requireAuth,
+    limits.contentWrite,
+    requireFullAccess,
+    requireVerifiedEmail,
+    validateBody(createCommentSchema),
+    async (req, res) => {
+      res.status(201).json(await feed.addComment(currentUserId(res.locals), id(req), req.body.body));
+    },
+  );
   return router;
 }
 

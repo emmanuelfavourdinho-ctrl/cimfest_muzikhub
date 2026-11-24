@@ -33,6 +33,15 @@ const envSchema = z
      * "resend" (sent through Resend). Defaults by NODE_ENV — see emailTransportDefault.
      */
     EMAIL_TRANSPORT: z.enum(['capture', 'console', 'resend']).optional(),
+    /**
+     * When true, publishing (posts, comments, publishing work) — and later messaging and calls —
+     * require a verified email. Off until a Resend sending domain is verified (decision C2):
+     * without it, verification emails cannot reach real users.
+     */
+    REQUIRE_EMAIL_VERIFICATION: z
+      .enum(['true', 'false'])
+      .default('false')
+      .transform((v) => v === 'true'),
     /** Resend API key (server-side only). Required when EMAIL_TRANSPORT is "resend". */
     RESEND_API_KEY: z.string().trim().startsWith('re_', 'RESEND_API_KEY should start with re_').optional(),
     /**

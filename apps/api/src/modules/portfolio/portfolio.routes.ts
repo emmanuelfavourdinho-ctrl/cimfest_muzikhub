@@ -7,7 +7,14 @@ import {
   publishPortfolioSchema,
   updatePortfolioSchema,
 } from '@muzikhub/shared';
-import { currentUserId, optionalAuth, requireAuth, requireFullAccess, viewerId } from '../../middleware/require-auth.js';
+import {
+  currentUserId,
+  optionalAuth,
+  requireAuth,
+  requireFullAccess,
+  requireVerifiedEmail,
+  viewerId,
+} from '../../middleware/require-auth.js';
 import { parseQuery, validateBody } from '../../middleware/validate.js';
 import * as portfolio from './portfolio.service.js';
 import { limits } from '../../lib/rate-limit.js';
@@ -35,6 +42,7 @@ export function portfolioRouter(): Router {
     requireAuth,
     limits.contentWrite,
     requireFullAccess,
+    requireVerifiedEmail,
     validateBody(publishPortfolioSchema),
     async (req, res) => {
       res.json(await portfolio.publishItem(currentUserId(res.locals), String(req.params.id), req.body.shareToFeed));
