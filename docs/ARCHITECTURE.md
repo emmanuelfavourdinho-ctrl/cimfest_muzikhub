@@ -143,6 +143,49 @@ Free plan (resend.com/pricing, checked 2026-11-24): 100 emails per day, 3,000 pe
 
 **Deferred.** `FINANCE_ADMIN` and finance views (with payments); announcements (a disabled "Pending" nav entry); community, competition and opportunity oversight (with those pillars). The overview lists these as pending rather than showing placeholder numbers.
 
+## 5f. Foundation (M0, 2026-11-24)
+
+**Request pipeline for `/api/v1`:**
+1. Helmet, CORS (allow-list).
+2. `express.json` (1 MB).
+3. **`originCheck`** (CSRF): for unsafe methods, an `Origin` must be in `CORS_ORIGINS`, else `Sec-Fetch-Site` must be same-origin or none; otherwise `403 CROSS_ORIGIN_REJECTED`. This layers on top of SameSite=Lax cookies.
+4. Per route: `requireAuth` → **rate limit** → `requireFullAccess` → `requireVerifiedEmail` (when the flag is on) → `validateBody` → **`idempotent()`** → handler.
+
+**Errors:** RFC 9457 problem details (`application/problem+json`): `type` (stable URN), `title`, `status`, `detail`, `code`, `instance`, `errors`. See `lib/problem.ts`, `problemSchema` in shared, and `docs/migrations/2026-11-rfc9457-errors.md`.
+
+**Rate limits** (`lib/rate-limit.ts`; per user, in memory, 429 + `Retry-After`):
+
+| Class | Limit | Routes |
+|---|---|---|
+| content-write | 20/min and 200/h | create/edit post, comment, create/edit/publish portfolio |
+| reaction | 60/min | like/unlike, follow/unfollow |
+| connection-request | 30/h | send connection request |
+| report | 20/h | report content |
+| upload | 60/h | start upload |
+| admin-read / admin-write | 240/min / 60/min | Admin Console |
+
+Better Auth limits sign-in, sign-up and reset separately.
+
+**Passwords:** scrypt N=2^17, r=8, p=1 in `$scrypt$…` format, with rehash-on-sign-in of Better Auth's older hashes and at most 2 concurrent hashes. See `lib/password.ts` and ADR 0001.
+
+**Email verification flag:** `REQUIRE_EMAIL_VERIFICATION` (default false). When true, posting, commenting and publishing work need a verified email.
+
+**Idempotency and outbox** (ADR 0003):
+- `idempotency_key` replays the first response for a repeated key and refuses reuse with a different request.
+- `outbox_event` is written in the caller's transaction; a worker in `server.ts` delivers it every 2 s with `SKIP LOCKED`, backoff and give-up.
+- Migration `20261124063925_reliability_idempotency_outbox` is applied to local dev and test only. **Supabase not migrated** (needs approval).
+
+**OpenAPI 3.1:** `openapi/operations.ts` lists every operation and `document.ts` builds the spec, served at `GET /api/v1/openapi.json`. A drift test reads the real route table, so an undocumented or invented operation fails CI.
+
+**Tooling** (ADR 0002): Prettier (`npm run format`), Oxlint plus the token guard (`npm run lint`), Lighthouse CI (`lighthouserc.json`) and `scripts/js-budget.mjs`.
+
+**CI** (`.github/workflows/ci.yml`) has five jobs:
+- quality;
+- test, against PostgreSQL 18;
+- e2e: the Cloudinary journeys skip with a reason without repository secrets;
+- performance: API + preview, JS budget, Lighthouse;
+- security: audit-ci with a reviewed allow-list, gitleaks over history with a reviewed `.gitleaksignore`, and dependency review on PRs.
+
 ## 6. Payments: Notch Pay (not implemented)
 
 Only environment variables exist (`NOTCHPAY_*`, server-side, optional). When the payments module is built it must:
@@ -165,7 +208,7 @@ Only environment variables exist (`NOTCHPAY_*`, server-side, optional). When the
 ### Design system: olive-black and lime (approved 2026-11-24)
 
 - **One-file palette:** `src/styles/palette.css` holds every colour value. `src/index.css` maps them to roles (`surface-footer/base/raised/overlay/chip/control`, `signal` (+hover/press), `on-signal`, `text-1/2/3`, `paper`, `on-paper(-2)`, `hairline(-strong)`, `control-border`, `danger/warning/success`) and defines the type scale (`text-display`, `h1`–`h3`, `lead`, `body`, `small`, `caption`, `label`, fluid via `clamp()`), spacing (`section`, `gutter`, `hero-top`), containers (`content` 1200 px, `wide` 1440 px, `measure` 40 rem), radii (`s` 8, `m` 16, `media` 30, pills `rounded-full`), elevation (`shadow-e1..e3`) and motion (`--motion-micro/standard/reveal`, `ease-enter/exit`). `src/design/tokens.ts` names them for TypeScript.
-- **Legacy aliases:** `forest-*`, `emerald`, `mint`, `sage`, `line` now point at the olive palette, so existing screens pick it up. Components outside the landing page still contain 237 hard-coded hex values in 31 files (Milestones 1–2, Admin Console). They are replaced screen by screen in the platform redesign.
+- **No legacy aliases:** M0 converted every colour in the app (323 values in 34 files) and removed the `forest-*`/`emerald`/`mint`/`sage` aliases. `npm run lint` runs `scripts/check-tokens.mjs`, which fails on any raw colour or one-off pixel size in web components (ADR 0002). Exceptions: the 2FA QR code sits on `bg-white` (scanners need maximum contrast). Profile-link icons are the platforms' real logo shapes (`simple-icons`, CLAUDE.md §6.2) drawn in the current text colour; they carry no brand colours, so no exception is needed.
 - **`cn()`** is `src/lib/cn.ts`, configured with the type-scale names. The stock merger treated `text-h2` as a colour and silently dropped it when a colour class was present.
 - **Font:** Inter Variable (already self-hosted; latin subset 47 kB woff2) for body and display, with a metric-matched Arial fallback (`size-adjust`, ascent/descent overrides) so the swap doesn't shift layout.
 
@@ -180,6 +223,7 @@ Only environment variables exist (`NOTCHPAY_*`, server-side, optional). When the
 | on-signal `#141905` | signal / hover / press | 13.6 / 14.7 / 10.7 : 1 |
 | on-paper / on-paper-2 | paper `#F2F1E6` | 15.8 / 7.2 : 1 |
 | signal as text | paper | **1.16:1 — not allowed** (lime is only a fill on paper) |
+| info `#9CC8F5` | base | 9.9 : 1 |
 | control border (lime 40%) | base | 3.2 : 1 (UI component ≥ 3:1) |
 | hairlines (lime 12–22%) | base | 1.4–1.8 : 1 (decorative only) |
 

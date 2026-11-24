@@ -1,10 +1,27 @@
 # Implementation status
 
-_Last updated: 2026-11-24 (Resend, Supabase configuration, landing hero; Admin Console phases 1–4). Legend: ✅ implemented & tested · 🟡 implemented, not fully tested · 🟠 partial · ⛔ blocked (external) · ⬜ not started._
+_Last updated: 2026-11-24 (M0 foundation; Admin Console phases 1–4; landing redesign). Legend: ✅ implemented & tested · 🟡 implemented, not fully tested · 🟠 partial · ⛔ blocked (external) · ⬜ not started._
 
 **Test totals:** 26 shared unit · 109 API integration (+5 live Cloudinary, +1 live Resend, both opt-in) · 28 browser journeys (Pixel 7 + desktop, production build). All passing as of 2026-11-24.
 
-## Milestone 0 — Foundation ✅
+## M0 — Foundation (2026-11-24, branch `chore/m0-foundation`)
+
+| Item | Status | Evidence |
+|---|---|---|
+| Formatting commit, Prettier, `.git-blame-ignore-revs` | ✅ | commit `a18e568` |
+| Oxlint + design-token guard (ADR 0002) | ✅ | `npm run lint` passes; 0 raw colours/pixel sizes |
+| Palette tokenisation of 34 app files; legacy aliases removed | ✅ | Before/after screenshots at 360/768/1280 (`e2e/.screenshots/m0/`) |
+| RFC 9457 errors (single commit, client + tests) | ✅ | `e63d1af`, api:problem.test |
+| CSRF origin check; rate limits on feed, report, connection, upload | ✅ | api:security.test |
+| scrypt at OWASP minimum + rehash-on-login (ADR 0001) | ✅ | api:password.test |
+| `REQUIRE_EMAIL_VERIFICATION` flag | ✅ | api:verification.test |
+| Idempotency keys + transactional outbox (ADR 0003) | ✅ | api:idempotency.test, api:outbox.test; migration applied to local dev and test only |
+| OpenAPI 3.1 skeleton + drift test | ✅ | api:openapi.test; Redocly: valid |
+| GitHub Actions CI | 🟡 written; every step run locally, incl. on a fresh clone; **not yet run on GitHub** | `.github/workflows/ci.yml` |
+| Supabase migration for the new tables | ⛔ needs approval | |
+| Auth pages LCP ≤ 2.5 s | ⬜ M1 | currently 3.2–3.3 s; CI ratchet at 3.4 s |
+
+## Milestone 0 (original setup) — Foundation ✅
 
 Monorepo, Postgres + Prisma migrations, API conventions, prototype design system, test setup. Route-level code splitting added in M2 (entry bundle 334 kB / 104 kB gzipped).
 

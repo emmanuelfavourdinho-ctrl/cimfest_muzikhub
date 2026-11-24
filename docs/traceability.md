@@ -1,6 +1,6 @@
 # MuzikHub — SRS v1.0 traceability
 
-_Phase 0 audit, 2026-11-24. Source: MuzikHub SRS v1.0 (FR-01 to FR-73). Evidence is the code and tests as they are today._
+_Phase 0 audit 2026-11-24, updated at the end of **M0** (branch `chore/m0-foundation`). Source: MuzikHub SRS v1.0 (FR-01 to FR-73). Evidence is the code and tests as they are today._
 
 **Status vocabulary (SRS §9):**
 - **I&T** = Implemented and tested
@@ -18,7 +18,7 @@ _Phase 0 audit, 2026-11-24. Source: MuzikHub SRS v1.0 (FR-01 to FR-73). Evidence
 | FR | Requirement (short) | Status | Evidence (screen · API · data · test) | Gap to close | Depth |
 |---|---|---|---|---|---|
 | FR-01 | Register with name, username, email, password | I&T | `/register` · `POST /api/auth/sign-up/email` · `user` · api:auth.test, e2e:registration | Uniform responses for "email taken" (enumeration review) | L2 |
-| FR-02 | Log in, log out, secure sessions | I&T | `/login` · Better Auth sessions (HTTP-only cookie, DB sessions) · `session` · api:auth.test, e2e:registration | Explicit CSRF/Origin check on `/api/v1` writes (only SameSite + CORS today); session rotation review | L2 |
+| FR-02 | Log in, log out, secure sessions | I&T | `/login` · Better Auth sessions (HTTP-only cookie, DB sessions) · **M0:** CSRF origin check on `/api/v1` writes, scrypt at the OWASP minimum with rehash-on-login · api:auth.test, api:security.test, api:password.test, e2e:registration | Session rotation review (M1); `/login` LCP 3.2 s → 2.5 s target (M1) | L2 |
 | FR-03 | Primary use chosen at registration | I&T | `/register` step 1 (`PRIMARY_USES`) · `user.primaryUse` · e2e:registration | — | L2 |
 | FR-04 | Guided, role-aware profile completion | I&T | `/onboarding` (`stepsFor`: fans skip professional steps; progress saved server-side) · `profile.onboardingStep` · api:profiles.test, e2e:registration | — | L2 |
 | FR-05 | Skip optional onboarding, finish later | INFT | "Skip", "Skip & finish", "Finish later" in OnboardingPage | No test clicks Skip / Finish later | L2 |
@@ -155,9 +155,24 @@ _Phase 0 audit, 2026-11-24. Source: MuzikHub SRS v1.0 (FR-01 to FR-73). Evidence
 
 | Group | Status | Evidence | Main gaps |
 |---|---|---|---|
-| 5.1 Performance | Partial | Code-split routes, lazy media, cursor pagination; landing Lighthouse (mobile) 91–94, LCP ≤ 2.5 s, CLS 0 | Lighthouse CI budget gate; app routes not measured; Postgres full-text search |
-| 5.2 Reliability | Partial | Typed API errors, retries for reads only, mutations never auto-retried, 409 on write conflicts | Error boundaries per route; idempotency keys; structured logs with correlation IDs |
-| 5.3 Security | Partial | Scrypt hashing, HTTP-only sessions, server-side authorisation, Zod validation, Helmet on the API, signed uploads, admin 2FA + audit | RFC 9457 errors; CSRF/Origin check; rate limits on feed, reports, connections, uploads; CSP for the web app; breached-password check; dependency/secret scanning in CI; no CI at all |
-| 5.4 Usability and accessibility | Partial | Landing: axe 0 violations, keyboard patterns; app pages: no-overflow tests at 320–1920 px | axe on every app screen; 44 px targets audit; skip link and error boundaries in the app shell |
-| 5.5 Network resilience | Not started | Only the composer draft | Service worker, outbox, sync states |
-| 5.6 Maintainability | Partial | Workspaces, shared Zod contracts, migrations, 190 unit/integration + 42 e2e tests, docs | No ESLint/Prettier, no CI, no OpenAPI 3.1, no ADRs |
+| 5.1 Performance | Partial | Code-split routes; guarded pages download alongside their guard. **CI gates:** JS budget per route (`scripts/js-budget.mjs`) and Lighthouse CI. Measured mobile: `/` LCP 2.1 s, CLS 0; `/login` 3.2 s, `/register` 3.3 s | Auth pages to 2.5 s (M1); Postgres full-text search (M3) |
+| 5.2 Reliability | Partial | RFC 9457 errors; reads retried, mutations never auto-retried. **M0:** Idempotency-Key on post, comment, connection and report creates; transactional outbox with retries | Error boundaries per route (M1); structured logs with correlation IDs |
+| 5.3 Security | Partial → much improved | **M0:** scrypt at OWASP minimum + rehash (ADR 0001); CSRF origin/Fetch-Metadata check; per-class rate limits (429 + Retry-After); email-verification flag; audit-ci + gitleaks in CI. Existing: HTTP-only sessions, server-side authorisation, Zod validation, Helmet, admin 2FA + append-only audit | CSP for the web app (Vercel headers, M13); breached-password check (M1); threat models (M13) |
+| 5.4 Usability and accessibility | Partial | Landing + draft pages axe-clean; every app screen tokenised (olive palette); axe sweep across all screens in M0 (see M0 report) | 44 px target audit; skip link and error boundaries in the app shell (M1) |
+| 5.5 Network resilience | Partial (foundation) | **M0:** server idempotency and outbox; client outbox designed (ADR 0003 §3) | Service worker, IndexedDB outbox, sync states (M11) |
+| 5.6 Maintainability | Partial → much improved | **M0:** Prettier, Oxlint + design-token guard, GitHub Actions CI (quality, test, e2e, performance, security), OpenAPI 3.1 skeleton with a drift test, ADRs 0001–0003 | Response schemas per operation (per milestone); `docs/permissions.md` (M1/M5) |
+
+## M0 deliverables (2026-11-24)
+
+| Item | Status | Evidence |
+|---|---|---|
+| Formatting commit + `.git-blame-ignore-revs` | I&T | `a18e568`; Prettier check in CI |
+| Oxlint + token guard | I&T | `npm run lint` passes; `scripts/check-tokens.mjs` |
+| Palette tokenisation of the 34 app files | I&T | 323 values converted, legacy aliases removed; token guard 0 findings |
+| RFC 9457 errors | I&T | api:problem.test; migration note |
+| CSRF origin check, rate limits | I&T | api:security.test |
+| Password storage (C1) | I&T | api:password.test; ADR 0001 |
+| Email-verification flag (C2) | I&T | api:verification.test |
+| Idempotency keys, outbox | I&T | api:idempotency.test, api:outbox.test; ADR 0003 |
+| OpenAPI 3.1 skeleton | I&T | api:openapi.test (drift + structure); Redocly lint valid |
+| CI workflow | Implemented, not run on GitHub | All job steps run locally, incl. on a fresh clone (see M0 report); first GitHub run happens when the branch is pushed |

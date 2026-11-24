@@ -1,6 +1,53 @@
 # MuzikHub — decisions, conflicts and risks
 
-_Phase 0 audit, 2026-11-24. Companion to `docs/traceability.md`. Nothing here is decided until the owner answers; recommendations are marked **Rec.**_
+_Phase 0 audit, 2026-11-24, updated at the end of M0. Companion to `docs/traceability.md`. Section 0 records what the owner has decided._
+
+## 0. Decisions recorded (owner review of Phase 0, 2026-11-24)
+
+**Direction:**
+- A real, working product. There's no demo deadline.
+- Areas are finished at L2 (happy path, edge cases, permissions, notifications, full tests), milestone by milestone. No SRS area is dropped.
+- Build order:
+  - M0 foundation;
+  - M1 identity;
+  - M2 content and player;
+  - M3 discovery;
+  - M4 connections and notifications;
+  - M5 moderation core;
+  - M6 communities;
+  - M7 opportunities;
+  - M8 competitions;
+  - M9 messaging;
+  - M10 payments and promotion;
+  - M11 offline;
+  - M12 calls;
+  - M13 hardening.
+
+| # | Decision | Status / where |
+|---|---|---|
+| C1 | Keep scrypt; meet OWASP minimums; ADR; rehash-on-login | **Done (M0).** Better Auth's default (N=2^14, r=16) was below the minimum. Now N=2^17, r=8, p=1, and old hashes upgrade on sign-in. `docs/adr/0001` |
+| C2 | Verification optional for now, as a config flag; domain verification is a top-priority blocker | **Flag done (M0):** `REQUIRE_EMAIL_VERIFICATION`. Domain steps in §7 below. **Blocked on the owner** |
+| C3 | RFC 9457 in a single commit | **Done (M0):** commit `e63d1af`; `docs/migrations/2026-11-rfc9457-errors.md` |
+| C4 | "Before" screenshots from the first commit | **Done (M0)** |
+| C5–C8 | Recommendations accepted | Landing frozen and excluded from changes; video on hold; `cuid(2)` for new tables (used by M0's new tables); report state names kept |
+| C9 | One formatting commit + `.git-blame-ignore-revs` | **Done (M0):** commit `a18e568` |
+| — | Lint tool | **Deviation, veto if needed:** Oxlint instead of ESLint, because TypeScript 7 ships no JS API, so typescript-eslint can't run. `docs/adr/0002` |
+| D6 | Minimum age **16**, self-declaration checkbox, no date of birth stored, clear policy | M1. ⚖️ **Legal review** |
+| D7 | Organisers: verified industry professionals, admin approval before their first publish, admins can always remove | M7/M8. **Interpretation to confirm:** "verified" = verified email **and** primary use "Industry professional", plus admin approval. There's no document-based verification (see D8) |
+| D8 | Verified professionals (badges) | Rec. accepted: **none for release one**; no "verified" badges |
+| D9 | Appeals: one per moderation action, reviewed by a different moderator or an admin | M5 |
+| D10 | Promotion prices: admin-editable price table in the database; none hard-coded; nothing shown until set | M10. Consistent with CLAUDE.md §16 (proposed FCFA prices stay unapproved) |
+| D11 | Copyright and takedown | Rec. accepted: a "copyright" report reason routed to admins (M5); full policy ⚖️ **legal review** |
+| D12 | PWA tooling | Rec. accepted: `vite-plugin-pwa` (M11) |
+| D13 | Data retention, export, deletion | Rec. accepted: JSON export + self-service deletion with a 30-day grace period (M13); retention periods ⚖️ **legal review** |
+| D14 | Languages: English now, i18n-ready strings | From M1, new UI strings go through one catalogue |
+| D15 | Data residency | Supabase project region **eu-west-2 (London)**, read from the pooler host. ⚖️ **Legal review** for users in Cameroon (cross-border data) |
+| D16 | Collaboration = structured requests (CLAUDE.md §12) | Rec. accepted (M4) |
+| D2 | Notch Pay access | **Unanswered** (`[YES, sandbox / YES, live / NO]`). Needed before M10 |
+| D4 | TURN provider | Managed. Comparison of 2–3 providers due **before M12**; calls not built until chosen |
+| D5 | Hosting | Vercel + Render + Supabase confirmed. An always-on Render instance is needed before **M9**; I'll flag it with the cost at the start of M9 |
+| D1 | Team size, launch markets | **Unanswered** |
+| — | Cloudinary `muzikhub/brand/landing/` | **Kept** (owner). Not publicly listable (list API 401, untagged), but directly viewable by URL, and the URLs are in the first commit of the **public** GitHub repo. Options in §7 |
 
 ## 1. Codebase snapshot
 
@@ -69,6 +116,10 @@ _Phase 0 audit, 2026-11-24. Companion to `docs/traceability.md`. Nothing here is
 | R12 | **No CI:** regressions can merge unnoticed | High | Medium | GitHub Actions in M0 (typecheck, unit, e2e, build, audit, secret scan) |
 | R13 | **CSRF:** `/api/v1` relies on SameSite=Lax + CORS, no Origin check | Low | High | Explicit Origin/Fetch-Metadata check on unsafe methods (M1) |
 | R14 | **Prisma CLI doesn't verify the DB certificate** (runtime does) | Low | Medium | `db:check` before every migration (documented) |
+| R15 | **Public GitHub repo history contains the photo URLs** (first commit) | High (already public) | Medium | Make the assets authenticated on Cloudinary (URLs stop working), and/or make the repo private, and/or rewrite history (force-push). All need the owner's approval (§7) |
+| R16 | **scrypt memory** (128 MiB per hash) on small instances | Medium | Medium | Max 2 concurrent hashes (peak measured 328 MiB); use ≥1 GiB, or set the cap to 1 on 512 MiB (ADR 0001) |
+| R17 | **/login and /register LCP 3.2–3.3 s** on throttled mobile (2.9 s before M0) | Certain | Medium | CI ratchet at 3.4 s. Target 2.5 s in M1: trim the auth bundle (auth client, Zod, forms), consider pre-rendering the auth pages |
+| R18 | **Intermittent test** `network.test.ts` "30-day cooldown" failed once during M0 and passed in every other run | Low | Low | Watch; investigate in M4 (connections) |
 
 ## 5. Gap plan and proposed order
 
@@ -119,3 +170,30 @@ Excludes the frozen `features/landing/` (0 hex). Counts: hex / one-off pixel siz
 **Exceptions to keep, as documented tokens:**
 - Third-party platform brand colours in the profile links (CLAUDE.md §6.2 requires recognisable platform icons). These are `simple-icons` data, not palette colours.
 - The QR code's white background in 2FA setup (scanners need high contrast).
+
+## 7. Owner actions with exact steps
+
+### Verify a sending domain in Resend (C2; blocks password reset in production)
+
+You'll need a domain you control. A subdomain such as `mail.<your-domain>` is recommended, so sending reputation stays separate from your main domain.
+
+1. Resend dashboard → **Domains → Add domain** → enter `mail.<your-domain>` and pick the region closest to your users (EU fits a London database).
+2. Resend shows the DNS records. Add **exactly** what it shows at your DNS provider. Typically:
+   - **MX** record on the `send` host, pointing to Resend's feedback server (priority 10);
+   - **TXT (SPF)** on the `send` host;
+   - **TXT (DKIM)** on the `resend._domainkey` host.
+3. Recommended: a **TXT (DMARC)** record on `_dmarc.<your-domain>` with `v=DMARC1; p=none; rua=mailto:<you>@<your-domain>`. Tighten it to `quarantine` later.
+4. Back in Resend → **Verify DNS records**. DNS changes usually propagate within minutes, occasionally up to 48 h.
+5. Create a **production** API key with "Sending access" restricted to that domain, and put it in Render (never in Git):
+   - `RESEND_API_KEY=…`
+   - `EMAIL_FROM="MuzikHub <no-reply@mail.<your-domain>>"`
+   - `EMAIL_TRANSPORT=resend`
+6. Tell me, and I'll send **one** test email to an address you choose (with your permission) and confirm delivery in Resend. Then you can set `REQUIRE_EMAIL_VERIFICATION=true`.
+
+### Make `muzikhub/brand/landing/` private on Cloudinary (keeps the files)
+
+The assets are kept (your decision), but anyone with a URL can view them, and the URLs are in public Git history. Pick one or more:
+
+- **A. Convert to authenticated delivery (recommended).** The files stay in your account, but unsigned URLs stop working, so the leaked URLs go dead. With your approval I'd run, for each of the 5 assets: `cloudinary.uploader.rename(id, id, { type: 'upload', to_type: 'authenticated' })`. It's reversible: rename back with `to_type: 'upload'`.
+- **B. Make the GitHub repository private** (GitHub → Settings → General → Danger Zone → Change visibility). This hides the history from the public, though copies may already exist.
+- **C. Rewrite history** to drop `hero-photos.json` from the first commit, then force-push. This is irreversible for anyone who has cloned, and I'll only do it on your explicit instruction.

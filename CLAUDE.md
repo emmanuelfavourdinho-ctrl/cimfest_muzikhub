@@ -1235,7 +1235,7 @@ MuzikHub must maintain a strict and consistent visual identity throughout the en
 - **Signal (lime):** primary actions, active states, play and progress, and at most one headline accent. It must cover well under 10% of a screen, except a single final call-to-action band. Never use lime as text on the paper surface (it fails contrast); there it is only a fill with dark text.
 - **Text:** near-white primary, muted secondary and tertiary. Tertiary text is never placed on chip surfaces.
 - **Source of truth:** colour values live only in `apps/web/src/styles/palette.css` (swapping that file changes the palette). `apps/web/src/index.css` maps them to roles (`surface-*`, `signal`, `text-1/2/3`, `paper`, `hairline` …) and defines the type scale, spacing, radii, elevation and motion. `apps/web/src/design/tokens.ts` gives them typed names. Contrast for every pair is recorded in `docs/ARCHITECTURE.md` §7c.
-- **No hex values, magic pixel sizes or one-off shadows in components.** The old `forest-*`, `emerald`, `mint`, `sage` names still exist as aliases of the olive palette until the platform screens are redesigned.
+- **No hex values, magic pixel sizes or one-off shadows in components.** `npm run lint` enforces this (`scripts/check-tokens.mjs`; documented exceptions need `tokens-allow: <reason>`). The old Forest/Emerald alias names were removed in M0.
 
 Do not independently introduce unrelated primary color systems.
 
