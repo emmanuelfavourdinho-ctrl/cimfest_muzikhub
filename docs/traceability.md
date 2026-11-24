@@ -59,27 +59,27 @@ _Phase 0 audit 2026-11-24, updated at the end of **M0** (branch `chore/m0-founda
 | FR-20 | Send connection requests | I&T | `POST /connections` · `connection` (PENDING) · api:network.test, e2e:milestone2 | Block check (no blocking yet) | L2 |
 | FR-21 | Accept, reject, manage requests | I&T | accept / decline / cancel; 30-day re-request after decline · api:network.test | — | L2 |
 | FR-22 | View and manage connections | I&T | `/network`, `DELETE /connections/:id` · api:network.test | — | L2 |
-| FR-23 | Express collaboration interest, find collaborators | Not started | No model, API or screen | Whole feature (collaboration requests + interest lifecycle, CLAUDE.md §12) | L2 |
+| FR-23 | Express collaboration interest, find collaborators | I&T | `/collaborate`, request from a profile; PENDING → CLARIFICATION_REQUESTED → ACCEPTED/DECLINED/CANCELLED/EXPIRED; clarification in the shared conversation; accepted requests become collaborations with participants and updates · api:collaboration.test, shared:collaboration.test, e2e:collaboration | Open (public) request board not built: requests are directed to a person (decision D16) | L2 |
 
 ## 6. Communities and discussions (M6)
 
 | FR | Requirement | Status | Evidence | Gap | Depth |
 |---|---|---|---|---|---|
-| FR-24 | Discover and join communities | Not started | — | Models, API, screens | L2 (L1 if time is short) |
-| FR-25 | Participate in discussions | Not started | — | | |
-| FR-26 | Create posts and comment | Not started | — | | |
-| FR-27 | Leave communities | Not started | — | | |
+| FR-24 | Discover and join communities | I&T | `/communities` (featured, mine, categories, search); OPEN / REQUEST / INVITE policies · api:communities.test, e2e:communities | — | L2 |
+| FR-25 | Participate in discussions | I&T | `/communities/:slug/d/:id`; questions with accepted answers, reactions, follow, mentions · api:communities.test, e2e:communities | — | L2 |
+| FR-26 | Create posts and comment | I&T | discussions + comments (members only; locked threads refuse) · api:communities.test | — | L2 |
+| FR-27 | Leave communities | I&T | leave; the owner must transfer ownership first · api:communities.test | — | L2 |
 | FR-28 | Report content or behaviour | Partial | Reports for POST, PORTFOLIO_ITEM, PROFILE (UI + API); COMMENT via API only, no button · api:admin.moderation | Report buttons on comments; community-post and message targets once those exist | L2 |
-| FR-29 | Community moderators manage content and rules | Not started | Platform moderation exists (M5); community-scoped roles do not | Scoped roles (owner/admin/moderator/member) | |
+| FR-29 | Community moderators manage content and rules | I&T | Scoped roles OWNER/ADMIN/MODERATOR/MEMBER (`modules/communities/permissions.ts` + tests); ban/unban, remove, pin, lock; audited as `community:ROLE`; no platform privileges · api:communities.test | — | L2 |
 
 ## 7. Competitions (M7) and 8. Opportunities (M8)
 
 | FR | Requirement | Status | Evidence | Gap | Depth |
 |---|---|---|---|---|---|
-| FR-30 | Browse competitions | Not started | — | Full slice | L2 / L1 |
-| FR-31 | Details: eligibility, deadlines, requirements | Not started | — | | |
-| FR-32 | Submit entries | Not started | — | | |
-| FR-33 | Organisers manage and review | Not started | — | Organiser role / permission (decision D7) | |
+| FR-30 | Browse competitions | I&T | `/competitions` (open / opening soon / being judged / results / mine; category; search) · e2e:competitions | — | L2 |
+| FR-31 | Details: eligibility, deadlines, requirements | I&T | Detail page shows prize terms (organiser-provided, not guaranteed by MuzikHub), eligibility, criteria with weights, formats, disqualification, disputes, versioned rules · e2e:competitions | — | L2 |
+| FR-32 | Submit entries | I&T | Rules acceptance of the current version required; deadline re-checked in the transaction; withdraw/update while open; link or upload · api:competitions.test, e2e:competitions | — | L2 |
+| FR-33 | Organisers manage and review | I&T | D7 organisers: draft → publish, extend (reason, audited), cancel, judges, weighted scoring, disqualify (reason), publish results (complete scoring required); disputes decided by an ADMIN (D9) · api:competitions.test, e2e:competitions | — | L2 |
 | FR-34 | Discover gigs, auditions, events, jobs | I&T (L1) | `/opportunities` (type chips, location, include-closed) · `GET /opportunities` · `opportunity` · api:opportunities.test, e2e:opportunities | Notifications to organisers/applicants (M4) | L1 |
 | FR-35 | View details and requirements | I&T (L1) | `/opportunities/:id` · drafts visible only to their organiser (404 to others) · api:opportunities.test, e2e:opportunities | — | L1 |
 | FR-36 | Apply or express interest | I&T (L1) | apply once (Idempotency-Key), withdraw and re-apply before the deadline; server enforces deadline/state/own-opportunity · `opportunity_application` · api:opportunities.test, e2e:opportunities | — | L1 |
@@ -117,20 +117,20 @@ _Phase 0 audit 2026-11-24, updated at the end of **M0** (branch `chore/m0-founda
 
 | FR | Requirement | Status | Evidence | Gap | Depth |
 |---|---|---|---|---|---|
-| FR-47 | Start one-to-one conversations | Not started | No Socket.IO, no models | Full slice | L2 / L1 |
-| FR-48 | Send and receive in real time | Not started | — | | |
-| FR-49 | Persist history | Not started | — | | |
-| FR-50 | History after reconnect or sign-in | Not started | — | | |
-| FR-51 | Delivery and read indicators | Not started | — | | |
-| FR-52 | Compose offline, queue | Not started | — | Depends on M11 outbox | |
-| FR-53 | No duplicates on retry | Not started | — | Client message ID + unique constraint | |
-| FR-54 | Block or report users | Partial | Profile reports exist; **no blocking anywhere** | Block model, enforced in connections, messaging, calls | L2 |
+| FR-47 | Start one-to-one conversations | I&T | `/messages`, Message button on profiles; message privacy (everyone / connections / nobody); blocks respected · api:messaging.test, e2e:messaging | Group conversations not in scope | L2 |
+| FR-48 | Send and receive in real time | I&T | Socket.IO `/api/realtime` (session cookie, origin check, per-user rooms) · api:realtime tests, e2e:messaging | — | L2 |
+| FR-49 | Persist history | I&T | `conversation`, `message` tables; paginated history · api:messaging.test | — | L2 |
+| FR-50 | History after reconnect or sign-in | I&T | Client catches up over REST after reconnect (`useOnReconnect`) · e2e:messaging | — | L2 |
+| FR-51 | Delivery and read indicators | I&T | forward-only `lastDeliveredAt` / `lastReadAt`; unread counts · api:messaging.test | — | L2 |
+| FR-52 | Compose offline, queue | Partial | Drafts kept per conversation in the browser | No offline send queue (needs the PWA work, FR-67+) | L1 |
+| FR-53 | No duplicates on retry | I&T | client message ID + unique (senderId, clientId) · api:messaging.test | — | L2 |
+| FR-54 | Block or report users | I&T | Block/unblock from profiles and settings (ends follows and connections, hides content, stops messages and collaboration); message reports · api:blocks tests, api:messaging.test | — | L2 |
 
 ## 12. Audio and video calls (M12)
 
 | FR | Requirement | Status | Evidence | Gap | Depth |
 |---|---|---|---|---|---|
-| FR-55 – FR-60 | Initiate, accept/decline, controls, states, recovery, audio-only fallback | Not started; **TURN provider undecided** | — | TURN (D4), signalling over the M10 socket | L1 |
+| FR-55 – FR-60 | Initiate, accept/decline, controls, states, recovery, audio-only fallback | Blocked | No TURN provider (D4); no call UI shipped · docs/calling-assessment.md | Choose a managed TURN provider | L1 |
 
 ## 13. Administration and moderation (M5)
 
@@ -138,8 +138,8 @@ _Phase 0 audit 2026-11-24, updated at the end of **M0** (branch `chore/m0-founda
 |---|---|---|---|---|---|
 | FR-61 | Admins view and manage accounts | I&T | `/admin/users` · admin users API · api:admin.users, api:admin.permissions, e2e:admin-console | — | L2 |
 | FR-62 | Moderators review reports, act | I&T | `/admin/reports` lifecycle · api:admin.moderation, e2e:admin-console | — | L2 |
-| FR-63 | Admins manage competitions, opportunities, campaigns | Not started | Depends on M7–M9 | | L1 |
-| FR-64 | Review payment records | Not started | Depends on M9; FINANCE_ADMIN deferred | | L1 |
+| FR-63 | Admins manage competitions, opportunities, campaigns | Partial | Admin Content tabs for communities and competitions (remove/restore, report counts); competition disputes; promotions page · api:competitions.test, api:communities.test | Opportunity oversight | L1 |
+| FR-64 | Review payment records | I&T | `/admin/payments` (orders, webhooks, recheck, refund; audited) · e2e:admin-payments | FINANCE_ADMIN role deferred | L1 |
 | FR-65 | Audit important admin actions | I&T | `audit_log` append-only (DB triggers) · api:admin.permissions (immutability) | Extend to new areas | L2 |
 | FR-66 | Server-side role and permission checks | I&T | `requireStaff`, `requirePermission`, shared matrix · api:admin.permissions | `docs/permissions.md` for the new areas | L2 |
 
@@ -159,11 +159,12 @@ _Phase 0 audit 2026-11-24, updated at the end of **M0** (branch `chore/m0-founda
 
 | Status | Count |
 |---|---|
-| Implemented and tested | 28 (FR-01–04, 06–13, 15–22, 34–37 at L1, 61, 62, 65, 66) |
+| Implemented and tested | 46 rows (FR-01–04, 06–13, 15–27, 29–37, 47–51, 53, 54, 61, 62, 64–66) — see table |
 | Implemented, not fully tested | 2 (FR-05, FR-14) |
-| Partially implemented | 3 (FR-28, FR-54, FR-68) |
-| Externally blocked (expected) | 1: FR-42 live payments (Notch Pay access; FR-43–46 are built against the TEST PROVIDER). Also expected: and FR-55–60 become Blocked if provider access or TURN isn't available) |
-| Not started | 40 |
+| Partially implemented | FR-28, FR-52 (no offline send queue), FR-63 (no opportunity oversight), FR-68 |
+| Done against the TEST PROVIDER / sandbox | payments, subscriptions, promotions (live Notch Pay blocked until approval) |
+| Blocked (external) | FR-42 live payments (Notch Pay approval); FR-55–60 calls (no TURN provider, D4) |
+| Not started | 6 (FR-67, FR-69, FR-70, FR-71, FR-72, FR-73) |
 
 ## Non-functional requirements (SRS §5)
 

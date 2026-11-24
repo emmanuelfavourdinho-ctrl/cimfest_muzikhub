@@ -40,6 +40,10 @@ The server reads them; nothing in the browser ever does. **Nothing uses them yet
 
 **Pricing catalogue:** `npm run catalogue:seed -w @muzikhub/api` adds the owner-confirmed catalogue rows (all off sale). It's idempotent and never changes an existing price; edit prices in the Admin Console → Pricing.
 
+**Demo data (local only):** `npm run demo:seed -w @muzikhub/api` creates five labelled demo accounts (`amara.demo`, `kofi.demo`, `lena.demo`, `joel.demo` (an approved organiser) and `nadia.demo`, all `@demo.muzikhub.test`, password `muzikhub-demo-2026`). It also creates follows, posts, a community with discussions, a conversation, collaboration requests, an opportunity, an open competition and one with published results. Everything is created through the real API. It refuses to run unless `NODE_ENV=development` and the database is local, and it does nothing if demo accounts already exist. Never run it against production.
+
+**Calls** are not built: they need a TURN provider (decision D4). See [docs/calling-assessment.md](docs/calling-assessment.md).
+
 **Emails in development** (password reset, verification) are printed to the API terminal and not sent; copy the link from there. Production sends through **Resend** once a sending domain is verified (see docs/ARCHITECTURE.md §5d). The hosted database will be **Supabase PostgreSQL** (configuration documented, not deployed).
 
 > Existing database volume created before 2026-11-23? Create the test database once:
