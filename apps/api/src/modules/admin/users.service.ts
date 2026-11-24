@@ -148,6 +148,7 @@ export async function getUser(staff: StaffContext, userId: string) {
     username: user.username,
     image: avatarOf(user.profile),
     hasCover: Boolean(user.profile?.coverAssetId),
+    isOrganiser: user.isOrganiser,
     email: privateAccess ? user.email : null,
     emailVerified: user.emailVerified,
     role: user.platformRole,
@@ -182,6 +183,7 @@ function allowedActions(staff: StaffContext, target: { id: string; platformRole:
       (target.status === 'BANNED' ? can(staff.role, 'users.reinstateBanned') : can(staff.role, 'users.restrict')),
     changeRole: target.id !== staff.id && can(staff.role, 'roles.assign'),
     resetTwoFactor: target.id !== staff.id && can(staff.role, 'staff.resetTwoFactor'),
+    grantOrganiser: target.id !== staff.id && can(staff.role, 'organisers.grant'),
     maxSuspensionDays: SUSPENSION_MAX_DAYS[staff.role],
   };
 }

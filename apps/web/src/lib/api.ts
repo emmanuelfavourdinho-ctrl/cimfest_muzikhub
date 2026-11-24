@@ -27,6 +27,13 @@ import {
   type ReplaceLinksInput,
   type UpdatePortfolioInput,
   type UpdateProfileInput,
+  applicationPageSchema,
+  applicationSchema,
+  opportunityPageSchema,
+  opportunitySchema,
+  organiserStatusSchema,
+  type CreateOpportunityInput,
+  type UpdateOpportunityInput,
 } from '@muzikhub/shared';
 import { z } from 'zod';
 import { ApiRequestError } from './api-error';
@@ -98,6 +105,26 @@ export async function request<T>(
 const path = encodeURIComponent;
 
 export const api = {
+  // Opportunities (FR-34..37)
+  opportunities: (q: { type?: string; location?: string; open?: string; cursor?: string }) =>
+    request('/opportunities', opportunityPageSchema, { query: q }),
+  myOpportunities: (cursor?: string) => request('/opportunities/mine', opportunityPageSchema, { query: { cursor } }),
+  organiserStatus: () => request('/opportunities/organiser-status', organiserStatusSchema),
+  opportunity: (id: string) => request(`/opportunities/${path(id)}`, opportunitySchema),
+  createOpportunity: (input: CreateOpportunityInput, idempotencyKey: string) =>
+    request('/opportunities', opportunitySchema, { method: 'POST', body: input, idempotencyKey }),
+  updateOpportunity: (id: string, input: UpdateOpportunityInput) =>
+    request(`/opportunities/${path(id)}`, opportunitySchema, { method: 'PATCH', body: input }),
+  publishOpportunity: (id: string) => request(`/opportunities/${path(id)}/publish`, opportunitySchema, { method: 'POST' }),
+  closeOpportunity: (id: string) => request(`/opportunities/${path(id)}/close`, opportunitySchema, { method: 'POST' }),
+  applyToOpportunity: (id: string, message: string, idempotencyKey: string) =>
+    request(`/opportunities/${path(id)}/apply`, opportunitySchema, { method: 'POST', body: { message }, idempotencyKey }),
+  withdrawApplication: (id: string) => request(`/opportunities/${path(id)}/withdraw`, opportunitySchema, { method: 'POST' }),
+  applications: (id: string, cursor?: string) =>
+    request(`/opportunities/${path(id)}/applications`, applicationPageSchema, { query: { cursor } }),
+  decideApplication: (applicationId: string, status: 'SHORTLISTED' | 'ACCEPTED' | 'REJECTED') =>
+    request(`/applications/${path(applicationId)}/status`, applicationSchema, { method: 'POST', body: { status } }),
+
   health: (signal?: AbortSignal) => request('/health', healthResponseSchema, { signal }),
 
   // Me & profiles

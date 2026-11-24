@@ -34,6 +34,8 @@ export const PERMISSIONS = {
   'roles.assign': ['ADMIN'],
   'staff.resetTwoFactor': ['ADMIN'],
   'audit.view': ['ADMIN'],
+  /** Grant or revoke the organiser capability (D7: opportunities, competitions). */
+  'organisers.grant': ['ADMIN'],
 } as const satisfies Record<string, readonly PlatformRole[]>;
 export type Permission = keyof typeof PERMISSIONS;
 

@@ -80,10 +80,10 @@ _Phase 0 audit 2026-11-24, updated at the end of **M0** (branch `chore/m0-founda
 | FR-31 | Details: eligibility, deadlines, requirements | Not started | — | | |
 | FR-32 | Submit entries | Not started | — | | |
 | FR-33 | Organisers manage and review | Not started | — | Organiser role / permission (decision D7) | |
-| FR-34 | Discover gigs, auditions, events, jobs | Not started | — | Full slice | L2 / L1 |
-| FR-35 | View details and requirements | Not started | — | | |
-| FR-36 | Apply or express interest | Not started | — | | |
-| FR-37 | Organisers publish and manage | Not started | — | | |
+| FR-34 | Discover gigs, auditions, events, jobs | I&T (L1) | `/opportunities` (type chips, location, include-closed) · `GET /opportunities` · `opportunity` · api:opportunities.test, e2e:opportunities | Notifications to organisers/applicants (M4) | L1 |
+| FR-35 | View details and requirements | I&T (L1) | `/opportunities/:id` · drafts visible only to their organiser (404 to others) · api:opportunities.test, e2e:opportunities | — | L1 |
+| FR-36 | Apply or express interest | I&T (L1) | apply once (Idempotency-Key), withdraw and re-apply before the deadline; server enforces deadline/state/own-opportunity · `opportunity_application` · api:opportunities.test, e2e:opportunities | — | L1 |
+| FR-37 | Organisers publish and manage | I&T (L1) | D7: admin grant (`POST /admin/users/:id/organiser`, audited, UI on member page) + verified email + professional account; draft → publish → close; shortlist/accept/decline (audited) · api:opportunities.test, e2e:opportunities | Edit history; FR-63 admin oversight of opportunities | L1 |
 
 ## 9. Promotion (M9) and 10. Payments (M9)
 
@@ -145,11 +145,11 @@ _Phase 0 audit 2026-11-24, updated at the end of **M0** (branch `chore/m0-founda
 
 | Status | Count |
 |---|---|
-| Implemented and tested | 24 (FR-01–04, 06–13, 15–22, 61, 62, 65, 66) |
+| Implemented and tested | 28 (FR-01–04, 06–13, 15–22, 34–37 at L1, 61, 62, 65, 66) |
 | Implemented, not fully tested | 2 (FR-05, FR-14) |
 | Partially implemented | 3 (FR-28, FR-54, FR-68) |
 | Externally blocked (expected) | 0 yet (FR-42–46 and FR-55–60 become Blocked if provider access or TURN isn't available) |
-| Not started | 44 |
+| Not started | 40 |
 
 ## Non-functional requirements (SRS §5)
 

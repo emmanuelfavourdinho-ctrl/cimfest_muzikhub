@@ -76,6 +76,7 @@ describe('rate limits on member write routes', () => {
       connectionRequest: ['30/60min'],
       report: ['20/60min'],
       upload: ['60/60min'],
+      apply: ['30/60min'],
     });
   });
 });

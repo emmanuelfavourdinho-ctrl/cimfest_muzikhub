@@ -61,6 +61,7 @@ export interface AdminUserRow {
 
 export interface AdminUserDetail extends AdminUserRow {
   hasCover: boolean;
+  isOrganiser: boolean;
   statusReason: string | null;
   statusChangedAt: string | null;
   primaryUse: string | null;
@@ -77,6 +78,7 @@ export interface AdminUserDetail extends AdminUserRow {
     reinstate: boolean;
     changeRole: boolean;
     resetTwoFactor: boolean;
+    grantOrganiser: boolean;
     maxSuspensionDays: number;
   };
 }
@@ -151,6 +153,11 @@ export const adminApi = {
     request<unknown>(`/admin/users/${encodeURIComponent(id)}/role`, null, { method: 'POST', body: { role, reason } }),
   resetTwoFactor: (id: string, reason: string) =>
     request<unknown>(`/admin/users/${encodeURIComponent(id)}/reset-two-factor`, null, { method: 'POST', body: { reason } }),
+  setOrganiser: (id: string, grant: boolean, reason: string) =>
+    request<{ isOrganiser: boolean }>(`/admin/users/${encodeURIComponent(id)}/organiser`, null, {
+      method: 'POST',
+      body: { grant, reason },
+    }),
   reports: (query: Q) => request<Page<ReportRow>>('/admin/reports', null, { query }),
   report: (id: string) => request<ReportDetail>(`/admin/reports/${encodeURIComponent(id)}`, null),
   assign: (id: string, assignee: 'me' | 'nobody') =>

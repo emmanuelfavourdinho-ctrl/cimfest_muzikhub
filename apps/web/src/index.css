@@ -282,3 +282,10 @@ html {
     }
   }
 }
+
+/* Toasts (sonner): the close button must meet the 24 px minimum target size (WCAG 2.5.8).
+   sonner injects its own higher-specificity styles at runtime, hence !important here only. */
+[data-sonner-toaster] [data-sonner-toast] [data-close-button] {
+  width: 1.5rem !important;
+  height: 1.5rem !important;
+}

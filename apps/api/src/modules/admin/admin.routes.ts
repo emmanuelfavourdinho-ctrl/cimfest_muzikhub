@@ -10,6 +10,7 @@ import {
   MODERATION_TARGETS,
   moderationActionSchema,
   PERMISSIONS,
+  grantOrganiserSchema,
   reasonOnlySchema,
   reportNoteSchema,
   resolveReportSchema,
@@ -30,6 +31,7 @@ import * as moderation from './moderation.service.js';
 import { overview } from './overview.service.js';
 import * as reports from './reports.service.js';
 import * as users from './users.service.js';
+import { setOrganiser } from '../opportunities/opportunities.service.js';
 
 const param = (req: Request, name: string) => String((req.params as Record<string, string>)[name]);
 
@@ -83,6 +85,11 @@ export function adminRouter(): Router {
   });
   router.post('/users/:id/reset-two-factor', validateBody(reasonOnlySchema), async (req, res) => {
     res.json(await users.resetTwoFactor(staffOf(res.locals), param(req, 'id'), req.body.reason));
+  });
+  // D7: organiser capability (opportunities, competitions). ADMIN only, reason required, audited.
+  router.post('/users/:id/organiser', requirePermission('organisers.grant'), validateBody(grantOrganiserSchema), async (req, res) => {
+    const staff = staffOf(res.locals);
+    res.json(await setOrganiser({ id: staff.id, role: staff.role, ip: staff.ip }, param(req, 'id'), req.body.grant, req.body.reason));
   });
 
   // ── Reports ──

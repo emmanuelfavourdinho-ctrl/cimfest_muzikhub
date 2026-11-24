@@ -42,44 +42,50 @@ enum AccountStatus {
 }
 
 model User {
-  id                  String          @id
-  name                String
-  email               String          @unique
-  emailVerified       Boolean         @default(false)
-  image               String?
+  id                      String                   @id
+  name                    String
+  email                   String                   @unique
+  emailVerified           Boolean                  @default(false)
+  image                   String?
   /// Lower-case, unique handle used in profile URLs (Better Auth username plugin).
-  username            String?         @unique
+  username                String?                  @unique
   /// Username as the user typed it (original capitalisation).
-  displayUsername     String?
-  primaryUse          PrimaryUse?
+  displayUsername         String?
+  primaryUse              PrimaryUse?
   /// Server-controlled. Never accepted from client input.
-  platformRole        PlatformRole    @default(USER)
+  platformRole            PlatformRole             @default(USER)
   /// Server-controlled. See AccountStatus.
-  status              AccountStatus   @default(ACTIVE)
+  status                  AccountStatus            @default(ACTIVE)
   /// Reason shown to the user for RESTRICTED / SUSPENDED / BANNED.
-  statusReason        String?
+  statusReason            String?
   /// When a SUSPENDED account is automatically reinstated.
-  statusUntil         DateTime?
-  statusChangedAt     DateTime?
+  statusUntil             DateTime?
+  statusChangedAt         DateTime?
   /// Better Auth two-factor plugin. Required for MODERATOR and ADMIN.
-  twoFactorEnabled    Boolean         @default(false)
-  twoFactors          TwoFactor[]
-  createdAt           DateTime        @default(now())
-  updatedAt           DateTime        @updatedAt
-  sessions            Session[]
-  accounts            Account[]
-  profile             Profile?
-  mediaAssets         MediaAsset[]
-  portfolioItems      PortfolioItem[]
-  posts               Post[]
-  postLikes           PostLike[]
-  comments            Comment[]
-  reports             Report[]
+  twoFactorEnabled        Boolean                  @default(false)
+  twoFactors              TwoFactor[]
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  sessions                Session[]
+  accounts                Account[]
+  profile                 Profile?
+  mediaAssets             MediaAsset[]
+  portfolioItems          PortfolioItem[]
+  posts                   Post[]
+  postLikes               PostLike[]
+  comments                Comment[]
+  reports                 Report[]
   /// People this user follows / people following this user.
-  following           Follow[]        @relation("Follower")
-  followers           Follow[]        @relation("Following")
-  sentConnections     Connection[]    @relation("ConnectionRequester")
-  receivedConnections Connection[]    @relation("ConnectionAddressee")
+  following               Follow[]                 @relation("Follower")
+  followers               Follow[]                 @relation("Following")
+  sentConnections         Connection[]             @relation("ConnectionRequester")
+  receivedConnections     Connection[]             @relation("ConnectionAddressee")
+  /// Organiser capability (D7): granted only by an ADMIN; also needs a verified email and
+  /// the PROFESSIONAL primary use. Server-controlled.
+  isOrganiser             Boolean                  @default(false)
+  organiserSince          DateTime?
+  opportunities           Opportunity[]            @relation("OpportunityOrganiser")
+  opportunityApplications OpportunityApplication[]
 
   @@map("user")
 }
@@ -635,4 +641,70 @@ model OutboxEvent {
 
   @@index([status, availableAt])
   @@map("outbox_event")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Opportunities (FR-34..37)
+// ─────────────────────────────────────────────────────────────
+
+enum OpportunityType {
+  GIG
+  AUDITION
+  EVENT
+  JOB
+  COLLABORATION
+}
+
+enum OpportunityStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+}
+
+enum ApplicationStatus {
+  SUBMITTED
+  SHORTLISTED
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+model Opportunity {
+  id           String                   @id @default(cuid(2))
+  organiserId  String
+  organiser    User                     @relation("OpportunityOrganiser", fields: [organiserId], references: [id], onDelete: Cascade)
+  type         OpportunityType
+  title        String
+  description  String
+  requirements String?
+  location     String?
+  remote       Boolean                  @default(false)
+  deadline     DateTime
+  status       OpportunityStatus        @default(DRAFT)
+  publishedAt  DateTime?
+  closedAt     DateTime?
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+  applications OpportunityApplication[]
+
+  @@index([status, deadline])
+  @@index([organiserId])
+  @@map("opportunity")
+}
+
+/// One per (opportunity, applicant). Withdrawing keeps the row; re-applying before the deadline reopens it.
+model OpportunityApplication {
+  id            String            @id @default(cuid(2))
+  opportunityId String
+  opportunity   Opportunity       @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  applicantId   String
+  applicant     User              @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  message       String
+  status        ApplicationStatus @default(SUBMITTED)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@unique([opportunityId, applicantId])
+  @@index([applicantId])
+  @@map("opportunity_application")
 }

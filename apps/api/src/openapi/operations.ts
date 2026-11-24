@@ -1,6 +1,11 @@
 import type { z } from 'zod';
 import {
+  applicationDecisionSchema,
+  applySchema,
   assignReportSchema,
+  createOpportunitySchema,
+  grantOrganiserSchema,
+  updateOpportunitySchema,
   createCommentSchema,
   createConnectionSchema,
   createPortfolioSchema,
@@ -160,4 +165,35 @@ export const operations: Operation[] = [
   op('POST', '/admin/content/{type}/{id}/remove', 'Admin', 'Remove content (reason required)', 'staff', { body: moderationActionSchema }),
   op('POST', '/admin/content/{type}/{id}/restore', 'Admin', 'Restore removed content', 'staff', { body: reasonOnlySchema }),
   op('GET', '/admin/audit', 'Admin', 'Append-only audit log', 'staff'),
+  op('POST', '/admin/users/{id}/organiser', 'Admin', 'Grant or revoke organiser access (admin, reason required, audited)', 'staff', {
+    body: grantOrganiserSchema,
+  }),
+
+  op('GET', '/opportunities', 'Opportunities', 'Browse opportunities (type, location, open only)', 'optional'),
+  op('GET', '/opportunities/mine', 'Opportunities', 'Opportunities you organise, drafts included', 'member'),
+  op('GET', '/opportunities/organiser-status', 'Opportunities', 'Whether you may organise, and what is missing', 'member'),
+  op('GET', '/opportunities/{id}', 'Opportunities', 'Opportunity detail (drafts: organiser only)', 'optional'),
+  op('POST', '/opportunities', 'Opportunities', 'Create a draft (approved organisers)', 'member', {
+    body: createOpportunitySchema,
+    idempotent: true,
+    rateLimit: 'content-write',
+  }),
+  op('PATCH', '/opportunities/{id}', 'Opportunities', 'Edit your opportunity', 'member', {
+    body: updateOpportunitySchema,
+    rateLimit: 'content-write',
+  }),
+  op('POST', '/opportunities/{id}/publish', 'Opportunities', 'Publish a draft (future deadline required)', 'member', {
+    rateLimit: 'content-write',
+  }),
+  op('POST', '/opportunities/{id}/close', 'Opportunities', 'Close an opportunity', 'member'),
+  op('POST', '/opportunities/{id}/apply', 'Opportunities', 'Apply or express interest (once, before the deadline)', 'member', {
+    body: applySchema,
+    idempotent: true,
+    rateLimit: 'apply',
+  }),
+  op('POST', '/opportunities/{id}/withdraw', 'Opportunities', 'Withdraw your application before the deadline', 'member'),
+  op('GET', '/opportunities/{id}/applications', 'Opportunities', 'Applicants (organiser only)', 'member'),
+  op('POST', '/applications/{id}/status', 'Opportunities', 'Shortlist, accept or reject an application (organiser, audited)', 'member', {
+    body: applicationDecisionSchema,
+  }),
 ];

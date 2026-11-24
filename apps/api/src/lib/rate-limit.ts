@@ -68,4 +68,6 @@ export const limits = {
   connectionRequest: rateLimit({ name: 'connection-request', windows: [{ ms: HOUR, max: 30 }] }),
   report: rateLimit({ name: 'report', windows: [{ ms: HOUR, max: 20 }] }),
   upload: rateLimit({ name: 'upload', windows: [{ ms: HOUR, max: 60 }] }),
+  /** Applications, entries, interest — one per target, so a low ceiling only stops scripts. */
+  apply: rateLimit({ name: 'apply', windows: [{ ms: HOUR, max: 30 }] }),
 };

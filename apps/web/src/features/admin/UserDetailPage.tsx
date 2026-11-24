@@ -20,7 +20,7 @@ export function UserDetailPage() {
   return <UserWorkspace u={data} />;
 }
 
-type Dialog = null | 'restrict' | 'suspend' | 'ban' | 'reinstate' | 'role' | 'reset2fa' | 'avatar' | 'cover';
+type Dialog = null | 'restrict' | 'suspend' | 'ban' | 'reinstate' | 'role' | 'reset2fa' | 'avatar' | 'cover' | 'organiser';
 
 /** Date input value N days from now, for the suspension picker. */
 const inDays = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
@@ -207,6 +207,19 @@ function UserWorkspace({ u }: { u: AdminUserDetail }) {
               </div>
             </Section>
           )}
+          {a.grantOrganiser && (
+            <Section title="Organiser access">
+              <div className="space-y-3 px-3 py-2 text-sm">
+                <p className="text-text-2">
+                  {u.isOrganiser ? 'Can publish opportunities and competitions' : 'Cannot publish opportunities or competitions'} (also
+                  needs a verified email and an industry-professional account).
+                </p>
+                <Button size="sm" variant={u.isOrganiser ? 'outline' : 'primary'} onClick={() => setDialog('organiser')}>
+                  {u.isOrganiser ? 'Revoke organiser access' : 'Grant organiser access'}
+                </Button>
+              </div>
+            </Section>
+          )}
           <Section title="Account history">
             {u.history.length === 0 ? (
               <p className="px-3 py-2 text-sm text-text-2">No administrative actions on this account.</p>
@@ -293,6 +306,18 @@ function UserWorkspace({ u }: { u: AdminUserDetail }) {
         destructive
         description="Use when they've lost their authenticator and backup codes. They're signed out everywhere and must set it up again."
         onConfirm={(reason) => act(() => adminApi.resetTwoFactor(u.id, reason), 'Two-step verification reset')}
+      />
+      <ReasonDialog
+        open={dialog === 'organiser'}
+        onClose={close}
+        title={u.isOrganiser ? 'Revoke organiser access' : 'Grant organiser access'}
+        confirmLabel={u.isOrganiser ? 'Revoke' : 'Grant'}
+        onConfirm={(reason) =>
+          act(
+            () => adminApi.setOrganiser(u.id, !u.isOrganiser, reason),
+            u.isOrganiser ? 'Organiser access revoked' : 'Organiser access granted',
+          )
+        }
       />
       <ReasonDialog
         open={dialog === 'avatar' || dialog === 'cover'}

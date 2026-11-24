@@ -97,6 +97,16 @@ export const router = createBrowserRouter([
       { path: '/work/:id', element: page(() => import('@/features/portfolio/PortfolioItemPage'), 'PortfolioItemPage') },
       { path: '/p/:id', element: page(() => import('@/features/feed/PostPage'), 'PostPage') },
       { path: '/discover', element: page(() => import('@/features/discover/DiscoverPage'), 'DiscoverPage') },
+      { path: '/opportunities', element: page(() => import('@/features/opportunities/OpportunitiesPage'), 'OpportunitiesPage') },
+      {
+        path: '/opportunities/new',
+        element: auth(() => import('@/features/opportunities/OpportunityEditorPage'), 'OpportunityEditorPage'),
+      },
+      { path: '/opportunities/:id', element: page(() => import('@/features/opportunities/OpportunityPage'), 'OpportunityPage') },
+      {
+        path: '/opportunities/:id/edit',
+        element: auth(() => import('@/features/opportunities/OpportunityEditorPage'), 'OpportunityEditorPage'),
+      },
       // Signed-in pages
       { path: '/home', element: auth(() => import('@/features/home/HomePage'), 'HomePage') },
       { path: '/studio', element: auth(() => import('@/features/portfolio/StudioPage'), 'StudioPage') },
