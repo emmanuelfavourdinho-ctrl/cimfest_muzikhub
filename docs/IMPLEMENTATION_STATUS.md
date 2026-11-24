@@ -19,7 +19,7 @@ _Last updated: 2026-11-24 (M0 foundation; Admin Console phases 1–4; landing re
 | OpenAPI 3.1 skeleton + drift test | ✅ | api:openapi.test; Redocly: valid |
 | GitHub Actions CI | 🟡 written; every step run locally, incl. on a fresh clone; **not yet run on GitHub** | `.github/workflows/ci.yml` |
 | Supabase migration for the new tables | ⛔ needs approval | |
-| Auth pages LCP ≤ 2.5 s | ⬜ M1 | currently 3.2–3.3 s; CI ratchet at 3.4 s |
+| Auth pages LCP ≤ 2.5 s | ⬜ M1 | measured 3.17–3.44 s; CI ratchet at 3.6 s |
 
 ## Milestone 0 (original setup) — Foundation ✅
 

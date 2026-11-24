@@ -118,7 +118,7 @@ _Phase 0 audit, 2026-11-24, updated at the end of M0. Companion to `docs/traceab
 | R14 | **Prisma CLI doesn't verify the DB certificate** (runtime does) | Low | Medium | `db:check` before every migration (documented) |
 | R15 | **Public GitHub repo history contains the photo URLs** (first commit) | High (already public) | Medium | Make the assets authenticated on Cloudinary (URLs stop working), and/or make the repo private, and/or rewrite history (force-push). All need the owner's approval (§7) |
 | R16 | **scrypt memory** (128 MiB per hash) on small instances | Medium | Medium | Max 2 concurrent hashes (peak measured 328 MiB); use ≥1 GiB, or set the cap to 1 on 512 MiB (ADR 0001) |
-| R17 | **/login and /register LCP 3.2–3.3 s** on throttled mobile (2.9 s before M0) | Certain | Medium | CI ratchet at 3.4 s. Target 2.5 s in M1: trim the auth bundle (auth client, Zod, forms), consider pre-rendering the auth pages |
+| R17 | **/login and /register LCP 3.2–3.3 s** on throttled mobile (2.9 s before M0) | Certain | Medium | CI ratchet at 3.6 s (measured 3.17–3.44 s across runs; the gate sits outside the noise band). Target 2.5 s in M1: trim the auth bundle (auth client, Zod, forms), consider pre-rendering the auth pages |
 | R18 | **Intermittent test** `network.test.ts` "30-day cooldown" failed once during M0 and passed in every other run | Low | Low | Watch; investigate in M4 (connections) |
 
 ## 5. Gap plan and proposed order

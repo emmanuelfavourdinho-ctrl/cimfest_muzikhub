@@ -155,7 +155,7 @@ _Phase 0 audit 2026-11-24, updated at the end of **M0** (branch `chore/m0-founda
 
 | Group | Status | Evidence | Main gaps |
 |---|---|---|---|
-| 5.1 Performance | Partial | Code-split routes; guarded pages download alongside their guard. **CI gates:** JS budget per route (`scripts/js-budget.mjs`) and Lighthouse CI. Measured mobile: `/` LCP 2.1 s, CLS 0; `/login` 3.2 s, `/register` 3.3 s | Auth pages to 2.5 s (M1); Postgres full-text search (M3) |
+| 5.1 Performance | Partial | Code-split routes; guarded pages download alongside their guard. **CI gates:** JS budget per route (`scripts/js-budget.mjs`) and Lighthouse CI. Measured mobile: `/` LCP 2.1 s, CLS 0; `/login` and `/register` 3.17–3.44 s across runs | Auth pages to 2.5 s (M1); Postgres full-text search (M3) |
 | 5.2 Reliability | Partial | RFC 9457 errors; reads retried, mutations never auto-retried. **M0:** Idempotency-Key on post, comment, connection and report creates; transactional outbox with retries | Error boundaries per route (M1); structured logs with correlation IDs |
 | 5.3 Security | Partial → much improved | **M0:** scrypt at OWASP minimum + rehash (ADR 0001); CSRF origin/Fetch-Metadata check; per-class rate limits (429 + Retry-After); email-verification flag; audit-ci + gitleaks in CI. Existing: HTTP-only sessions, server-side authorisation, Zod validation, Helmet, admin 2FA + append-only audit | CSP for the web app (Vercel headers, M13); breached-password check (M1); threat models (M13) |
 | 5.4 Usability and accessibility | Partial | Landing + draft pages axe-clean; every app screen tokenised (olive palette); axe sweep across all screens in M0 (see M0 report) | 44 px target audit; skip link and error boundaries in the app shell (M1) |
