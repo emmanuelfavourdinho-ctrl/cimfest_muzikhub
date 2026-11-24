@@ -155,17 +155,19 @@ export const trust = {
 
 export const roadmap = {
   eyebrow: 'Roadmap',
-  heading: 'What’s coming',
-  intro: 'These are part of the plan for MuzikHub and are not available yet.',
+  heading: 'What’s new, and what’s next',
+  intro: 'What you can use in MuzikHub today, and what we’re still building. Nothing here comes with a promised date.',
   items: [
-    { title: 'Communities', text: 'Ongoing discussions, knowledge-sharing and mentorship around shared interests.' },
-    { title: 'Collaboration requests', text: 'Structured requests — “artist looking for a producer” — with clear responses.' },
-    { title: 'Opportunities', text: 'Gigs, auditions, events and openings from organisers.' },
-    { title: 'Competitions and challenges', text: 'Browse, check eligibility and submit entries.' },
-    { title: 'Messages and calls', text: 'One-to-one conversations, then audio and video calls.' },
-    { title: 'Promotion', text: 'Optional, clearly labelled promotion for your work.' },
-    { title: 'Data export and account deletion', text: 'Download your data or close your account yourself.' },
-  ],
+    { status: 'available', title: 'Communities', text: 'Join communities around a genre, craft or city. Ask questions, share techniques and discuss with people who get it.' },
+    { status: 'available', title: 'Collaboration requests', text: 'Send a structured request (“artist looking for a producer”), answer questions in the open, and run the project together once it’s accepted.' },
+    { status: 'available', title: 'Opportunities', text: 'Gigs, auditions, events and openings from approved organisers. Apply in a few taps.' },
+    { status: 'available', title: 'Competitions and challenges', text: 'Read the rules, prize terms and judging criteria first, then enter. Results and judges’ feedback are published openly.' },
+    { status: 'available', title: 'Messages', text: 'One-to-one conversations that arrive in real time, with read receipts and control over who can message you.' },
+    { status: 'available', title: 'Promotion', text: 'Optional, clearly labelled promotion for your work. Organic discovery stays free for everyone.' },
+    { status: 'soon', title: 'Audio and video calls', text: 'Talk through a session without leaving MuzikHub, built to hold up on mobile networks.' },
+    { status: 'soon', title: 'Data export and account deletion', text: 'Download your data or close your account yourself.' },
+    { status: 'soon', title: 'Works offline', text: 'Keep browsing and drafting on a weak connection; changes sync when you’re back online.' },
+  ] as { status: 'available' | 'soon'; title: string; text: string }[],
 };
 
 export const faq = {

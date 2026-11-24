@@ -292,7 +292,7 @@ export function TrustSection() {
   );
 }
 
-/* ── I. Roadmap: quiet, labelled, no buttons ── */
+/* ── I. Roadmap: what's available now and what's next; quiet, labelled, no buttons ── */
 export function RoadmapSection() {
   return (
     <section id="roadmap" aria-labelledby="roadmap-title" className="py-section">
@@ -301,7 +301,11 @@ export function RoadmapSection() {
         <ul className="mt-10 grid gap-x-8 sm:grid-cols-2 lg:grid-cols-3">
           {roadmap.items.map((r) => (
             <li key={r.title} data-reveal className="border-t border-hairline py-6">
-              <span className="inline-flex rounded-full border border-hairline-strong px-2.5 py-0.5 text-caption font-semibold text-text-2">Coming soon</span>
+              {r.status === 'available' ? (
+                <span className="inline-flex rounded-full border border-signal/40 px-2.5 py-0.5 text-caption font-semibold text-signal">Available now</span>
+              ) : (
+                <span className="inline-flex rounded-full border border-hairline-strong px-2.5 py-0.5 text-caption font-semibold text-text-2">Coming soon</span>
+              )}
               <h3 className="mt-3 text-body font-bold text-text-1">{r.title}</h3>
               <p className="mt-1 text-small text-text-2">{r.text}</p>
             </li>
