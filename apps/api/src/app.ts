@@ -20,6 +20,7 @@ import { reportsRouter } from './modules/reports/reports.routes.js';
 import { adminRouter } from './modules/admin/admin.routes.js';
 import type { MediaStorage } from './lib/media-storage.js';
 import { originCheck } from './middleware/origin-check.js';
+import { openApiDocument } from './openapi/document.js';
 
 export interface AppDependencies {
   /** Returns true when the database answers. Injected so tests need no real DB. */
@@ -55,6 +56,10 @@ export function createApp(overrides: Partial<AppDependencies> = {}): Express {
   // CSRF: state-changing requests must come from an allowed web origin (see origin-check.ts).
   v1.use(originCheck(env.CORS_ORIGINS));
   v1.use('/health', healthRouter(deps.checkDatabase));
+  // OpenAPI 3.1 description of this API (generated from openapi/operations.ts).
+  v1.get('/openapi.json', (_req, res) => {
+    res.json(openApiDocument());
+  });
   // More specific routes first: /me/portfolio and /profiles/:username/portfolio.
   v1.use('/me/portfolio', ownPortfolioRoute());
   v1.use('/me', meRouter());

@@ -1,0 +1,163 @@
+import type { z } from 'zod';
+import {
+  assignReportSchema,
+  createCommentSchema,
+  createConnectionSchema,
+  createPortfolioSchema,
+  createPostSchema,
+  createReportSchema,
+  createUploadSchema,
+  moderationActionSchema,
+  publishPortfolioSchema,
+  reasonOnlySchema,
+  replaceLinksSchema,
+  reportNoteSchema,
+  resolveReportSchema,
+  setAccountStatusSchema,
+  setProfileImageSchema,
+  setRoleSchema,
+  updatePortfolioSchema,
+  updatePostSchema,
+  updateProfileSchema,
+} from '@muzikhub/shared';
+
+/**
+ * Every /api/v1 operation (OpenAPI skeleton, M0). The drift test compares this list with the
+ * real route table (route-scan.ts), so adding a route without documenting it fails CI.
+ * Response schemas and query parameters are filled in milestone by milestone.
+ *
+ * auth: public (no session) · optional (works signed out, personalised when signed in) ·
+ *       member (session required) · staff (moderator/admin with 2FA, server-checked)
+ */
+export type Auth = 'public' | 'optional' | 'member' | 'staff';
+export type Operation = {
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  path: string;
+  tag: string;
+  summary: string;
+  auth: Auth;
+  body?: z.ZodType;
+  /** Accepts Idempotency-Key (ADR 0003). */
+  idempotent?: boolean;
+  /** Rate-limited endpoint class (lib/rate-limit.ts). */
+  rateLimit?: string;
+};
+
+const op = (
+  method: Operation['method'],
+  path: string,
+  tag: string,
+  summary: string,
+  auth: Auth,
+  extra: Partial<Operation> = {},
+): Operation => ({
+  method,
+  path: `/api/v1${path}`,
+  tag,
+  summary,
+  auth,
+  ...extra,
+});
+
+export const operations: Operation[] = [
+  op('GET', '/health', 'System', 'Service and database health', 'public'),
+  op('GET', '/openapi.json', 'System', 'This OpenAPI document', 'public'),
+
+  op('GET', '/me', 'Me', 'The signed-in user, profile and links', 'member'),
+  op('PATCH', '/me/profile', 'Me', 'Update profile fields (onboarding and settings)', 'member', { body: updateProfileSchema }),
+  op('PUT', '/me/profile/links', 'Me', 'Replace external profile links', 'member', { body: replaceLinksSchema }),
+  op('PUT', '/me/profile/avatar', 'Me', 'Set or clear the profile photo', 'member', { body: setProfileImageSchema }),
+  op('PUT', '/me/profile/cover', 'Me', 'Set or clear the cover image', 'member', { body: setProfileImageSchema }),
+  op('POST', '/me/onboarding/complete', 'Me', 'Mark onboarding finished', 'member'),
+  op('GET', '/me/portfolio', 'Portfolio', "The signed-in user's portfolio, drafts included", 'member'),
+
+  op('GET', '/profiles/{username}', 'Profiles', 'Public profile', 'optional'),
+  op('GET', '/profiles/{username}/portfolio', 'Portfolio', "A profile's published portfolio", 'optional'),
+  op('GET', '/profiles/{username}/posts', 'Feed', "A profile's posts", 'optional'),
+
+  op('GET', '/portfolio/{id}', 'Portfolio', 'A portfolio item (owner sees drafts and moderation notes)', 'optional'),
+  op('POST', '/portfolio', 'Portfolio', 'Create a portfolio item (draft)', 'member', {
+    body: createPortfolioSchema,
+    rateLimit: 'content-write',
+  }),
+  op('PATCH', '/portfolio/{id}', 'Portfolio', 'Edit a portfolio item', 'member', {
+    body: updatePortfolioSchema,
+    rateLimit: 'content-write',
+  }),
+  op('POST', '/portfolio/{id}/publish', 'Portfolio', 'Publish (optionally share to feed)', 'member', {
+    body: publishPortfolioSchema,
+    rateLimit: 'content-write',
+  }),
+  op('POST', '/portfolio/{id}/archive', 'Portfolio', 'Archive a portfolio item', 'member'),
+  op('DELETE', '/portfolio/{id}', 'Portfolio', 'Delete a portfolio item', 'member'),
+
+  op('POST', '/media/uploads', 'Media', 'Start a signed direct upload to the media store', 'member', {
+    body: createUploadSchema,
+    rateLimit: 'upload',
+  }),
+  op('POST', '/media/{id}/confirm', 'Media', 'Confirm an upload (server re-checks type, size, duration)', 'member'),
+  op('DELETE', '/media/{id}', 'Media', 'Delete an unattached upload', 'member'),
+
+  op('GET', '/feed', 'Feed', 'Discover or Following feed (cursor-paginated)', 'optional'),
+  op('POST', '/posts', 'Feed', 'Create a post', 'member', { body: createPostSchema, idempotent: true, rateLimit: 'content-write' }),
+  op('GET', '/posts/{id}', 'Feed', 'A post', 'optional'),
+  op('PATCH', '/posts/{id}', 'Feed', 'Edit your post', 'member', { body: updatePostSchema, rateLimit: 'content-write' }),
+  op('DELETE', '/posts/{id}', 'Feed', 'Delete your post', 'member'),
+  op('PUT', '/posts/{id}/like', 'Feed', 'Like a post', 'member', { rateLimit: 'reaction' }),
+  op('DELETE', '/posts/{id}/like', 'Feed', 'Remove your like', 'member', { rateLimit: 'reaction' }),
+  op('GET', '/posts/{id}/comments', 'Feed', 'Comments on a post', 'optional'),
+  op('POST', '/posts/{id}/comments', 'Feed', 'Comment on a post', 'member', {
+    body: createCommentSchema,
+    idempotent: true,
+    rateLimit: 'content-write',
+  }),
+  op('DELETE', '/comments/{id}', 'Feed', 'Delete your comment', 'member'),
+
+  op('PUT', '/users/{username}/follow', 'Network', 'Follow someone', 'member', { rateLimit: 'reaction' }),
+  op('DELETE', '/users/{username}/follow', 'Network', 'Unfollow', 'member', { rateLimit: 'reaction' }),
+  op('GET', '/users/{username}/followers', 'Network', 'Followers', 'optional'),
+  op('GET', '/users/{username}/following', 'Network', 'Following', 'optional'),
+  op('GET', '/users/{username}/relationship', 'Network', 'Your follow/connection state with someone', 'optional'),
+  op('GET', '/connections', 'Network', 'Your connections and requests', 'member'),
+  op('POST', '/connections', 'Network', 'Send a connection request', 'member', {
+    body: createConnectionSchema,
+    idempotent: true,
+    rateLimit: 'connection-request',
+  }),
+  op('POST', '/connections/{id}/accept', 'Network', 'Accept a request', 'member'),
+  op('POST', '/connections/{id}/decline', 'Network', 'Decline a request', 'member'),
+  op('POST', '/connections/{id}/cancel', 'Network', 'Withdraw your pending request', 'member'),
+  op('DELETE', '/connections/{id}', 'Network', 'Remove a connection', 'member'),
+
+  op('GET', '/discover/people', 'Discover', 'Search people by name, role, genre, location', 'optional'),
+  op('GET', '/discover/work', 'Discover', 'Search published work', 'optional'),
+
+  op('POST', '/reports', 'Moderation', 'Report a post, comment, work or profile', 'member', {
+    body: createReportSchema,
+    idempotent: true,
+    rateLimit: 'report',
+  }),
+
+  op('GET', '/admin/me', 'Admin', 'Your staff role, 2FA state and permissions (works before 2FA)', 'member'),
+  op('GET', '/admin/overview', 'Admin', 'Operational overview (real data only)', 'staff'),
+  op('GET', '/admin/users', 'Admin', 'Search members', 'staff'),
+  op('GET', '/admin/users/{id}', 'Admin', 'Member detail and history', 'staff'),
+  op('POST', '/admin/users/{id}/status', 'Admin', 'Restrict, suspend, ban or reinstate (reason required)', 'staff', {
+    body: setAccountStatusSchema,
+  }),
+  op('POST', '/admin/users/{id}/role', 'Admin', 'Change platform role (admin, fresh session)', 'staff', { body: setRoleSchema }),
+  op('POST', '/admin/users/{id}/reset-two-factor', 'Admin', "Reset a member's 2FA (admin, fresh session)", 'staff', {
+    body: reasonOnlySchema,
+  }),
+  op('GET', '/admin/reports', 'Admin', 'Reports queue', 'staff'),
+  op('GET', '/admin/reports/{id}', 'Admin', 'Report detail', 'staff'),
+  op('POST', '/admin/reports/{id}/assign', 'Admin', 'Take or release a report', 'staff', { body: assignReportSchema }),
+  op('POST', '/admin/reports/{id}/notes', 'Admin', 'Add an internal note', 'staff', { body: reportNoteSchema }),
+  op('POST', '/admin/reports/{id}/escalate', 'Admin', 'Escalate to an admin', 'staff', { body: reasonOnlySchema }),
+  op('POST', '/admin/reports/{id}/resolve', 'Admin', 'Resolve a report', 'staff', { body: resolveReportSchema }),
+  op('POST', '/admin/reports/{id}/dismiss', 'Admin', 'Dismiss a report', 'staff', { body: resolveReportSchema }),
+  op('GET', '/admin/content', 'Admin', 'Browse content for moderation', 'staff'),
+  op('POST', '/admin/content/{type}/{id}/remove', 'Admin', 'Remove content (reason required)', 'staff', { body: moderationActionSchema }),
+  op('POST', '/admin/content/{type}/{id}/restore', 'Admin', 'Restore removed content', 'staff', { body: reasonOnlySchema }),
+  op('GET', '/admin/audit', 'Admin', 'Append-only audit log', 'staff'),
+];
