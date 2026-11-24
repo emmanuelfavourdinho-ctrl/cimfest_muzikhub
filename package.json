@@ -25,12 +25,15 @@
     "db:migrate": "npm run db:migrate -w @muzikhub/api",
     "db:studio": "npm run db:studio -w @muzikhub/api",
     "test:e2e": "playwright test",
-    "media:cleanup": "npm run media:cleanup -w @muzikhub/api"
+    "media:cleanup": "npm run media:cleanup -w @muzikhub/api",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",
     "@playwright/test": "^1.65.1",
     "concurrently": "^10.0.7",
+    "prettier": "^3.10.1",
     "typescript": "^7.0.2"
   },
   "allowScripts": {
