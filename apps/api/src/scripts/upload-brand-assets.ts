@@ -12,7 +12,9 @@ import { v2 as cloudinary } from 'cloudinary';
 import { env } from '../config/env.js';
 
 const LANDING_DIR = join(import.meta.dirname, '../../../../brand-originals/landing');
-const MANIFEST = join(import.meta.dirname, '../../../web/src/features/home/hero-photos.json');
+// Written next to the originals (git-ignored): delivery URLs must never be committed again
+// (owner decision 2026-11-24 — the photos have no recorded licence and are not used).
+const MANIFEST = join(LANDING_DIR, 'hero-photos.json');
 const FOLDER = `${env.CLOUDINARY_FOLDER}/brand/landing`;
 
 /** The five approved photographs (2026-11-24), in display order. Slugs describe the shot, not the person. */

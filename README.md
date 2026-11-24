@@ -49,7 +49,7 @@ Open http://localhost:5173 and create an account.
 | `RESEND_LIVE=1 npx vitest run mailer.live` (in `apps/api`) | Opt-in test: one email via Resend's test sender to the `delivered@resend.dev` sink (no real recipient) |
 | `npm run admin:grant-initial -w @muzikhub/api -- --email you@example.com` | Make an existing, **verified** account the first administrator (refuses if one exists; audited). Then sign in, open `/admin` and set up two-step verification |
 | `npm run admin:reset-two-factor -w @muzikhub/api` | Last-resort staff 2FA recovery from the server (asks for email, reason and confirmation; audited) |
-| `npm run brand:upload -w @muzikhub/api` | Upload the approved landing photographs to Cloudinary and regenerate `hero-photos.json` (safe to re-run; never deletes originals) |
+| `npm run brand:upload -w @muzikhub/api` | Parked: uploads the (unlicensed, unused) landing originals to Cloudinary; the manifest goes to the git-ignored `brand-originals/landing/` |
 
 ## Layout
 
