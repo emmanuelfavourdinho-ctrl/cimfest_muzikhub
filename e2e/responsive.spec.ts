@@ -12,9 +12,7 @@ test('public pages never scroll horizontally at supported widths', async ({ page
     for (const path of PAGES) {
       await page.goto(path);
       await page.waitForLoadState('networkidle');
-      const overflow = await page.evaluate(
-        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-      );
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
       expect(overflow, `${path} at ${width}px`).toBeLessThanOrEqual(0);
     }
   }

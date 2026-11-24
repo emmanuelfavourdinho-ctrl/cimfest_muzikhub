@@ -2,7 +2,10 @@ import { checkUpload, kindFromMime, type MediaPurpose, type MediaView, type Sign
 import { api, ApiRequestError } from './api';
 
 export class UploadError extends Error {
-  constructor(message: string, readonly retryable: boolean) {
+  constructor(
+    message: string,
+    readonly retryable: boolean,
+  ) {
     super(message);
     this.name = 'UploadError';
   }

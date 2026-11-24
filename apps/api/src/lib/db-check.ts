@@ -33,7 +33,8 @@ export async function readOnlyProbe(client: pg.Client, local: string[] = localMi
   await client.query('BEGIN TRANSACTION READ ONLY');
   try {
     const ro = await client.query<{ transaction_read_only: string }>('SHOW transaction_read_only');
-    if (ro.rows[0]?.transaction_read_only !== 'on') throw new Error('The server did not open a read-only transaction; stopping without running any queries.');
+    if (ro.rows[0]?.transaction_read_only !== 'on')
+      throw new Error('The server did not open a read-only transaction; stopping without running any queries.');
     await client.query("SET LOCAL statement_timeout = '10s'");
 
     const info = await client.query<{ version: string; database: string; tables: number }>(

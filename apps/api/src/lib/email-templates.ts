@@ -28,7 +28,21 @@ function safeHref(url: string): string {
 }
 
 /** Deep Forest / Emerald / Off White, as in the product. */
-function layout({ preheader, heading, body, cta, url, footer }: { preheader: string; heading: string; body: string; cta: string; url: string; footer: string }) {
+function layout({
+  preheader,
+  heading,
+  body,
+  cta,
+  url,
+  footer,
+}: {
+  preheader: string;
+  heading: string;
+  body: string;
+  cta: string;
+  url: string;
+  footer: string;
+}) {
   const href = safeHref(url);
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(heading)}</title></head>

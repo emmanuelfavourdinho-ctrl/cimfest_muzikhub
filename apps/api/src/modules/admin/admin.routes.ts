@@ -118,7 +118,9 @@ export function adminRouter(): Router {
     res.json(await moderation.listContent(staffOf(res.locals), parseQuery(adminContentQuerySchema, req.query)));
   });
   router.post('/content/:type/:id/remove', validateBody(moderationActionSchema), async (req, res) => {
-    res.json(await moderation.removeContent(staffOf(res.locals), moderationTarget(req), param(req, 'id'), req.body.reason, req.body.reportId));
+    res.json(
+      await moderation.removeContent(staffOf(res.locals), moderationTarget(req), param(req, 'id'), req.body.reason, req.body.reportId),
+    );
   });
   router.post('/content/:type/:id/restore', validateBody(reasonOnlySchema), async (req, res) => {
     res.json(await moderation.restoreContent(staffOf(res.locals), moderationTarget(req), param(req, 'id'), req.body.reason));
@@ -135,11 +137,16 @@ export function adminRouter(): Router {
       ...(q.targetId && { targetId: q.targetId }),
       ...(q.actorId && { actorId: q.actorId }),
     };
-    const page = await paginate(q, (args) => prisma.auditLog.findMany({ where, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], ...args }));
+    const page = await paginate(q, (args) =>
+      prisma.auditLog.findMany({ where, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], ...args }),
+    );
     const actorIds = [...new Set(page.items.map((a) => a.actorId).filter((x): x is string => Boolean(x)))];
     const actors = await prisma.user.findMany({ where: { id: { in: actorIds } }, select: { id: true, name: true, username: true } });
     const byId = new Map(actors.map((a) => [a.id, { name: a.name, username: a.username }]));
-    res.json({ nextCursor: page.nextCursor, items: page.items.map((a) => ({ ...users.toAuditView(a), actor: a.actorId ? (byId.get(a.actorId) ?? null) : null })) });
+    res.json({
+      nextCursor: page.nextCursor,
+      items: page.items.map((a) => ({ ...users.toAuditView(a), actor: a.actorId ? (byId.get(a.actorId) ?? null) : null })),
+    });
   });
 
   return router;

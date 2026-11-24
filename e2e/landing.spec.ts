@@ -36,9 +36,19 @@ test.describe('landing page', () => {
       await expect(page.locator(`#${id} h2`).first()).toBeInViewport();
       await expect(nav.getByRole('link', { name: label })).toHaveAttribute('aria-current', 'true');
       // Once smooth scrolling settles, the heading is never hidden under the fixed header.
-      const header = await page.locator('header').first().evaluate((el) => el.getBoundingClientRect().bottom);
+      const header = await page
+        .locator('header')
+        .first()
+        .evaluate((el) => el.getBoundingClientRect().bottom);
       await expect
-        .poll(() => page.locator(`#${id} h2`).first().evaluate((el) => el.getBoundingClientRect().top), { message: `${id} heading below the header` })
+        .poll(
+          () =>
+            page
+              .locator(`#${id} h2`)
+              .first()
+              .evaluate((el) => el.getBoundingClientRect().top),
+          { message: `${id} heading below the header` },
+        )
         .toBeGreaterThanOrEqual(header);
     }
     await page.getByRole('link', { name: 'See how it works' }).click();
@@ -171,7 +181,15 @@ test.describe('landing page', () => {
 
   test('no horizontal scroll at the listed widths, including landscape phone', async ({ page }, info) => {
     test.skip(info.project.name !== 'desktop', 'viewport sweep runs once');
-    for (const [w, h] of [[360, 800], [390, 844], [768, 1024], [1024, 768], [1280, 800], [1536, 900], [844, 390]] as const) {
+    for (const [w, h] of [
+      [360, 800],
+      [390, 844],
+      [768, 1024],
+      [1024, 768],
+      [1280, 800],
+      [1536, 900],
+      [844, 390],
+    ] as const) {
       await page.setViewportSize({ width: w, height: h });
       for (const path of ['/', '/privacy', '/terms', '/contact', '/safety']) {
         await page.goto(path);
@@ -187,7 +205,10 @@ test.describe('landing page', () => {
       await page.goto(path);
       await page.waitForLoadState('networkidle');
       const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze();
-      expect(violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`), `${path} (${info.project.name})`).toEqual([]);
+      expect(
+        violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`),
+        `${path} (${info.project.name})`,
+      ).toEqual([]);
     }
     // The menu sheet and an open FAQ answer, too.
     await page.goto('/');

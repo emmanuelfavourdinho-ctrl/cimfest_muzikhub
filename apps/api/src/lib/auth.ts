@@ -2,14 +2,7 @@ import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { APIError, createAuthMiddleware } from 'better-auth/api';
 import { twoFactor, username } from 'better-auth/plugins';
-import {
-  PASSWORD_MAX,
-  PASSWORD_MIN,
-  PRIMARY_USE_KEYS,
-  USERNAME_MAX,
-  USERNAME_MIN,
-  usernameSchema,
-} from '@muzikhub/shared';
+import { PASSWORD_MAX, PASSWORD_MIN, PRIMARY_USE_KEYS, USERNAME_MAX, USERNAME_MIN, usernameSchema } from '@muzikhub/shared';
 import { env } from '../config/env.js';
 import { createHash } from 'node:crypto';
 import { passwordResetEmail, verificationEmail } from './email-templates.js';

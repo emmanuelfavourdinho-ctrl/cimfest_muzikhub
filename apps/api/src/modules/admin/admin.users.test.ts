@@ -52,7 +52,9 @@ describe('RESTRICTED: can sign in and browse, cannot publish or interact', () =>
     // Reducing actions remain possible: delete own post, decline, report.
     expect((await target.agent.delete(`/api/v1/posts/${ownPost.body.id}`)).status).toBe(204);
     expect((await target.agent.post(`/api/v1/connections/${pendingFromOther.body.id}/decline`)).status).toBe(200);
-    expect((await target.agent.post('/api/v1/reports').send({ targetType: 'POST', targetId: otherPost.body.id, reason: 'SPAM' })).status).toBe(201);
+    expect(
+      (await target.agent.post('/api/v1/reports').send({ targetType: 'POST', targetId: otherPost.body.id, reason: 'SPAM' })).status,
+    ).toBe(201);
   });
 });
 
@@ -72,13 +74,19 @@ describe('SUSPENDED: temporary, mandatory reason and expiry, sessions revoked', 
     expect(res.body.revokedSessions).toBeGreaterThanOrEqual(1);
 
     expect((await t.agent.get('/api/v1/me')).status).toBe(401); // session gone
-    const signIn = await request(app).post('/api/auth/sign-in/email').set('Origin', ORIGIN).send({ email: t.input.email, password: t.input.password });
+    const signIn = await request(app)
+      .post('/api/auth/sign-in/email')
+      .set('Origin', ORIGIN)
+      .send({ email: t.input.email, password: t.input.password });
     expect(signIn.status).toBe(403);
     expect((await request(app).get(`/api/v1/profiles/${t.input.username}`)).status).toBe(404);
 
     // The end date passes → automatically reinstated (audited) at next sign-in.
     await prisma.user.update({ where: { id: t.userId }, data: { statusUntil: new Date(Date.now() - 1000) } });
-    const again = await request(app).post('/api/auth/sign-in/email').set('Origin', ORIGIN).send({ email: t.input.email, password: t.input.password });
+    const again = await request(app)
+      .post('/api/auth/sign-in/email')
+      .set('Origin', ORIGIN)
+      .send({ email: t.input.email, password: t.input.password });
     expect(again.status).toBe(200);
     expect((await prisma.user.findUniqueOrThrow({ where: { id: t.userId } })).status).toBe('ACTIVE');
     const audit = await prisma.auditLog.findFirstOrThrow({ where: { action: 'user.status.expired', targetId: t.userId } });
@@ -87,7 +95,10 @@ describe('SUSPENDED: temporary, mandatory reason and expiry, sessions revoked', 
 
   it('the background sweep reinstates expired suspensions too', async () => {
     const t = await signUp(app);
-    await prisma.user.update({ where: { id: t.userId }, data: { status: 'SUSPENDED', statusReason: 'x', statusUntil: new Date(Date.now() - 1000) } });
+    await prisma.user.update({
+      where: { id: t.userId },
+      data: { status: 'SUSPENDED', statusReason: 'x', statusUntil: new Date(Date.now() - 1000) },
+    });
     expect(await reinstateExpiredSuspensions()).toBe(1);
     expect((await prisma.user.findUniqueOrThrow({ where: { id: t.userId } })).status).toBe('ACTIVE');
   });
@@ -101,16 +112,24 @@ describe('BANNED: indefinite; only an administrator can reinstate', () => {
 
     expect((await setStatus(admin.agent, t.userId, { status: 'BANNED', reason: 'Fraudulent account' })).status).toBe(200);
     expect((await t.agent.get('/api/v1/me')).status).toBe(401);
-    const signIn = await request(app).post('/api/auth/sign-in/email').set('Origin', ORIGIN).send({ email: t.input.email, password: t.input.password });
+    const signIn = await request(app)
+      .post('/api/auth/sign-in/email')
+      .set('Origin', ORIGIN)
+      .send({ email: t.input.email, password: t.input.password });
     expect(signIn.status).toBe(403);
 
     expect((await setStatus(mod.agent, t.userId, { status: 'ACTIVE', reason: 'Appeal accepted' })).status).toBe(403);
     expect((await setStatus(admin.agent, t.userId, { status: 'RESTRICTED', reason: 'Downgrade it' })).body.error.code).toBe('BANNED');
     await ageSessions(admin.userId);
-    expect((await setStatus(admin.agent, t.userId, { status: 'ACTIVE', reason: 'Appeal accepted' })).body.error.code).toBe('REAUTH_REQUIRED');
+    expect((await setStatus(admin.agent, t.userId, { status: 'ACTIVE', reason: 'Appeal accepted' })).body.error.code).toBe(
+      'REAUTH_REQUIRED',
+    );
     await prisma.session.updateMany({ where: { userId: admin.userId }, data: { createdAt: new Date() } });
     expect((await setStatus(admin.agent, t.userId, { status: 'ACTIVE', reason: 'Appeal accepted' })).status).toBe(200);
-    expect((await request(app).post('/api/auth/sign-in/email').set('Origin', ORIGIN).send({ email: t.input.email, password: t.input.password })).status).toBe(200);
+    expect(
+      (await request(app).post('/api/auth/sign-in/email').set('Origin', ORIGIN).send({ email: t.input.email, password: t.input.password }))
+        .status,
+    ).toBe(200);
   });
 
   it('banned and suspended accounts vanish from discovery and the feed', async () => {

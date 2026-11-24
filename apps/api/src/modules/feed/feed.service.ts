@@ -1,11 +1,4 @@
-import {
-  createPostSchema,
-  type CommentView,
-  type FeedTab,
-  type Page,
-  type PageQuery,
-  type PostView,
-} from '@muzikhub/shared';
+import { createPostSchema, type CommentView, type FeedTab, type Page, type PageQuery, type PostView } from '@muzikhub/shared';
 import type { z } from 'zod';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { HttpError } from '../../lib/http-error.js';

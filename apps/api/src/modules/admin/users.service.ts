@@ -30,7 +30,15 @@ function avatarOf(profile: { avatarAsset: Parameters<typeof toMediaView>[0] | nu
 async function loadTarget(staff: StaffContext, targetId: string, db: Prisma.TransactionClient = prisma) {
   const target = await db.user.findUnique({
     where: { id: targetId },
-    select: { id: true, platformRole: true, status: true, statusReason: true, statusUntil: true, emailVerified: true, twoFactorEnabled: true },
+    select: {
+      id: true,
+      platformRole: true,
+      status: true,
+      statusReason: true,
+      statusUntil: true,
+      emailVerified: true,
+      twoFactorEnabled: true,
+    },
   });
   if (!target) throw new HttpError(404, 'USER_NOT_FOUND', 'User not found');
   if (target.id === staff.id) throw new HttpError(400, 'CANNOT_ACT_ON_SELF', "You can't change your own account from the Admin Console");
@@ -61,8 +69,16 @@ export async function listUsers(staff: StaffContext, query: UsersQuery) {
       where,
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       select: {
-        id: true, name: true, username: true, email: true, emailVerified: true, platformRole: true, status: true,
-        statusUntil: true, twoFactorEnabled: true, createdAt: true,
+        id: true,
+        name: true,
+        username: true,
+        email: true,
+        emailVerified: true,
+        platformRole: true,
+        status: true,
+        statusUntil: true,
+        twoFactorEnabled: true,
+        createdAt: true,
         profile: { select: { roles: true, avatarAsset: true } },
       },
       ...args,
@@ -160,7 +176,10 @@ function allowedActions(staff: StaffContext, target: { id: string; platformRole:
     restrict: actable && can(staff.role, 'users.restrict') && target.status !== 'RESTRICTED' && target.status !== 'BANNED',
     suspend: actable && can(staff.role, 'users.suspend') && target.status !== 'BANNED',
     ban: actable && can(staff.role, 'users.ban') && target.status !== 'BANNED',
-    reinstate: actable && target.status !== 'ACTIVE' && (target.status === 'BANNED' ? can(staff.role, 'users.reinstateBanned') : can(staff.role, 'users.restrict')),
+    reinstate:
+      actable &&
+      target.status !== 'ACTIVE' &&
+      (target.status === 'BANNED' ? can(staff.role, 'users.reinstateBanned') : can(staff.role, 'users.restrict')),
     changeRole: target.id !== staff.id && can(staff.role, 'roles.assign'),
     resetTwoFactor: target.id !== staff.id && can(staff.role, 'staff.resetTwoFactor'),
     maxSuspensionDays: SUSPENSION_MAX_DAYS[staff.role],
@@ -221,7 +240,12 @@ export async function setAccountStatus(staff: StaffContext, targetId: string, in
       target: { type: 'USER', id: target.id },
       reason: input.reason,
       before: { status: target.status, statusReason: target.statusReason, statusUntil: target.statusUntil?.toISOString() ?? null },
-      after: { status: after.status, statusReason: after.statusReason, statusUntil: after.statusUntil?.toISOString() ?? null, revokedSessions },
+      after: {
+        status: after.status,
+        statusReason: after.statusReason,
+        statusUntil: after.statusUntil?.toISOString() ?? null,
+        revokedSessions,
+      },
     });
     return { status: after.status, statusUntil: after.statusUntil?.toISOString() ?? null, revokedSessions };
   });
@@ -233,7 +257,10 @@ export async function setRole(staff: StaffContext, targetId: string, role: Platf
   if (targetId === staff.id) throw new HttpError(400, 'CANNOT_ACT_ON_SELF', "You can't change your own role");
   return prisma.$transaction(
     async (tx) => {
-      const target = await tx.user.findUnique({ where: { id: targetId }, select: { id: true, platformRole: true, status: true, emailVerified: true } });
+      const target = await tx.user.findUnique({
+        where: { id: targetId },
+        select: { id: true, platformRole: true, status: true, emailVerified: true },
+      });
       if (!target) throw new HttpError(404, 'USER_NOT_FOUND', 'User not found');
       if (target.platformRole === role) throw new HttpError(409, 'NO_CHANGE', `This account is already ${role.toLowerCase()}`);
       if (role !== 'USER' && (target.status !== 'ACTIVE' || !target.emailVerified)) {
@@ -264,7 +291,7 @@ export async function setRole(staff: StaffContext, targetId: string, role: Platf
 export async function resetTwoFactor(staff: StaffContext, targetId: string, reason: string) {
   assertCan(staff, 'staff.resetTwoFactor');
   assertFreshSession(staff);
-  if (targetId === staff.id) throw new HttpError(400, 'CANNOT_ACT_ON_SELF', "Reset your own two-factor from your account settings");
+  if (targetId === staff.id) throw new HttpError(400, 'CANNOT_ACT_ON_SELF', 'Reset your own two-factor from your account settings');
   return prisma.$transaction(async (tx) => {
     const target = await tx.user.findUnique({ where: { id: targetId }, select: { id: true, twoFactorEnabled: true } });
     if (!target) throw new HttpError(404, 'USER_NOT_FOUND', 'User not found');

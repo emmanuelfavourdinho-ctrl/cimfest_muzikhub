@@ -11,12 +11,12 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-muzikhub_dev_password}
       POSTGRES_DB: ${POSTGRES_DB:-muzikhub}
     ports:
-      - "127.0.0.1:5435:5432"
+      - '127.0.0.1:5435:5432'
     volumes:
       - muzikhub-db-data:/var/lib/postgresql
       - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
       interval: 5s
       timeout: 5s
       retries: 10

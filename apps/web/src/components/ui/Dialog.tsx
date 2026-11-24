@@ -25,8 +25,15 @@ export function Dialog({ open, onClose, title, children }: { open: boolean; onCl
       {open && (
         <div className="p-5 sm:p-6">
           <div className="mb-3 flex items-center justify-between gap-4">
-            <h2 id="dialog-title" className="text-xl font-bold">{title}</h2>
-            <button type="button" onClick={onClose} aria-label="Close" className="flex size-9 items-center justify-center rounded-lg bg-[#16402f] text-[#d3f1df] hover:brightness-110">
+            <h2 id="dialog-title" className="text-xl font-bold">
+              {title}
+            </h2>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="flex size-9 items-center justify-center rounded-lg bg-[#16402f] text-[#d3f1df] hover:brightness-110"
+            >
               <X className="size-4" />
             </button>
           </div>

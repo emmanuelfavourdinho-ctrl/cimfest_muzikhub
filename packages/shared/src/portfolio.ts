@@ -13,8 +13,7 @@ export const pageQuerySchema = z.object({
 });
 export type PageQuery = z.infer<typeof pageQuerySchema>;
 
-export const pageSchema = <T extends z.ZodType>(item: T) =>
-  z.object({ items: z.array(item), nextCursor: z.string().nullable() });
+export const pageSchema = <T extends z.ZodType>(item: T) => z.object({ items: z.array(item), nextCursor: z.string().nullable() });
 export type Page<T> = { items: T[]; nextCursor: string | null };
 
 // ── Portfolio ─────────────────────────────────────────────────
@@ -54,7 +53,10 @@ const portfolioFields = {
   type: z.enum(PORTFOLIO_TYPE_KEYS),
   title: z.string().trim().min(1, 'Give your work a title').max(PORTFOLIO_TITLE_MAX),
   description: z.string().trim().max(PORTFOLIO_DESCRIPTION_MAX).nullable(),
-  genres: z.array(z.enum(GENRE_KEYS)).max(5, 'Choose up to 5 genres').transform((g) => [...new Set(g)]),
+  genres: z
+    .array(z.enum(GENRE_KEYS))
+    .max(5, 'Choose up to 5 genres')
+    .transform((g) => [...new Set(g)]),
   credits: z.string().trim().max(500).nullable(),
   externalUrl: optionalHttpsUrl,
   /** A READY MediaAsset uploaded with purpose PORTFOLIO. */

@@ -40,7 +40,10 @@ async function noHorizontalOverflow(page: Page) {
       .map((el) => `${el.tagName.toLowerCase()}.${String(el.className).slice(0, 60)} → ${Math.round(el.getBoundingClientRect().right)}px`);
     return { overflow: document.documentElement.scrollWidth - width, offenders };
   });
-  expect(overflow, `no horizontal scroll on ${page.url()} at ${await page.evaluate(() => innerWidth)}px (widest: ${offenders.join(' | ')})`).toBeLessThanOrEqual(0);
+  expect(
+    overflow,
+    `no horizontal scroll on ${page.url()} at ${await page.evaluate(() => innerWidth)}px (widest: ${offenders.join(' | ')})`,
+  ).toBeLessThanOrEqual(0);
 }
 
 test('creator uploads a profile photo and publishes a beat with real media; it reaches profile and feed', async ({ page }) => {
@@ -83,14 +86,23 @@ test('creator uploads a profile photo and publishes a beat with real media; it r
   // Feed showcase post
   await page.goto('/home');
   await expect(page.locator('main').getByText('shared work').first()).toBeVisible();
-  await expect(page.locator('main').getByRole('link', { name: /Midnight Makossa/ }).first()).toBeVisible();
+  await expect(
+    page
+      .locator('main')
+      .getByRole('link', { name: /Midnight Makossa/ })
+      .first(),
+  ).toBeVisible();
   await page.screenshot({ path: `e2e/.screenshots/feed-${test.info().project.name}.png`, fullPage: true });
 });
 
 test('a second person discovers, follows and connects; the creator accepts', async ({ page, browser }) => {
   const tag = uid().replace(/[0-9]/g, '').slice(0, 5) || 'zz';
   const creatorName = `Zuri Motion ${tag}`;
-  const creator = await signUpViaApi(page.request, creatorName, { roles: ['DANCER'], genres: ['afro_house'], location: 'Yaoundé, Cameroon' });
+  const creator = await signUpViaApi(page.request, creatorName, {
+    roles: ['DANCER'],
+    genres: ['afro_house'],
+    location: 'Yaoundé, Cameroon',
+  });
   await page.request.post('/api/v1/posts', { data: { body: `Rehearsal notes ${uid()}` } });
 
   const fanCtx = await browser.newContext({ ...test.info().project.use });
@@ -201,7 +213,6 @@ test('performance: images below the fold are not downloaded until scrolled to', 
   expect(initial, 'some feed images load initially').toBeGreaterThan(0);
   expect(initial, 'but not all 14 at once').toBeLessThan(14);
 
-
   // "lazy 2" is the last post on page 1 (12 per page): scrolling to it loads more images…
   await page.getByText('lazy 2').scrollIntoViewIfNeeded();
   // Lazy images are requested asynchronously after the scroll — poll rather than check once.
@@ -209,7 +220,10 @@ test('performance: images below the fold are not downloaded until scrolled to', 
   // …and reaching the end of the list fetches page 2 automatically (progressive loading).
   await page.mouse.wheel(0, 20_000);
   await expect(page.getByText('lazy 0')).toBeVisible({ timeout: 15_000 });
-  expect(urls.filter((u) => /w_1280/.test(u)), 'no full-size variants on a phone').toEqual([]);
+  expect(
+    urls.filter((u) => /w_1280/.test(u)),
+    'no full-size variants on a phone',
+  ).toEqual([]);
 });
 
 test('slow 3G: the feed stays usable and an upload shows progress and completes', async ({ page }, info) => {
@@ -217,7 +231,12 @@ test('slow 3G: the feed stays usable and an upload shows progress and completes'
   await signUpViaApi(page.request, 'Slow Network');
   const cdp = await page.context().newCDPSession(page);
   // Chrome DevTools "Slow 3G"-like profile: ~400 kbps up/down, 400 ms latency.
-  await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 400, downloadThroughput: 50_000, uploadThroughput: 50_000 });
+  await cdp.send('Network.emulateNetworkConditions', {
+    offline: false,
+    latency: 400,
+    downloadThroughput: 50_000,
+    uploadThroughput: 50_000,
+  });
 
   await page.goto('/home');
   await expect(page.getByLabel('Share something with the community')).toBeVisible({ timeout: 45_000 });
@@ -246,10 +265,22 @@ test('upload failure shows a retry instead of hanging', async ({ page }, info) =
 
 test('new signed-in pages have no horizontal overflow at 320px', async ({ page }, info) => {
   test.skip(info.project.name !== 'desktop', 'viewport sweep runs once');
-  const me = await signUpViaApi(page.request, 'Narrow Screen', { roles: ['PRODUCER', 'MIXING_MASTERING_ENGINEER'], location: 'Bamenda, Cameroon' });
+  const me = await signUpViaApi(page.request, 'Narrow Screen', {
+    roles: ['PRODUCER', 'MIXING_MASTERING_ENGINEER'],
+    location: 'Bamenda, Cameroon',
+  });
   for (const width of [320, 375, 768, 1280]) {
     await page.setViewportSize({ width, height: 800 });
-    for (const path of ['/home', '/discover', '/discover?view=work', '/studio', '/studio/new', '/network', `/u/${me.username}`, '/settings/profile']) {
+    for (const path of [
+      '/home',
+      '/discover',
+      '/discover?view=work',
+      '/studio',
+      '/studio/new',
+      '/network',
+      `/u/${me.username}`,
+      '/settings/profile',
+    ]) {
       await page.goto(path);
       await page.waitForLoadState('networkidle');
       await noHorizontalOverflow(page);

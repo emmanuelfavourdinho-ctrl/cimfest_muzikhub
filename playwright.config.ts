@@ -5,7 +5,9 @@ import { defineConfig, devices } from '@playwright/test';
 /** Real Cloudinary for browser uploads — ONLY the CLOUDINARY_* values from apps/api/.env. */
 const cloudinaryEnv: Record<string, string> = existsSync('apps/api/.env')
   ? Object.fromEntries(
-      Object.entries(parseEnv(readFileSync('apps/api/.env', 'utf8')) as Record<string, string>).filter(([k]) => k.startsWith('CLOUDINARY_')),
+      Object.entries(parseEnv(readFileSync('apps/api/.env', 'utf8')) as Record<string, string>).filter(([k]) =>
+        k.startsWith('CLOUDINARY_'),
+      ),
     )
   : {};
 
@@ -16,8 +18,7 @@ const cloudinaryEnv: Record<string, string> = existsSync('apps/api/.env')
  * Prerequisite: `npm run db:up`.
  */
 const TEST_DATABASE_URL =
-  process.env.TEST_DATABASE_URL ??
-  'postgresql://muzikhub:muzikhub_dev_password@localhost:5435/muzikhub_test?schema=public';
+  process.env.TEST_DATABASE_URL ?? 'postgresql://muzikhub:muzikhub_dev_password@localhost:5435/muzikhub_test?schema=public';
 const WEB_URL = 'http://localhost:5273';
 
 export default defineConfig({

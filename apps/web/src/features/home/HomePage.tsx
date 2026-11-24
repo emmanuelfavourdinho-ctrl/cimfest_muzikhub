@@ -34,7 +34,10 @@ export function HomePage() {
                 role="tab"
                 aria-selected={tab === t}
                 onClick={() => setParams(t === 'discover' ? {} : { tab: t }, { replace: true })}
-                className={cn('min-h-11 border-b-2 px-4 text-xs font-bold', tab === t ? 'border-[#26ed9f] text-[#76f5bc]' : 'border-transparent text-[#9ac2b0] hover:text-foreground')}
+                className={cn(
+                  'min-h-11 border-b-2 px-4 text-xs font-bold',
+                  tab === t ? 'border-[#26ed9f] text-[#76f5bc]' : 'border-transparent text-[#9ac2b0] hover:text-foreground',
+                )}
               >
                 {t === 'discover' ? 'Discover' : 'Following'}
               </button>
@@ -48,7 +51,9 @@ export function HomePage() {
             <h2 className="font-bold">Find your people</h2>
             <p className="mt-1 mb-4 text-sm text-sage">Search artists, producers, DJs and engineers by role, genre and location.</p>
             <Button asChild variant="outline" size="sm">
-              <Link to="/discover"><Search /> Discover talent</Link>
+              <Link to="/discover">
+                <Search /> Discover talent
+              </Link>
             </Button>
           </Panel>
         </aside>
@@ -69,21 +74,34 @@ function Feed({ tab }: { tab: FeedTab }) {
         {tab === 'following' ? (
           <>
             <h2 className="text-lg font-bold">Your following feed is quiet</h2>
-            <p className="mx-auto mt-1 mb-5 max-w-sm text-sm text-sage">Follow artists and professionals to see their work and updates here.</p>
-            <Button asChild><Link to="/discover">Find people to follow</Link></Button>
+            <p className="mx-auto mt-1 mb-5 max-w-sm text-sm text-sage">
+              Follow artists and professionals to see their work and updates here.
+            </p>
+            <Button asChild>
+              <Link to="/discover">Find people to follow</Link>
+            </Button>
           </>
         ) : (
           <>
             <h2 className="text-lg font-bold">No posts yet</h2>
-            <p className="mx-auto mt-1 mb-5 max-w-sm text-sm text-sage">Be the first to share something — a clip, a beat, or what you're working on.</p>
-            <Button asChild><Link to="/studio/new">Add work to your portfolio</Link></Button>
+            <p className="mx-auto mt-1 mb-5 max-w-sm text-sm text-sage">
+              Be the first to share something — a clip, a beat, or what you're working on.
+            </p>
+            <Button asChild>
+              <Link to="/studio/new">Add work to your portfolio</Link>
+            </Button>
           </>
         )}
       </Panel>
     );
   }
   return (
-    <InfiniteList hasNextPage={query.hasNextPage} isFetchingNextPage={query.isFetchingNextPage} fetchNextPage={() => void query.fetchNextPage()} isError={query.isError}>
+    <InfiniteList
+      hasNextPage={query.hasNextPage}
+      isFetchingNextPage={query.isFetchingNextPage}
+      fetchNextPage={() => void query.fetchNextPage()}
+      isError={query.isError}
+    >
       <div className="space-y-4">
         {posts.map((p) => (
           <PostCard key={p.id} post={p} />
@@ -113,7 +131,9 @@ function FinishSetupCard({ me }: { me: Me }) {
   const done = Math.min(me.profile.onboardingStep, total);
   return (
     <Panel className="p-5">
-      <Eyebrow>Profile setup · {done} of {total} steps</Eyebrow>
+      <Eyebrow>
+        Profile setup · {done} of {total} steps
+      </Eyebrow>
       <h2 className="mt-2 text-lg font-bold">Finish setting up your profile</h2>
       <p className="mt-1 mb-4 text-sm text-sage">Your progress is saved. Pick up where you left off.</p>
       <div className="mb-5 flex gap-1.5" aria-hidden>
@@ -122,7 +142,9 @@ function FinishSetupCard({ me }: { me: Me }) {
         ))}
       </div>
       <Button asChild size="sm">
-        <Link to="/onboarding">Continue setup <ArrowRight /></Link>
+        <Link to="/onboarding">
+          Continue setup <ArrowRight />
+        </Link>
       </Button>
     </Panel>
   );
@@ -137,11 +159,18 @@ function ProfileCard({ me }: { me: Me }) {
         <Avatar name={me.profile.name} image={me.profile.image} className="size-14 text-base" />
         <div className="min-w-0">
           <p className="truncate font-bold">{me.profile.name}</p>
-          <p className="truncate text-xs text-sage">@{me.profile.username}{roles && ` · ${roles}`}</p>
+          <p className="truncate text-xs text-sage">
+            @{me.profile.username}
+            {roles && ` · ${roles}`}
+          </p>
         </div>
       </div>
       <dl className="mt-4 grid grid-cols-3 gap-2 text-center">
-        {[['Followers', stats.followers], ['Connections', stats.connections], ['Works', stats.publishedWork]].map(([label, n]) => (
+        {[
+          ['Followers', stats.followers],
+          ['Connections', stats.connections],
+          ['Works', stats.publishedWork],
+        ].map(([label, n]) => (
           <div key={label} className="rounded-lg bg-[#0b241b] py-2">
             <dd className="text-base font-bold">{n}</dd>
             <dt className="text-[10px] text-sage">{label}</dt>
@@ -150,8 +179,12 @@ function ProfileCard({ me }: { me: Me }) {
       </dl>
       <SocialLinks links={me.profile.links} className="mt-4" />
       <div className="mt-4 flex flex-wrap gap-2">
-        <Button asChild size="sm"><Link to={`/u/${me.profile.username}`}>View profile</Link></Button>
-        <Button asChild variant="outline" size="sm"><Link to="/network">Network</Link></Button>
+        <Button asChild size="sm">
+          <Link to={`/u/${me.profile.username}`}>View profile</Link>
+        </Button>
+        <Button asChild variant="outline" size="sm">
+          <Link to="/network">Network</Link>
+        </Button>
       </div>
     </Panel>
   );

@@ -16,7 +16,16 @@ function seoFiles(siteUrl: string | undefined): Plugin {
     name: 'muzikhub-seo-files',
     apply: 'build',
     generateBundle() {
-      const robots = ['User-agent: *', 'Allow: /', 'Disallow: /admin', 'Disallow: /settings', 'Disallow: /studio', 'Disallow: /onboarding', 'Disallow: /home', 'Disallow: /network'];
+      const robots = [
+        'User-agent: *',
+        'Allow: /',
+        'Disallow: /admin',
+        'Disallow: /settings',
+        'Disallow: /studio',
+        'Disallow: /onboarding',
+        'Disallow: /home',
+        'Disallow: /network',
+      ];
       if (site) robots.push(`Sitemap: ${site}/sitemap.xml`);
       this.emitFile({ type: 'asset', fileName: 'robots.txt', source: `${robots.join('\n')}\n` });
       if (!site) {

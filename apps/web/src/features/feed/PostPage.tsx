@@ -15,7 +15,9 @@ export function PostPage() {
   return (
     <div className="mx-auto max-w-2xl">
       <Button asChild variant="quiet" size="sm" className="mb-3">
-        <Link to="/home"><ArrowLeft /> Feed</Link>
+        <Link to="/home">
+          <ArrowLeft /> Feed
+        </Link>
       </Button>
       {isPending ? (
         <PageLoading />

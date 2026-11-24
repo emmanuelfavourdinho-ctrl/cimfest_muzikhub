@@ -29,7 +29,14 @@ export interface AuditEntry {
 
 export interface Overview {
   generatedAt: string;
-  users: { total: number; new7d: number; new30d: number; active7d: number; byStatus: Record<AccountStatus, number>; weeklySignups: { weekStart: string; signups: number }[] };
+  users: {
+    total: number;
+    new7d: number;
+    new30d: number;
+    active7d: number;
+    byStatus: Record<AccountStatus, number>;
+    weeklySignups: { weekStart: string; signups: number }[];
+  };
   content: { posts: number; posts7d: number; comments7d: number; publishedWork: number; removed30d: number };
   moderation: { openReports: number; unassigned: number; escalated: number; oldestOpenAt: string | null; closed7d: number };
   staff: { admins: number; moderators: number; withoutTwoFactor: number };
@@ -63,7 +70,15 @@ export interface AdminUserDetail extends AdminUserRow {
   activity: { posts: number; comments: number; portfolioItems: number; publishedWork: number; reportsFiled: number };
   reportsAgainst: { id: string; targetType: string; targetId: string; reason: string; status: string; createdAt: string }[];
   history: AuditEntry[];
-  allowed: { restrict: boolean; suspend: boolean; ban: boolean; reinstate: boolean; changeRole: boolean; resetTwoFactor: boolean; maxSuspensionDays: number };
+  allowed: {
+    restrict: boolean;
+    suspend: boolean;
+    ban: boolean;
+    reinstate: boolean;
+    changeRole: boolean;
+    resetTwoFactor: boolean;
+    maxSuspensionDays: number;
+  };
 }
 
 export interface ReportTarget {
@@ -130,19 +145,32 @@ export const adminApi = {
   overview: () => request<Overview>('/admin/overview', null),
   users: (query: Q) => request<Page<AdminUserRow>>('/admin/users', null, { query }),
   user: (id: string) => request<AdminUserDetail>(`/admin/users/${encodeURIComponent(id)}`, null),
-  setStatus: (id: string, body: SetAccountStatusInput) => request<unknown>(`/admin/users/${encodeURIComponent(id)}/status`, null, { method: 'POST', body }),
-  setRole: (id: string, role: PlatformRole, reason: string) => request<unknown>(`/admin/users/${encodeURIComponent(id)}/role`, null, { method: 'POST', body: { role, reason } }),
-  resetTwoFactor: (id: string, reason: string) => request<unknown>(`/admin/users/${encodeURIComponent(id)}/reset-two-factor`, null, { method: 'POST', body: { reason } }),
+  setStatus: (id: string, body: SetAccountStatusInput) =>
+    request<unknown>(`/admin/users/${encodeURIComponent(id)}/status`, null, { method: 'POST', body }),
+  setRole: (id: string, role: PlatformRole, reason: string) =>
+    request<unknown>(`/admin/users/${encodeURIComponent(id)}/role`, null, { method: 'POST', body: { role, reason } }),
+  resetTwoFactor: (id: string, reason: string) =>
+    request<unknown>(`/admin/users/${encodeURIComponent(id)}/reset-two-factor`, null, { method: 'POST', body: { reason } }),
   reports: (query: Q) => request<Page<ReportRow>>('/admin/reports', null, { query }),
   report: (id: string) => request<ReportDetail>(`/admin/reports/${encodeURIComponent(id)}`, null),
-  assign: (id: string, assignee: 'me' | 'nobody') => request<unknown>(`/admin/reports/${encodeURIComponent(id)}/assign`, null, { method: 'POST', body: { assignee } }),
-  note: (id: string, body: string) => request<unknown>(`/admin/reports/${encodeURIComponent(id)}/notes`, null, { method: 'POST', body: { body } }),
-  escalate: (id: string, reason: string) => request<unknown>(`/admin/reports/${encodeURIComponent(id)}/escalate`, null, { method: 'POST', body: { reason } }),
+  assign: (id: string, assignee: 'me' | 'nobody') =>
+    request<unknown>(`/admin/reports/${encodeURIComponent(id)}/assign`, null, { method: 'POST', body: { assignee } }),
+  note: (id: string, body: string) =>
+    request<unknown>(`/admin/reports/${encodeURIComponent(id)}/notes`, null, { method: 'POST', body: { body } }),
+  escalate: (id: string, reason: string) =>
+    request<unknown>(`/admin/reports/${encodeURIComponent(id)}/escalate`, null, { method: 'POST', body: { reason } }),
   close: (id: string, outcome: 'resolve' | 'dismiss', resolution: string, includeRelated: boolean) =>
-    request<{ closed: number }>(`/admin/reports/${encodeURIComponent(id)}/${outcome}`, null, { method: 'POST', body: { resolution, includeRelated } }),
+    request<{ closed: number }>(`/admin/reports/${encodeURIComponent(id)}/${outcome}`, null, {
+      method: 'POST',
+      body: { resolution, includeRelated },
+    }),
   content: (query: Q) => request<Page<ContentRow>>('/admin/content', null, { query }),
   removeContent: (type: string, id: string, reason: string, reportId?: string) =>
-    request<{ restorable: boolean }>(`/admin/content/${type}/${encodeURIComponent(id)}/remove`, null, { method: 'POST', body: { reason, ...(reportId && { reportId }) } }),
-  restoreContent: (type: string, id: string, reason: string) => request<unknown>(`/admin/content/${type}/${encodeURIComponent(id)}/restore`, null, { method: 'POST', body: { reason } }),
+    request<{ restorable: boolean }>(`/admin/content/${type}/${encodeURIComponent(id)}/remove`, null, {
+      method: 'POST',
+      body: { reason, ...(reportId && { reportId }) },
+    }),
+  restoreContent: (type: string, id: string, reason: string) =>
+    request<unknown>(`/admin/content/${type}/${encodeURIComponent(id)}/restore`, null, { method: 'POST', body: { reason } }),
   audit: (query: Q) => request<Page<AuditEntry>>('/admin/audit', null, { query }),
 };

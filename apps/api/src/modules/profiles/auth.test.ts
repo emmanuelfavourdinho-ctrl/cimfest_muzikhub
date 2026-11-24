@@ -38,10 +38,7 @@ describe('registration (FR-01, FR-03)', () => {
 
   it('rejects reserved, malformed, and duplicate usernames (case-insensitive)', async () => {
     for (const username of ['admin', 'a', 'bad name']) {
-      const res = await request(app)
-        .post('/api/auth/sign-up/email')
-        .set('Origin', ORIGIN)
-        .send(newUserInput({ username }));
+      const res = await request(app).post('/api/auth/sign-up/email').set('Origin', ORIGIN).send(newUserInput({ username }));
       expect(res.status, username).toBe(400);
     }
 

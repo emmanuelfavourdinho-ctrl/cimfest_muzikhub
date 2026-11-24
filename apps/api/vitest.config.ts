@@ -19,8 +19,7 @@ function liveCloudinaryEnv(): Record<string, string> {
 // Integration tests run against a dedicated database (never the dev database).
 // Start it with `npm run db:up` from the repository root.
 const TEST_DATABASE_URL =
-  process.env.TEST_DATABASE_URL ??
-  'postgresql://muzikhub:muzikhub_dev_password@localhost:5435/muzikhub_test?schema=public';
+  process.env.TEST_DATABASE_URL ?? 'postgresql://muzikhub:muzikhub_dev_password@localhost:5435/muzikhub_test?schema=public';
 
 export default defineConfig({
   test: {

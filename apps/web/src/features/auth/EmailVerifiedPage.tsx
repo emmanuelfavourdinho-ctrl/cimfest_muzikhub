@@ -30,7 +30,8 @@ export function EmailVerifiedPage() {
             <CircleAlert className="mx-auto mb-3 size-10 text-gold" aria-hidden />
             <h1 className="text-2xl font-bold">This link didn't work</h1>
             <p className="mt-2 mb-6 text-sm text-sage">
-              It may have expired (links last 1 hour) or already been used. {me ? 'You can request a new one from the banner on your home page.' : 'Sign in to request a new one.'}
+              It may have expired (links last 1 hour) or already been used.{' '}
+              {me ? 'You can request a new one from the banner on your home page.' : 'Sign in to request a new one.'}
             </p>
             <Button asChild>
               <Link to={me ? '/home' : '/login'}>{me ? 'Go to MuzikHub' : 'Sign in'}</Link>

@@ -26,10 +26,23 @@ export function NetworkPage() {
   const tab = (tabs.find((t) => t.key === params.get('tab'))?.key ?? 'incoming') as TabKey;
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHeader eyebrow="Your network" title="Connections & followers" description="Respond to requests and keep track of the people you work with." />
+      <PageHeader
+        eyebrow="Your network"
+        title="Connections & followers"
+        description="Respond to requests and keep track of the people you work with."
+      />
       <div role="tablist" aria-label="Network" className="mb-5 flex gap-1 overflow-x-auto border-b border-[#264b3d]">
         {tabs.map((t) => (
-          <button key={t.key} role="tab" aria-selected={tab === t.key} onClick={() => setParams({ tab: t.key }, { replace: true })} className={cn('min-h-11 border-b-2 px-4 text-xs font-bold whitespace-nowrap', tab === t.key ? 'border-[#26ed9f] text-[#76f5bc]' : 'border-transparent text-[#9ac2b0] hover:text-foreground')}>
+          <button
+            key={t.key}
+            role="tab"
+            aria-selected={tab === t.key}
+            onClick={() => setParams({ tab: t.key }, { replace: true })}
+            className={cn(
+              'min-h-11 border-b-2 px-4 text-xs font-bold whitespace-nowrap',
+              tab === t.key ? 'border-[#26ed9f] text-[#76f5bc]' : 'border-transparent text-[#9ac2b0] hover:text-foreground',
+            )}
+          >
             {t.label}
           </button>
         ))}
@@ -66,16 +79,27 @@ function ConnectionList({ filter }: { filter: 'incoming' | 'outgoing' | 'accepte
   if (query.isPending) return <PageLoading />;
   if (query.isError && items.length === 0) return <LoadFailed message={errorMessage(query.error)} onRetry={() => void query.refetch()} />;
   if (items.length === 0) {
-    const text = { incoming: 'No pending requests.', outgoing: "You haven't sent any requests that are waiting.", accepted: 'No connections yet.' }[filter];
+    const text = {
+      incoming: 'No pending requests.',
+      outgoing: "You haven't sent any requests that are waiting.",
+      accepted: 'No connections yet.',
+    }[filter];
     return (
       <Panel className="p-8 text-center">
         <p className="text-sm text-sage">{text}</p>
-        <Button asChild variant="outline" size="sm" className="mt-4"><Link to="/discover">Discover people</Link></Button>
+        <Button asChild variant="outline" size="sm" className="mt-4">
+          <Link to="/discover">Discover people</Link>
+        </Button>
       </Panel>
     );
   }
   return (
-    <InfiniteList hasNextPage={query.hasNextPage} isFetchingNextPage={query.isFetchingNextPage} fetchNextPage={() => void query.fetchNextPage()} isError={query.isError}>
+    <InfiniteList
+      hasNextPage={query.hasNextPage}
+      isFetchingNextPage={query.isFetchingNextPage}
+      fetchNextPage={() => void query.fetchNextPage()}
+      isError={query.isError}
+    >
       <ul className="space-y-2.5">
         {items.map((c) => (
           <li key={c.id}>
@@ -85,14 +109,34 @@ function ConnectionList({ filter }: { filter: 'incoming' | 'outgoing' | 'accepte
               <div className="ml-auto flex gap-2">
                 {filter === 'incoming' && (
                   <>
-                    <Button size="sm" onClick={() => void act(c, 'accept', `Connected with ${c.person.name}`)}>Accept</Button>
-                    <Button size="sm" variant="outline" onClick={() => void act(c, 'decline', 'Declined')}>Decline</Button>
+                    <Button size="sm" onClick={() => void act(c, 'accept', `Connected with ${c.person.name}`)}>
+                      Accept
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => void act(c, 'decline', 'Declined')}>
+                      Decline
+                    </Button>
                   </>
                 )}
-                {filter === 'outgoing' && <Button size="sm" variant="outline" onClick={() => void act(c, 'cancel', 'Request withdrawn')}>Withdraw</Button>}
-                {filter === 'accepted' && <Button size="sm" variant="quiet" onClick={() => { if (confirm(`Remove ${c.person.name} from your connections?`)) void act(c, 'remove', 'Connection removed'); }}>Remove</Button>}
+                {filter === 'outgoing' && (
+                  <Button size="sm" variant="outline" onClick={() => void act(c, 'cancel', 'Request withdrawn')}>
+                    Withdraw
+                  </Button>
+                )}
+                {filter === 'accepted' && (
+                  <Button
+                    size="sm"
+                    variant="quiet"
+                    onClick={() => {
+                      if (confirm(`Remove ${c.person.name} from your connections?`)) void act(c, 'remove', 'Connection removed');
+                    }}
+                  >
+                    Remove
+                  </Button>
+                )}
               </div>
-              <p className="w-full text-[11px] text-sage-dim">{filter === 'accepted' && c.respondedAt ? `Connected ${timeAgo(c.respondedAt)}` : `Sent ${timeAgo(c.createdAt)}`}</p>
+              <p className="w-full text-[11px] text-sage-dim">
+                {filter === 'accepted' && c.respondedAt ? `Connected ${timeAgo(c.respondedAt)}` : `Sent ${timeAgo(c.createdAt)}`}
+              </p>
             </Panel>
           </li>
         ))}
@@ -115,13 +159,26 @@ function FollowList({ which }: { which: 'followers' | 'following' }) {
   if (query.isPending) return <PageLoading />;
   if (query.isError && people.length === 0) return <LoadFailed message={errorMessage(query.error)} onRetry={() => void query.refetch()} />;
   if (people.length === 0) {
-    return <Panel className="p-8 text-center text-sm text-sage">{which === 'followers' ? 'Nobody follows you yet.' : "You aren't following anyone yet."}</Panel>;
+    return (
+      <Panel className="p-8 text-center text-sm text-sage">
+        {which === 'followers' ? 'Nobody follows you yet.' : "You aren't following anyone yet."}
+      </Panel>
+    );
   }
   return (
-    <InfiniteList hasNextPage={query.hasNextPage} isFetchingNextPage={query.isFetchingNextPage} fetchNextPage={() => void query.fetchNextPage()} isError={query.isError}>
+    <InfiniteList
+      hasNextPage={query.hasNextPage}
+      isFetchingNextPage={query.isFetchingNextPage}
+      fetchNextPage={() => void query.fetchNextPage()}
+      isError={query.isError}
+    >
       <ul className="grid gap-2.5 sm:grid-cols-2">
         {people.map((p) => (
-          <li key={p.username}><Panel className="p-4"><PersonLink person={p} /></Panel></li>
+          <li key={p.username}>
+            <Panel className="p-4">
+              <PersonLink person={p} />
+            </Panel>
+          </li>
         ))}
       </ul>
     </InfiniteList>

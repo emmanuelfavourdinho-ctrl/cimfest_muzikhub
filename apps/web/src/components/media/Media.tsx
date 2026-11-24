@@ -36,7 +36,12 @@ export function ResponsiveImage({
 
   if (failed || !medium) {
     return (
-      <div role="img" aria-label={alt || 'Image unavailable'} style={{ aspectRatio: ratio }} className={cn('flex items-center justify-center bg-forest-800 text-sage-dim', className)}>
+      <div
+        role="img"
+        aria-label={alt || 'Image unavailable'}
+        style={{ aspectRatio: ratio }}
+        className={cn('flex items-center justify-center bg-forest-800 text-sage-dim', className)}
+      >
         <ImageOff className="size-6" aria-hidden />
       </div>
     );
@@ -44,7 +49,9 @@ export function ResponsiveImage({
   return (
     <img
       src={medium}
-      srcSet={[`${small} 320w`, `${medium} 640w`, wide && `${wide} 960w`, maxVariant === 'large' && large && `${large} 1280w`].filter(Boolean).join(', ')}
+      srcSet={[`${small} 320w`, `${medium} 640w`, wide && `${wide} 960w`, maxVariant === 'large' && large && `${large} 1280w`]
+        .filter(Boolean)
+        .join(', ')}
       sizes={sizes}
       alt={alt}
       loading={priority ? 'eager' : 'lazy'}
@@ -73,7 +80,14 @@ export function AudioPlayer({ media, title }: { media: MediaView; title: string 
         {failed ? (
           <p className="text-xs text-destructive">This audio couldn't be loaded.</p>
         ) : (
-          <audio controls preload="none" src={media.urls.src} onError={() => setFailed(true)} className="h-9 w-full" aria-label={`Play ${title}`} />
+          <audio
+            controls
+            preload="none"
+            src={media.urls.src}
+            onError={() => setFailed(true)}
+            className="h-9 w-full"
+            aria-label={`Play ${title}`}
+          />
         )}
       </div>
     </div>
@@ -90,19 +104,38 @@ export function VideoPlayer({ media, title }: { media: MediaView; title: string 
   if (playing) {
     return (
       // autoPlay is fine here: the user explicitly pressed play a moment ago.
-      <video controls autoPlay playsInline src={media.urls.src} poster={media.urls.poster} style={{ aspectRatio: ratio }} className="w-full rounded-xl bg-black" aria-label={title} />
+      <video
+        controls
+        autoPlay
+        playsInline
+        src={media.urls.src}
+        poster={media.urls.poster}
+        style={{ aspectRatio: ratio }}
+        className="w-full rounded-xl bg-black"
+        aria-label={title}
+      />
     );
   }
   return (
-    <button type="button" onClick={() => setPlaying(true)} className="group relative block w-full overflow-hidden rounded-xl bg-black" style={{ aspectRatio: ratio }} aria-label={`Play video: ${title}`}>
-      {media.urls.poster && <img src={media.urls.poster} alt="" loading="lazy" decoding="async" className="size-full object-cover opacity-90" />}
+    <button
+      type="button"
+      onClick={() => setPlaying(true)}
+      className="group relative block w-full overflow-hidden rounded-xl bg-black"
+      style={{ aspectRatio: ratio }}
+      aria-label={`Play video: ${title}`}
+    >
+      {media.urls.poster && (
+        <img src={media.urls.poster} alt="" loading="lazy" decoding="async" className="size-full object-cover opacity-90" />
+      )}
       <span className="absolute inset-0 flex items-center justify-center">
         <span className="flex size-14 items-center justify-center rounded-full bg-[#20d99b] text-[#05241a] shadow-[0_6px_28px_#12dba16e] transition group-hover:scale-105">
           <Play className="ml-0.5 size-6 fill-current" />
         </span>
       </span>
       {media.durationSec ? (
-        <span className="absolute right-2 bottom-2 rounded bg-black/70 px-1.5 py-0.5 text-[11px] text-white">{formatDuration(media.durationSec)}</span>
+        <span className="absolute right-2 bottom-2 rounded bg-black/70 px-1.5 py-0.5 text-[11px] text-white">
+          {formatDuration(media.durationSec)}
+        </span>
       ) : null}
     </button>
   );

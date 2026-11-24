@@ -91,7 +91,10 @@ export async function makeStaff(app: Express, role: 'MODERATOR' | 'ADMIN', { two
     const enabled = await user.agent.post('/api/auth/two-factor/enable').set('Origin', ORIGIN).send({ password: user.input.password });
     if (enabled.status !== 200) throw new Error(`2FA enable failed: ${JSON.stringify(enabled.body)}`);
     secret = secretFromUri(enabled.body.totpURI);
-    const verified = await user.agent.post('/api/auth/two-factor/verify-totp').set('Origin', ORIGIN).send({ code: totp(secret) });
+    const verified = await user.agent
+      .post('/api/auth/two-factor/verify-totp')
+      .set('Origin', ORIGIN)
+      .send({ code: totp(secret) });
     if (verified.status !== 200) throw new Error(`2FA verify failed: ${JSON.stringify(verified.body)}`);
   }
   return { ...user, secret };

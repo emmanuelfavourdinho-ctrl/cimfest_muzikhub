@@ -100,7 +100,14 @@ export function MediaUploader({
             <span className="truncate text-[#c2dacc]">Uploading {state.file.name}</span>
             <span className="shrink-0 font-semibold text-mint">{Math.round(state.progress * 100)}%</span>
           </div>
-          <div className="h-2 overflow-hidden rounded-full bg-forest-700" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(state.progress * 100)} aria-label={`Uploading ${state.file.name}`}>
+          <div
+            className="h-2 overflow-hidden rounded-full bg-forest-700"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(state.progress * 100)}
+            aria-label={`Uploading ${state.file.name}`}
+          >
             <div className="h-full rounded-full bg-emerald transition-[width]" style={{ width: `${state.progress * 100}%` }} />
           </div>
           <Button type="button" variant="quiet" size="sm" className="mt-2" onClick={() => abort.current?.abort()}>
@@ -136,7 +143,17 @@ export function MediaUploader({
   );
 }
 
-function HiddenInput({ refEl, accept, onPick, label }: { refEl: React.RefObject<HTMLInputElement | null>; accept: string; onPick: (f: File) => void; label: string }) {
+function HiddenInput({
+  refEl,
+  accept,
+  onPick,
+  label,
+}: {
+  refEl: React.RefObject<HTMLInputElement | null>;
+  accept: string;
+  onPick: (f: File) => void;
+  label: string;
+}) {
   return (
     <input
       ref={refEl}

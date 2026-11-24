@@ -69,11 +69,7 @@ describe('PUT /api/v1/me/profile/links (CLAUDE.md §6.2)', () => {
       ],
     });
     expect(res.status).toBe(200);
-    expect(res.body.profile.links.map((l: { platform: string }) => l.platform)).toEqual([
-      'YOUTUBE',
-      'SPOTIFY',
-      'WEBSITE',
-    ]);
+    expect(res.body.profile.links.map((l: { platform: string }) => l.platform)).toEqual(['YOUTUBE', 'SPOTIFY', 'WEBSITE']);
   });
 
   it('rejects unsafe URL schemes', async () => {

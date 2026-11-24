@@ -110,7 +110,9 @@ function AccountForm({ primaryUse, onBack }: { primaryUse: PrimaryUse; onBack: (
   const onSubmit = handleSubmit(async (values) => {
     setFormError(null);
     try {
-      await unwrap(authClient.signUp.email({ ...values, displayUsername: values.username, callbackURL: `${window.location.origin}/email-verified` }));
+      await unwrap(
+        authClient.signUp.email({ ...values, displayUsername: values.username, callbackURL: `${window.location.origin}/email-verified` }),
+      );
       await queryClient.invalidateQueries({ queryKey: queryKeys.me });
       void navigate('/onboarding', { replace: true });
     } catch (error) {
@@ -128,7 +130,11 @@ function AccountForm({ primaryUse, onBack }: { primaryUse: PrimaryUse; onBack: (
 
   return (
     <form onSubmit={onSubmit} noValidate>
-      <button type="button" onClick={onBack} className="mb-3 -ml-1 inline-flex min-h-9 items-center gap-1.5 rounded-lg px-1 text-xs font-semibold text-sage hover:text-foreground">
+      <button
+        type="button"
+        onClick={onBack}
+        className="mb-3 -ml-1 inline-flex min-h-9 items-center gap-1.5 rounded-lg px-1 text-xs font-semibold text-sage hover:text-foreground"
+      >
         <ArrowLeft className="size-3.5" /> {PRIMARY_USES[primaryUse].label}
       </button>
       <Eyebrow>Join MuzikHub · Step 2 of 2</Eyebrow>
@@ -144,7 +150,16 @@ function AccountForm({ primaryUse, onBack }: { primaryUse: PrimaryUse; onBack: (
         error={errors.username?.message ?? (usernameStatus === 'taken' ? 'That username is taken' : undefined)}
         hint={<span className={cn(usernameStatus === 'available' && 'text-mint')}>{usernameHint}</span>}
       >
-        {(a) => <Input {...a} autoComplete="username" autoCapitalize="none" spellCheck={false} placeholder="e.g. ayo.nova" {...register('username')} />}
+        {(a) => (
+          <Input
+            {...a}
+            autoComplete="username"
+            autoCapitalize="none"
+            spellCheck={false}
+            placeholder="e.g. ayo.nova"
+            {...register('username')}
+          />
+        )}
       </Field>
       <Field label="Email" error={errors.email?.message}>
         {(a) => <Input {...a} type="email" autoComplete="email" inputMode="email" placeholder="you@example.com" {...register('email')} />}

@@ -67,16 +67,27 @@ export function TwoFactorSetup() {
       <Eyebrow>Staff security</Eyebrow>
       <h1 className="mt-2 text-2xl font-bold">Set up two-step verification</h1>
       <p className="mt-1 mb-5 text-sm text-sage">
-        Staff accounts can change other people's accounts, so the Admin Console requires an authenticator app (Google Authenticator, Microsoft Authenticator, 1Password, Authy…).
+        Staff accounts can change other people's accounts, so the Admin Console requires an authenticator app (Google Authenticator,
+        Microsoft Authenticator, 1Password, Authy…).
       </p>
       <FormError message={error} />
 
       {step.kind === 'password' && (
         <form onSubmit={start} noValidate>
           <Field label="Confirm your password">
-            {(a) => <Input {...a} type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />}
+            {(a) => (
+              <Input
+                {...a}
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            )}
           </Field>
-          <Button type="submit" disabled={busy || !password}><KeyRound /> {busy ? 'Starting…' : 'Continue'}</Button>
+          <Button type="submit" disabled={busy || !password}>
+            <KeyRound /> {busy ? 'Starting…' : 'Continue'}
+          </Button>
         </form>
       )}
 
@@ -84,27 +95,58 @@ export function TwoFactorSetup() {
         <form onSubmit={confirm} noValidate className="space-y-5">
           <div className="grid gap-5 sm:grid-cols-[220px_1fr]">
             <div className="flex aspect-square w-[220px] items-center justify-center rounded-xl bg-white p-2">
-              {qr ? <img src={qr} alt="QR code to add MuzikHub to your authenticator app" className="size-full" /> : <span className="text-xs text-black">Generating…</span>}
+              {qr ? (
+                <img src={qr} alt="QR code to add MuzikHub to your authenticator app" className="size-full" />
+              ) : (
+                <span className="text-xs text-black">Generating…</span>
+              )}
             </div>
             <div className="text-sm">
               <p className="font-semibold">1. Scan this code with your authenticator app</p>
               <p className="mt-1 text-sage">Can't scan? Enter this key manually:</p>
-              <code className="mt-1 block rounded-md bg-[#081d17] px-2 py-1.5 font-mono text-xs break-all">{new URL(step.totpURI).searchParams.get('secret')}</code>
+              <code className="mt-1 block rounded-md bg-[#081d17] px-2 py-1.5 font-mono text-xs break-all">
+                {new URL(step.totpURI).searchParams.get('secret')}
+              </code>
             </div>
           </div>
           <div>
             <p className="mb-2 text-sm font-semibold">2. Save your backup codes</p>
-            <Hint className="mb-2">Each code works once if you lose your phone. Store them somewhere safe (a password manager). They won't be shown again.</Hint>
-            <ul className="grid grid-cols-2 gap-1.5 rounded-xl border border-line bg-[#081d17] p-3 font-mono text-sm sm:grid-cols-5" aria-label="Backup codes">
-              {step.backupCodes.map((c) => <li key={c}>{c}</li>)}
+            <Hint className="mb-2">
+              Each code works once if you lose your phone. Store them somewhere safe (a password manager). They won't be shown again.
+            </Hint>
+            <ul
+              className="grid grid-cols-2 gap-1.5 rounded-xl border border-line bg-[#081d17] p-3 font-mono text-sm sm:grid-cols-5"
+              aria-label="Backup codes"
+            >
+              {step.backupCodes.map((c) => (
+                <li key={c}>{c}</li>
+              ))}
             </ul>
             <div className="mt-2 flex gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={() => { void navigator.clipboard.writeText(step.backupCodes.join('\n')).then(() => toast.success('Copied')); }}><Copy /> Copy</Button>
-              <Button type="button" variant="outline" size="sm" onClick={() => {
-                const url = URL.createObjectURL(new Blob([`MuzikHub backup codes\n\n${step.backupCodes.join('\n')}\n`], { type: 'text/plain' }));
-                Object.assign(document.createElement('a'), { href: url, download: 'muzikhub-backup-codes.txt' }).click();
-                URL.revokeObjectURL(url);
-              }}><Download /> Download</Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  void navigator.clipboard.writeText(step.backupCodes.join('\n')).then(() => toast.success('Copied'));
+                }}
+              >
+                <Copy /> Copy
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const url = URL.createObjectURL(
+                    new Blob([`MuzikHub backup codes\n\n${step.backupCodes.join('\n')}\n`], { type: 'text/plain' }),
+                  );
+                  Object.assign(document.createElement('a'), { href: url, download: 'muzikhub-backup-codes.txt' }).click();
+                  URL.revokeObjectURL(url);
+                }}
+              >
+                <Download /> Download
+              </Button>
             </div>
             <label className="mt-3 flex min-h-11 items-center gap-3 text-sm">
               <input type="checkbox" checked={saved} onChange={(e) => setSaved(e.target.checked)} className="size-4 accent-[#28dca0]" />
@@ -114,9 +156,21 @@ export function TwoFactorSetup() {
           <div>
             <p className="mb-2 text-sm font-semibold">3. Enter the 6-digit code from the app</p>
             <Field label="Authentication code">
-              {(a) => <Input {...a} value={code} onChange={(e) => setCode(e.target.value)} inputMode="numeric" autoComplete="one-time-code" maxLength={7} placeholder="123456" />}
+              {(a) => (
+                <Input
+                  {...a}
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={7}
+                  placeholder="123456"
+                />
+              )}
             </Field>
-            <Button type="submit" disabled={busy || !saved || code.replace(/\s/g, '').length !== 6}>{busy ? 'Verifying…' : 'Turn on two-step verification'}</Button>
+            <Button type="submit" disabled={busy || !saved || code.replace(/\s/g, '').length !== 6}>
+              {busy ? 'Verifying…' : 'Turn on two-step verification'}
+            </Button>
           </div>
         </form>
       )}

@@ -41,7 +41,9 @@ afterEach(() => {
 describe('resendTransport', () => {
   it('sends through the SDK with sender, both parts, a tag and the idempotency key', async () => {
     const { client, send } = fakeResend();
-    const result = await resendTransport(client, 'MuzikHub <no-reply@mail.muzikhub.test>').send(message({ idempotencyKey: 'password-reset/abc' }));
+    const result = await resendTransport(client, 'MuzikHub <no-reply@mail.muzikhub.test>').send(
+      message({ idempotencyKey: 'password-reset/abc' }),
+    );
     expect(result).toEqual({ id: 'email_123' });
     expect(send).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -76,8 +78,16 @@ describe('resendTransport', () => {
   });
 
   it('maps network failures to EmailDeliveryError without leaking details', async () => {
-    const client = { emails: { send: vi.fn(async () => { throw new Error(`fetch failed with key ${FAKE_KEY}`); }) } } as unknown as ResendLike;
-    const error = await resendTransport(client, 'x@y.test').send(message()).catch((e: Error) => e);
+    const client = {
+      emails: {
+        send: vi.fn(async () => {
+          throw new Error(`fetch failed with key ${FAKE_KEY}`);
+        }),
+      },
+    } as unknown as ResendLike;
+    const error = await resendTransport(client, 'x@y.test')
+      .send(message())
+      .catch((e: Error) => e);
     expect(error).toBeInstanceOf(EmailDeliveryError);
     expect((error as Error).message).toBe('Email delivery failed (network_error)');
   });
@@ -103,7 +113,10 @@ describe('sendEmail — per-recipient limit', () => {
 describe('templates', () => {
   it('escape user-provided names in HTML (but keep them readable in text)', () => {
     const evil = '<img src=x onerror=alert(1)>"Ayo"';
-    for (const email of [passwordResetEmail({ name: evil, url: 'https://a.test/r' }), verificationEmail({ name: evil, url: 'https://a.test/v' })]) {
+    for (const email of [
+      passwordResetEmail({ name: evil, url: 'https://a.test/r' }),
+      verificationEmail({ name: evil, url: 'https://a.test/v' }),
+    ]) {
       expect(email.html).not.toContain('<img src=x');
       expect(email.html).toContain(escapeHtml(evil));
       expect(email.text).toContain(evil);
@@ -140,12 +153,22 @@ describe('email configuration rules', () => {
 
   it('production refuses to start without RESEND_API_KEY and EMAIL_FROM', () => {
     expect(problems({ ...base, NODE_ENV: 'production' })).toEqual(expect.arrayContaining(['RESEND_API_KEY', 'EMAIL_FROM']));
-    expect(problems({ ...base, NODE_ENV: 'production', EMAIL_TRANSPORT: 'console', RESEND_API_KEY: FAKE_KEY, EMAIL_FROM: 'a@b.test' })).toContain('EMAIL_TRANSPORT');
-    expect(problems({ ...base, NODE_ENV: 'production', RESEND_API_KEY: FAKE_KEY, EMAIL_FROM: 'MuzikHub <no-reply@mail.muzikhub.test>' })).toEqual([]);
+    expect(
+      problems({ ...base, NODE_ENV: 'production', EMAIL_TRANSPORT: 'console', RESEND_API_KEY: FAKE_KEY, EMAIL_FROM: 'a@b.test' }),
+    ).toContain('EMAIL_TRANSPORT');
+    expect(
+      problems({ ...base, NODE_ENV: 'production', RESEND_API_KEY: FAKE_KEY, EMAIL_FROM: 'MuzikHub <no-reply@mail.muzikhub.test>' }),
+    ).toEqual([]);
   });
 
   it('validates the key prefix and sender format, without echoing values', () => {
-    const r = parseEnvironment({ ...base, NODE_ENV: 'development', EMAIL_TRANSPORT: 'resend', RESEND_API_KEY: 'sk_wrong_secret_value', EMAIL_FROM: 'not an address' });
+    const r = parseEnvironment({
+      ...base,
+      NODE_ENV: 'development',
+      EMAIL_TRANSPORT: 'resend',
+      RESEND_API_KEY: 'sk_wrong_secret_value',
+      EMAIL_FROM: 'not an address',
+    });
     expect(r.success).toBe(false);
     const text = JSON.stringify(r.error?.issues);
     expect(text).not.toContain('sk_wrong_secret_value');

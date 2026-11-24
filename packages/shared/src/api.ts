@@ -9,9 +9,7 @@ export const apiErrorSchema = z.object({
     code: z.string(),
     message: z.string(),
     /** Field-level validation issues, present on VALIDATION_ERROR. */
-    details: z
-      .array(z.object({ path: z.string(), message: z.string() }))
-      .optional(),
+    details: z.array(z.object({ path: z.string(), message: z.string() })).optional(),
   }),
 });
 

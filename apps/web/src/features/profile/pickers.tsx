@@ -25,7 +25,14 @@ interface PickerProps<T> {
   label: string;
 }
 
-function ChipGroup<T extends string>({ options, labels, value, onChange, max, label }: PickerProps<T> & { options: readonly T[]; labels: Record<T, string> }) {
+function ChipGroup<T extends string>({
+  options,
+  labels,
+  value,
+  onChange,
+  max,
+  label,
+}: PickerProps<T> & { options: readonly T[]; labels: Record<T, string> }) {
   return (
     <div role="group" aria-label={label} className="flex flex-wrap gap-2">
       {options.map((key) => (
@@ -51,7 +58,11 @@ export function RolePicker({ suggested, ...props }: PickerProps<CreativeRole> & 
     <div>
       <ChipGroup options={options} labels={CREATIVE_ROLES} {...props} />
       {!showAll && (
-        <button type="button" onClick={() => setShowAll(true)} className="mt-3 inline-flex min-h-9 items-center gap-1 text-xs font-semibold text-mint-soft hover:underline">
+        <button
+          type="button"
+          onClick={() => setShowAll(true)}
+          className="mt-3 inline-flex min-h-9 items-center gap-1 text-xs font-semibold text-mint-soft hover:underline"
+        >
           Show all roles <ChevronDown className="size-3.5" />
         </button>
       )}

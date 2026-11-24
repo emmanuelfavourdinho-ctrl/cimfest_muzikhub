@@ -15,9 +15,7 @@ describe('normaliseHttpsUrl', () => {
   });
 
   it('accepts https and strips the fragment', () => {
-    expect(normaliseHttpsUrl('  https://open.spotify.com/artist/1#top ')).toBe(
-      'https://open.spotify.com/artist/1',
-    );
+    expect(normaliseHttpsUrl('  https://open.spotify.com/artist/1#top ')).toBe('https://open.spotify.com/artist/1');
   });
 });
 

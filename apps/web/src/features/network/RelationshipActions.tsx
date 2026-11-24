@@ -60,29 +60,69 @@ export function RelationshipActions({ username, name }: { username: string; name
   const c = r.connection;
   return (
     <div className="flex flex-wrap gap-2">
-      <Button size="sm" variant={r.following ? 'outline' : 'primary'} disabled={busy} aria-pressed={r.following} onClick={() => void run(() => api.setFollow(username, !r.following))}>
-        {r.following ? <><Check /> Following</> : <><Plus /> Follow</>}
+      <Button
+        size="sm"
+        variant={r.following ? 'outline' : 'primary'}
+        disabled={busy}
+        aria-pressed={r.following}
+        onClick={() => void run(() => api.setFollow(username, !r.following))}
+      >
+        {r.following ? (
+          <>
+            <Check /> Following
+          </>
+        ) : (
+          <>
+            <Plus /> Follow
+          </>
+        )}
       </Button>
 
       {c?.status === 'ACCEPTED' ? (
-        <Button size="sm" variant="ghost" disabled={busy} onClick={() => { if (confirm(`Remove your connection with ${name}?`)) void run(() => api.connectionAction(c.id, 'remove'), 'Connection removed'); }}>
+        <Button
+          size="sm"
+          variant="ghost"
+          disabled={busy}
+          onClick={() => {
+            if (confirm(`Remove your connection with ${name}?`)) void run(() => api.connectionAction(c.id, 'remove'), 'Connection removed');
+          }}
+        >
           <UserCheck /> Connected
         </Button>
       ) : c?.status === 'PENDING' && c.direction === 'outgoing' ? (
-        <Button size="sm" variant="outline" disabled={busy} onClick={() => void run(() => api.connectionAction(c.id, 'cancel'), 'Request withdrawn')}>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={busy}
+          onClick={() => void run(() => api.connectionAction(c.id, 'cancel'), 'Request withdrawn')}
+        >
           <Clock /> Requested · Withdraw
         </Button>
       ) : c?.status === 'PENDING' ? (
         <>
-          <Button size="sm" disabled={busy} onClick={() => void run(() => api.connectionAction(c.id, 'accept'), `You're now connected with ${name}`)}>
+          <Button
+            size="sm"
+            disabled={busy}
+            onClick={() => void run(() => api.connectionAction(c.id, 'accept'), `You're now connected with ${name}`)}
+          >
             <Check /> Accept request
           </Button>
-          <Button size="sm" variant="outline" disabled={busy} onClick={() => void run(() => api.connectionAction(c.id, 'decline'), 'Request declined')}>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={busy}
+            onClick={() => void run(() => api.connectionAction(c.id, 'decline'), 'Request declined')}
+          >
             <X /> Decline
           </Button>
         </>
       ) : r.canRequestAfter ? (
-        <Button size="sm" variant="outline" disabled title={`You can send another request after ${new Date(r.canRequestAfter).toLocaleDateString()}`}>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled
+          title={`You can send another request after ${new Date(r.canRequestAfter).toLocaleDateString()}`}
+        >
           <UserPlus /> Connect (available {new Date(r.canRequestAfter).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })})
         </Button>
       ) : (
@@ -94,10 +134,20 @@ export function RelationshipActions({ username, name }: { username: string; name
       <Dialog open={requestOpen} onClose={() => setRequestOpen(false)} title={`Connect with ${name}`}>
         <p className="mb-4 text-sm text-sage">Connections are mutual — {name} will need to accept. Following doesn't need approval.</p>
         <Field label="Add a note (optional)" hint={`${message.length}/${CONNECTION_MESSAGE_MAX}`}>
-          {(a) => <Textarea {...a} value={message} maxLength={CONNECTION_MESSAGE_MAX} onChange={(e) => setMessage(e.target.value)} placeholder="Say why you'd like to connect" />}
+          {(a) => (
+            <Textarea
+              {...a}
+              value={message}
+              maxLength={CONNECTION_MESSAGE_MAX}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Say why you'd like to connect"
+            />
+          )}
         </Field>
         <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => setRequestOpen(false)}>Cancel</Button>
+          <Button variant="outline" onClick={() => setRequestOpen(false)}>
+            Cancel
+          </Button>
           <Button
             disabled={busy}
             onClick={() =>

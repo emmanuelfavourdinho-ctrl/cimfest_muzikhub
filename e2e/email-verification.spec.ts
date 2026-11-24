@@ -24,7 +24,14 @@ test('unverified users see a banner, can request a new link, and verifying retur
   const email = `verify.${id}@example.test`;
   const res = await page.request.post('/api/auth/sign-up/email', {
     headers: { Origin: WEB },
-    data: { name: 'Verify Me', username: `verify.${id}`, email, password: 'correct-horse-battery', primaryUse: 'FAN', callbackURL: `${WEB}/email-verified` },
+    data: {
+      name: 'Verify Me',
+      username: `verify.${id}`,
+      email,
+      password: 'correct-horse-battery',
+      primaryUse: 'FAN',
+      callbackURL: `${WEB}/email-verified`,
+    },
   });
   expect(res.status()).toBe(200);
   await page.request.post('/api/v1/me/onboarding/complete');

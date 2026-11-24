@@ -105,24 +105,59 @@ function OnboardingFlow({ me }: { me: Me }) {
         <Panel className="mt-5 p-5 sm:p-7">
           <FormError message={error} />
           {step === 'roles' && (
-            <StepIntro eyebrow="Your professional identity" title="What do you do in music?" description="Pick everything that fits — many people are, say, both a producer and an engineer.">
-              <RolePicker label="Professional roles" value={roles} onChange={setRoles} max={6} suggested={SUGGESTED_ROLES[me.profile.primaryUse ?? 'CREATOR']} />
+            <StepIntro
+              eyebrow="Your professional identity"
+              title="What do you do in music?"
+              description="Pick everything that fits — many people are, say, both a producer and an engineer."
+            >
+              <RolePicker
+                label="Professional roles"
+                value={roles}
+                onChange={setRoles}
+                max={6}
+                suggested={SUGGESTED_ROLES[me.profile.primaryUse ?? 'CREATOR']}
+              />
             </StepIntro>
           )}
           {step === 'genres' && (
-            <StepIntro eyebrow="Your sound" title="Which genres are you into?" description="This shapes what you discover and who discovers you.">
+            <StepIntro
+              eyebrow="Your sound"
+              title="Which genres are you into?"
+              description="This shapes what you discover and who discovers you."
+            >
               <GenrePicker label="Genres" value={genres} onChange={setGenres} max={8} />
               <h3 className="mt-7 mb-3 text-sm font-bold">What brings you to MuzikHub?</h3>
               <GoalPicker label="Goals" value={goals} onChange={setGoals} max={7} />
             </StepIntro>
           )}
           {step === 'about' && (
-            <StepIntro eyebrow="About you" title="Introduce yourself" description="A few lines help people understand your work and what you're looking for.">
+            <StepIntro
+              eyebrow="About you"
+              title="Introduce yourself"
+              description="A few lines help people understand your work and what you're looking for."
+            >
               <Field label="Short bio" hint={`${bio.length}/${BIO_MAX}`}>
-                {(a) => <Textarea {...a} value={bio} maxLength={BIO_MAX} onChange={(e) => setBio(e.target.value)} placeholder="e.g. Afro-fusion artist from Douala. Looking for producers for my next EP." />}
+                {(a) => (
+                  <Textarea
+                    {...a}
+                    value={bio}
+                    maxLength={BIO_MAX}
+                    onChange={(e) => setBio(e.target.value)}
+                    placeholder="e.g. Afro-fusion artist from Douala. Looking for producers for my next EP."
+                  />
+                )}
               </Field>
               <Field label="Location">
-                {(a) => <Input {...a} value={location} maxLength={80} onChange={(e) => setLocation(e.target.value)} placeholder="City, Country" autoComplete="address-level2" />}
+                {(a) => (
+                  <Input
+                    {...a}
+                    value={location}
+                    maxLength={80}
+                    onChange={(e) => setLocation(e.target.value)}
+                    placeholder="City, Country"
+                    autoComplete="address-level2"
+                  />
+                )}
               </Field>
               {me.profile.primaryUse !== 'FAN' && (
                 <Field label="Career stage">
@@ -130,7 +165,9 @@ function OnboardingFlow({ me }: { me: Me }) {
                     <Select {...a} value={careerStage} onChange={(e) => setCareerStage(e.target.value as CareerStage | '')}>
                       <option value="">Prefer not to say</option>
                       {CAREER_STAGE_KEYS.map((k) => (
-                        <option key={k} value={k}>{CAREER_STAGES[k]}</option>
+                        <option key={k} value={k}>
+                          {CAREER_STAGES[k]}
+                        </option>
                       ))}
                     </Select>
                   )}
@@ -139,7 +176,11 @@ function OnboardingFlow({ me }: { me: Me }) {
             </StepIntro>
           )}
           {step === 'links' && (
-            <StepIntro eyebrow="Your music elsewhere" title="Where can people hear your work?" description="Add your Spotify, YouTube, SoundCloud, Instagram or website. They appear as recognisable icons on your profile.">
+            <StepIntro
+              eyebrow="Your music elsewhere"
+              title="Where can people hear your work?"
+              description="Add your Spotify, YouTube, SoundCloud, Instagram or website. They appear as recognisable icons on your profile."
+            >
               <LinksEditor initial={me.profile.links} submitLabel="Save & finish" onSaved={() => void advance({})} />
             </StepIntro>
           )}
@@ -175,7 +216,14 @@ function Progress({ current, total }: { current: number; total: number }) {
           Step {current + 1} of {total}
         </span>
       </div>
-      <div className="flex gap-1.5" role="progressbar" aria-valuemin={1} aria-valuemax={total} aria-valuenow={current + 1} aria-label="Profile setup progress">
+      <div
+        className="flex gap-1.5"
+        role="progressbar"
+        aria-valuemin={1}
+        aria-valuemax={total}
+        aria-valuenow={current + 1}
+        aria-label="Profile setup progress"
+      >
         {Array.from({ length: total }, (_, i) => (
           <span key={i} className={`h-1.5 flex-1 rounded-full ${i <= current ? 'bg-emerald' : 'bg-forest-700'}`} />
         ))}
@@ -184,7 +232,17 @@ function Progress({ current, total }: { current: number; total: number }) {
   );
 }
 
-function StepIntro({ eyebrow, title, description, children }: { eyebrow: string; title: string; description: string; children: ReactNode }) {
+function StepIntro({
+  eyebrow,
+  title,
+  description,
+  children,
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+  children: ReactNode;
+}) {
   return (
     <div>
       <Eyebrow>{eyebrow}</Eyebrow>

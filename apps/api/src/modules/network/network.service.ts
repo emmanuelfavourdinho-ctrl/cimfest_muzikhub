@@ -52,7 +52,10 @@ export async function listFollows(username: string, which: 'followers' | 'follow
   const where: Prisma.FollowWhereInput =
     which === 'followers' ? { followingId: userId, follower: visibleUser } : { followerId: userId, following: visibleUser };
   const rows = await prisma.follow.findMany({
-    where: { ...where, ...(page.cursor && (which === 'followers' ? { followerId: { lt: page.cursor } } : { followingId: { lt: page.cursor } })) },
+    where: {
+      ...where,
+      ...(page.cursor && (which === 'followers' ? { followerId: { lt: page.cursor } } : { followingId: { lt: page.cursor } })),
+    },
     orderBy: which === 'followers' ? { followerId: 'desc' } : { followingId: 'desc' },
     take: page.limit + 1,
     include: { follower: { select: { id: true, ...personSelect } }, following: { select: { id: true, ...personSelect } } },
@@ -106,16 +109,26 @@ export async function requestConnection(requesterId: string, username: string, m
 async function transition(
   actorId: string,
   connectionId: string,
-  rule: { from: 'PENDING' | 'ACCEPTED'; to: 'ACCEPTED' | 'DECLINED' | 'CANCELLED' | 'REMOVED'; actor: 'addressee' | 'requester' | 'either' },
+  rule: {
+    from: 'PENDING' | 'ACCEPTED';
+    to: 'ACCEPTED' | 'DECLINED' | 'CANCELLED' | 'REMOVED';
+    actor: 'addressee' | 'requester' | 'either';
+  },
 ) {
   const actorFilter: Prisma.ConnectionWhereInput =
-    rule.actor === 'addressee' ? { addresseeId: actorId } : rule.actor === 'requester' ? { requesterId: actorId } : { OR: [{ addresseeId: actorId }, { requesterId: actorId }] };
+    rule.actor === 'addressee'
+      ? { addresseeId: actorId }
+      : rule.actor === 'requester'
+        ? { requesterId: actorId }
+        : { OR: [{ addresseeId: actorId }, { requesterId: actorId }] };
   const result = await prisma.connection.updateMany({
     where: { id: connectionId, status: rule.from, ...actorFilter },
     data: { status: rule.to, ...(rule.to !== 'CANCELLED' && { respondedAt: new Date() }) },
   });
   if (result.count === 0) {
-    const exists = await prisma.connection.findFirst({ where: { id: connectionId, OR: [{ addresseeId: actorId }, { requesterId: actorId }] } });
+    const exists = await prisma.connection.findFirst({
+      where: { id: connectionId, OR: [{ addresseeId: actorId }, { requesterId: actorId }] },
+    });
     if (!exists) throw new HttpError(404, 'CONNECTION_NOT_FOUND', 'Connection request not found');
     throw new HttpError(409, 'INVALID_TRANSITION', 'This request has already been answered or withdrawn');
   }
@@ -123,9 +136,12 @@ async function transition(
   return toConnectionView(updated, actorId);
 }
 
-export const acceptConnection = (actor: string, id: string) => transition(actor, id, { from: 'PENDING', to: 'ACCEPTED', actor: 'addressee' });
-export const declineConnection = (actor: string, id: string) => transition(actor, id, { from: 'PENDING', to: 'DECLINED', actor: 'addressee' });
-export const cancelConnection = (actor: string, id: string) => transition(actor, id, { from: 'PENDING', to: 'CANCELLED', actor: 'requester' });
+export const acceptConnection = (actor: string, id: string) =>
+  transition(actor, id, { from: 'PENDING', to: 'ACCEPTED', actor: 'addressee' });
+export const declineConnection = (actor: string, id: string) =>
+  transition(actor, id, { from: 'PENDING', to: 'DECLINED', actor: 'addressee' });
+export const cancelConnection = (actor: string, id: string) =>
+  transition(actor, id, { from: 'PENDING', to: 'CANCELLED', actor: 'requester' });
 export const removeConnection = (actor: string, id: string) => transition(actor, id, { from: 'ACCEPTED', to: 'REMOVED', actor: 'either' });
 
 const connectionInclude = {
@@ -133,7 +149,10 @@ const connectionInclude = {
   addressee: { select: personSelect },
 } satisfies Prisma.ConnectionInclude;
 
-function toConnectionView(c: Connection & Prisma.ConnectionGetPayload<{ include: typeof connectionInclude }>, viewerId: string): ConnectionView {
+function toConnectionView(
+  c: Connection & Prisma.ConnectionGetPayload<{ include: typeof connectionInclude }>,
+  viewerId: string,
+): ConnectionView {
   const outgoing = c.requesterId === viewerId;
   return {
     id: c.id,
@@ -146,7 +165,11 @@ function toConnectionView(c: Connection & Prisma.ConnectionGetPayload<{ include:
   };
 }
 
-export async function listConnections(viewerId: string, filter: 'incoming' | 'outgoing' | 'accepted', page: PageQuery): Promise<Page<ConnectionView>> {
+export async function listConnections(
+  viewerId: string,
+  filter: 'incoming' | 'outgoing' | 'accepted',
+  page: PageQuery,
+): Promise<Page<ConnectionView>> {
   const where: Prisma.ConnectionWhereInput =
     filter === 'incoming'
       ? { addresseeId: viewerId, status: 'PENDING', requester: visibleUser }

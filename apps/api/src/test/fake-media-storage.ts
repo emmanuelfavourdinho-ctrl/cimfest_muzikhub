@@ -21,7 +21,15 @@ export class FakeMediaStorage implements MediaStorage {
     this.files.set(publicId, { bytes: 1000, width: null, height: null, durationSec: null, version: 1, ...resource });
   }
 
-  signUpload({ publicId, resourceType, allowedFormats }: { publicId: string; resourceType: ResourceType; allowedFormats: readonly string[] }) {
+  signUpload({
+    publicId,
+    resourceType,
+    allowedFormats,
+  }: {
+    publicId: string;
+    resourceType: ResourceType;
+    allowedFormats: readonly string[];
+  }) {
     return {
       uploadUrl: `https://api.cloudinary.test/v1_1/fake/${resourceType}/upload`,
       fields: {

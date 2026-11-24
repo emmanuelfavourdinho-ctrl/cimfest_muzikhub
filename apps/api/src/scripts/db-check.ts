@@ -58,7 +58,8 @@ ok(`host …${hostSuffix(db.host)}, port ${new URL(db.url).port || '5432'}`);
 // 1. Wrong CA must be refused.
 const wrong = await wrongCaIsRejected(db.url);
 if (wrong.rejected) ok(`a connection with the wrong CA is refused (${wrong.code})`);
-else if ('inconclusive' in wrong) fail(`wrong-CA test was inconclusive: ${redact(String((wrong.error as Error)?.message ?? wrong.error), db.url)}`);
+else if ('inconclusive' in wrong)
+  fail(`wrong-CA test was inconclusive: ${redact(String((wrong.error as Error)?.message ?? wrong.error), db.url)}`);
 else fail('a connection with the WRONG CA was accepted — certificate verification is not working. Stopping.');
 
 // 2. Real connection, verified, read-only.
@@ -66,7 +67,9 @@ const client = new pg.Client({ connectionString: db.url, connectionTimeoutMillis
 try {
   await client.connect();
 } catch (error) {
-  fail(`could not connect: ${redact(String((error as Error).message), db.url)}${(error as { code?: string }).code ? ` (${(error as { code?: string }).code})` : ''}`);
+  fail(
+    `could not connect: ${redact(String((error as Error).message), db.url)}${(error as { code?: string }).code ? ` (${(error as { code?: string }).code})` : ''}`,
+  );
 }
 try {
   const tls = tlsDetails(client);
@@ -80,7 +83,9 @@ try {
   if (!m.table) {
     console.log(`  • no _prisma_migrations table: no migrations applied yet (${m.local} in the repository). Nothing was changed.`);
   } else {
-    console.log(`  • migrations: ${m.applied} applied, ${m.pending.length} pending, ${m.failed.length} failed, ${m.unknown.length} not in this repository`);
+    console.log(
+      `  • migrations: ${m.applied} applied, ${m.pending.length} pending, ${m.failed.length} failed, ${m.unknown.length} not in this repository`,
+    );
     for (const p of m.pending) console.log(`      pending: ${p}`);
     for (const f of m.failed) console.log(`      FAILED:  ${f}`);
     for (const u of m.unknown) console.log(`      unknown: ${u}`);

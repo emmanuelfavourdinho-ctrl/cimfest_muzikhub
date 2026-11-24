@@ -49,11 +49,27 @@ const tone = {
 } as const;
 
 export function Tag({ children, color = 'gray', className }: { children: ReactNode; color?: keyof typeof tone; className?: string }) {
-  return <span className={cn('inline-flex items-center rounded-md border px-1.5 py-0.5 text-[11px] font-semibold whitespace-nowrap', tone[color], className)}>{children}</span>;
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center rounded-md border px-1.5 py-0.5 text-[11px] font-semibold whitespace-nowrap',
+        tone[color],
+        className,
+      )}
+    >
+      {children}
+    </span>
+  );
 }
 
 export function StatusTag({ status }: { status: string }) {
-  const map: Record<string, keyof typeof tone> = { ACTIVE: 'green', RESTRICTED: 'gold', SUSPENDED: 'red', BANNED: 'red', DEACTIVATED: 'gray' };
+  const map: Record<string, keyof typeof tone> = {
+    ACTIVE: 'green',
+    RESTRICTED: 'gold',
+    SUSPENDED: 'red',
+    BANNED: 'red',
+    DEACTIVATED: 'gray',
+  };
   return <Tag color={map[status] ?? 'gray'}>{status.charAt(0) + status.slice(1).toLowerCase()}</Tag>;
 }
 export function RoleTag({ role }: { role: string }) {
@@ -64,7 +80,9 @@ export function ReportStatusTag({ status, escalated }: { status: string; escalat
   const map: Record<string, keyof typeof tone> = { PENDING: 'gold', UNDER_REVIEW: 'blue', RESOLVED: 'green', DISMISSED: 'gray' };
   return (
     <span className="inline-flex gap-1">
-      <Tag color={map[status] ?? 'gray'}>{status === 'UNDER_REVIEW' ? 'Under review' : status.charAt(0) + status.slice(1).toLowerCase()}</Tag>
+      <Tag color={map[status] ?? 'gray'}>
+        {status === 'UNDER_REVIEW' ? 'Under review' : status.charAt(0) + status.slice(1).toLowerCase()}
+      </Tag>
       {escalated && <Tag color="red">Escalated</Tag>}
     </span>
   );
@@ -75,8 +93,21 @@ export function Ago({ iso }: { iso: string | null }) {
   if (!iso) return <span className="text-sage-dim">—</span>;
   const d = new Date(iso);
   const s = (Date.now() - d.getTime()) / 1000;
-  const text = s < 60 ? 'just now' : s < 3600 ? `${Math.floor(s / 60)}m ago` : s < 86400 ? `${Math.floor(s / 3600)}h ago` : s < 30 * 86400 ? `${Math.floor(s / 86400)}d ago` : d.toLocaleDateString();
-  return <time dateTime={iso} title={d.toLocaleString()}>{text}</time>;
+  const text =
+    s < 60
+      ? 'just now'
+      : s < 3600
+        ? `${Math.floor(s / 60)}m ago`
+        : s < 86400
+          ? `${Math.floor(s / 3600)}h ago`
+          : s < 30 * 86400
+            ? `${Math.floor(s / 86400)}d ago`
+            : d.toLocaleDateString();
+  return (
+    <time dateTime={iso} title={d.toLocaleString()}>
+      {text}
+    </time>
+  );
 }
 
 // ── Layout pieces ────────────────────────────────────────────
@@ -106,12 +137,24 @@ export function DataTable({ children }: { children: ReactNode }) {
 export function EmptyRow({ cols, children }: { cols: number; children: ReactNode }) {
   return (
     <tr>
-      <td colSpan={cols} className="!py-10 text-center text-sm text-sage">{children}</td>
+      <td colSpan={cols} className="!py-10 text-center text-sm text-sage">
+        {children}
+      </td>
     </tr>
   );
 }
 
-export function FilterTabs<T extends string>({ value, options, onChange, label }: { value: T; options: { value: T; label: string }[]; onChange: (v: T) => void; label: string }) {
+export function FilterTabs<T extends string>({
+  value,
+  options,
+  onChange,
+  label,
+}: {
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (v: T) => void;
+  label: string;
+}) {
   return (
     <div role="tablist" aria-label={label} className="mb-4 flex gap-1 overflow-x-auto">
       {options.map((o) => (
@@ -120,7 +163,10 @@ export function FilterTabs<T extends string>({ value, options, onChange, label }
           role="tab"
           aria-selected={value === o.value}
           onClick={() => onChange(o.value)}
-          className={cn('min-h-9 shrink-0 rounded-lg px-3 text-xs font-semibold', value === o.value ? 'bg-[#143a2c] text-[#76f5bc]' : 'text-[#9ac2b0] hover:bg-[#0f2b22]')}
+          className={cn(
+            'min-h-9 shrink-0 rounded-lg px-3 text-xs font-semibold',
+            value === o.value ? 'bg-[#143a2c] text-[#76f5bc]' : 'text-[#9ac2b0] hover:bg-[#0f2b22]',
+          )}
         >
           {o.label}
         </button>
@@ -164,7 +210,9 @@ export function ReasonDialog({
         {(a) => <Textarea {...a} value={reason} maxLength={1000} onChange={(e) => setReason(e.target.value)} />}
       </Field>
       <div className="flex justify-end gap-2">
-        <Button variant="outline" onClick={onClose}>Cancel</Button>
+        <Button variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
         <Button
           variant={destructive ? 'destructive' : 'primary'}
           disabled={busy || tooShort}
@@ -195,7 +243,9 @@ export function Stat({ label, value, hint, href }: { label: string; value: React
     </>
   );
   return href ? (
-    <a href={href} className="block rounded-lg px-3 py-2.5 hover:bg-[#0f2b22]">{body}</a>
+    <a href={href} className="block rounded-lg px-3 py-2.5 hover:bg-[#0f2b22]">
+      {body}
+    </a>
   ) : (
     <div className="px-3 py-2.5">{body}</div>
   );

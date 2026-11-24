@@ -115,7 +115,11 @@ function PortfolioEditor({ existing }: { existing?: PortfolioItemView }) {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHeader eyebrow="Creator studio" title={existing ? 'Edit work' : 'Add work'} description="Show people what you make. You can save a draft and publish later." />
+      <PageHeader
+        eyebrow="Creator studio"
+        title={existing ? 'Edit work' : 'Add work'}
+        description="Show people what you make. You can save a draft and publish later."
+      />
       <form onSubmit={onSubmit} noValidate className="space-y-4">
         <FormError message={error} />
         <Panel className="p-5 sm:p-6">
@@ -143,24 +147,72 @@ function PortfolioEditor({ existing }: { existing?: PortfolioItemView }) {
         </Panel>
 
         <Panel className="p-5 sm:p-6">
-          <Field label="Title">{(a) => <Input {...a} value={title} maxLength={120} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Midnight Makossa" />}</Field>
+          <Field label="Title">
+            {(a) => (
+              <Input {...a} value={title} maxLength={120} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Midnight Makossa" />
+            )}
+          </Field>
           {accepts.length > 0 && (
             <div className="mb-4">
-              <p className="mb-1.5 text-xs font-bold text-[#b4dbbf]">{type === 'VIDEO' ? 'Video file' : type === 'IMAGE' ? 'Image' : 'Audio file'}</p>
-              <MediaUploader purpose="PORTFOLIO" kinds={accepts} value={media} onChange={setMedia} label={`Choose ${type === 'VIDEO' ? 'a video' : type === 'IMAGE' ? 'an image' : 'an audio file'}`} previewTitle={title || 'Preview'} onBusyChange={trackUpload} />
+              <p className="mb-1.5 text-xs font-bold text-[#b4dbbf]">
+                {type === 'VIDEO' ? 'Video file' : type === 'IMAGE' ? 'Image' : 'Audio file'}
+              </p>
+              <MediaUploader
+                purpose="PORTFOLIO"
+                kinds={accepts}
+                value={media}
+                onChange={setMedia}
+                label={`Choose ${type === 'VIDEO' ? 'a video' : type === 'IMAGE' ? 'an image' : 'an audio file'}`}
+                previewTitle={title || 'Preview'}
+                onBusyChange={trackUpload}
+              />
             </div>
           )}
           {type !== 'IMAGE' && (
             <div className="mb-4">
-              <p className="mb-1.5 text-xs font-bold text-[#b4dbbf]">Cover image <span className="font-normal text-sage-dim">(optional)</span></p>
-              <MediaUploader purpose="PORTFOLIO" kinds={['IMAGE']} value={cover} onChange={setCover} label="Choose a cover image" onBusyChange={trackUpload} />
+              <p className="mb-1.5 text-xs font-bold text-[#b4dbbf]">
+                Cover image <span className="font-normal text-sage-dim">(optional)</span>
+              </p>
+              <MediaUploader
+                purpose="PORTFOLIO"
+                kinds={['IMAGE']}
+                value={cover}
+                onChange={setCover}
+                label="Choose a cover image"
+                onBusyChange={trackUpload}
+              />
             </div>
           )}
-          <Field label="Link" hint={accepts.length > 0 ? 'Optional — or use a link instead of uploading (YouTube, SoundCloud, Spotify…).' : 'Where can people see or hear this project?'}>
-            {(a) => <Input {...a} value={externalUrl} onChange={(e) => setExternalUrl(e.target.value)} placeholder="https://" inputMode="url" autoCapitalize="none" spellCheck={false} />}
+          <Field
+            label="Link"
+            hint={
+              accepts.length > 0
+                ? 'Optional — or use a link instead of uploading (YouTube, SoundCloud, Spotify…).'
+                : 'Where can people see or hear this project?'
+            }
+          >
+            {(a) => (
+              <Input
+                {...a}
+                value={externalUrl}
+                onChange={(e) => setExternalUrl(e.target.value)}
+                placeholder="https://"
+                inputMode="url"
+                autoCapitalize="none"
+                spellCheck={false}
+              />
+            )}
           </Field>
           <Field label="Description" hint={`${description.length}/${PORTFOLIO_DESCRIPTION_MAX}`}>
-            {(a) => <Textarea {...a} value={description} maxLength={PORTFOLIO_DESCRIPTION_MAX} onChange={(e) => setDescription(e.target.value)} placeholder="The story behind it, the tools you used, what you're looking for…" />}
+            {(a) => (
+              <Textarea
+                {...a}
+                value={description}
+                maxLength={PORTFOLIO_DESCRIPTION_MAX}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="The story behind it, the tools you used, what you're looking for…"
+              />
+            )}
           </Field>
           <Field label="Credits" hint="Optional, e.g. “Produced by Kora Beats · Mixed by …”">
             {(a) => <Input {...a} value={credits} maxLength={500} onChange={(e) => setCredits(e.target.value)} />}
@@ -174,7 +226,13 @@ function PortfolioEditor({ existing }: { existing?: PortfolioItemView }) {
             <legend className="mb-2 text-xs font-bold text-[#b4dbbf]">Who can see it?</legend>
             {(['PUBLIC', 'PRIVATE'] as const).map((v) => (
               <label key={v} className="flex min-h-11 items-center gap-3 text-sm">
-                <input type="radio" name="visibility" checked={visibility === v} onChange={() => setVisibility(v)} className="size-4 accent-[#28dca0]" />
+                <input
+                  type="radio"
+                  name="visibility"
+                  checked={visibility === v}
+                  onChange={() => setVisibility(v)}
+                  className="size-4 accent-[#28dca0]"
+                />
                 {v === 'PUBLIC' ? 'Public — anyone can see it on your profile and in discovery' : 'Private — only you'}
               </label>
             ))}
@@ -185,7 +243,12 @@ function PortfolioEditor({ existing }: { existing?: PortfolioItemView }) {
           </label>
           {!isPublished && visibility === 'PUBLIC' && (
             <label className="flex min-h-11 items-center gap-3 text-sm">
-              <input type="checkbox" checked={shareToFeed} onChange={(e) => setShareToFeed(e.target.checked)} className="size-4 accent-[#28dca0]" />
+              <input
+                type="checkbox"
+                checked={shareToFeed}
+                onChange={(e) => setShareToFeed(e.target.checked)}
+                className="size-4 accent-[#28dca0]"
+              />
               Share to the feed when I publish
             </label>
           )}
@@ -193,13 +256,17 @@ function PortfolioEditor({ existing }: { existing?: PortfolioItemView }) {
 
         <div className="flex flex-wrap justify-end gap-2 pb-4">
           {isPublished ? (
-            <Button type="submit" disabled={blocked}>{saving ? 'Saving…' : uploads ? 'Uploading…' : 'Save changes'}</Button>
+            <Button type="submit" disabled={blocked}>
+              {saving ? 'Saving…' : uploads ? 'Uploading…' : 'Save changes'}
+            </Button>
           ) : (
             <>
               <Button type="button" variant="outline" disabled={blocked} onClick={() => void save('draft')}>
                 {saving === 'draft' ? 'Saving…' : 'Save draft'}
               </Button>
-              <Button type="submit" disabled={blocked}>{saving === 'publish' ? 'Publishing…' : uploads ? 'Uploading…' : 'Publish'}</Button>
+              <Button type="submit" disabled={blocked}>
+                {saving === 'publish' ? 'Publishing…' : uploads ? 'Uploading…' : 'Publish'}
+              </Button>
             </>
           )}
         </div>

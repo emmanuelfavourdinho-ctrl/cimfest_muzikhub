@@ -27,7 +27,9 @@ function requireConfigured() {
   }
 }
 
-export function toMediaView(asset: Pick<MediaAsset, 'id' | 'kind' | 'publicId' | 'version' | 'width' | 'height' | 'durationSec'>): MediaView {
+export function toMediaView(
+  asset: Pick<MediaAsset, 'id' | 'kind' | 'publicId' | 'version' | 'width' | 'height' | 'durationSec'>,
+): MediaView {
   return mediaStorage().view(asset);
 }
 

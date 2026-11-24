@@ -30,7 +30,9 @@ export function VerifyEmailBanner() {
     const { error } = await authClient.sendVerificationEmail({ email: me.email, callbackURL: `${window.location.origin}/email-verified` });
     setSending(false);
     if (error) {
-      toast.error(error.status === 429 ? 'Please wait a few minutes before asking again.' : "Couldn't request a new link. Please try again.");
+      toast.error(
+        error.status === 429 ? 'Please wait a few minutes before asking again.' : "Couldn't request a new link. Please try again.",
+      );
       return;
     }
     setCooldown(COOLDOWN_SECONDS);
@@ -39,10 +41,14 @@ export function VerifyEmailBanner() {
   }
 
   return (
-    <div role="status" className="mb-5 flex flex-col gap-3 rounded-xl border border-[#7a692d] bg-[#2a2410] px-4 py-3 text-sm text-[#ffe9b0] sm:flex-row sm:items-center">
+    <div
+      role="status"
+      className="mb-5 flex flex-col gap-3 rounded-xl border border-[#7a692d] bg-[#2a2410] px-4 py-3 text-sm text-[#ffe9b0] sm:flex-row sm:items-center"
+    >
       <MailCheck className="hidden size-5 shrink-0 text-gold sm:block" aria-hidden />
       <p className="flex-1">
-        <strong className="font-semibold">Confirm your email.</strong> We sent a link to <span className="break-all">{me.email}</span>. Confirming helps you recover your account.
+        <strong className="font-semibold">Confirm your email.</strong> We sent a link to <span className="break-all">{me.email}</span>.
+        Confirming helps you recover your account.
       </p>
       <Button variant="outline" size="sm" onClick={() => void resend()} disabled={sending || cooldown > 0}>
         {sending ? 'Sending…' : cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend link'}

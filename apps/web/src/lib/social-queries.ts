@@ -18,8 +18,8 @@ export const socialKeys = {
   discoverWork: (q: object) => ['discover', 'work', q] as const,
 };
 
-const nextPage = <T,>(last: Page<T>) => last.nextCursor ?? undefined;
-export const flatten = <T,>(data: InfiniteData<Page<T>> | undefined): T[] => data?.pages.flatMap((p) => p.items) ?? [];
+const nextPage = <T>(last: Page<T>) => last.nextCursor ?? undefined;
+export const flatten = <T>(data: InfiniteData<Page<T>> | undefined): T[] => data?.pages.flatMap((p) => p.items) ?? [];
 
 export function useFeed(tab: FeedTab, enabled = true) {
   return useInfiniteQuery({

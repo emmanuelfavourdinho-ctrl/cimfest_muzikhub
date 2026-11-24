@@ -75,6 +75,10 @@ export const requirePermission =
 export function assertFreshSession(staff: StaffContext) {
   const ageMs = Date.now() - staff.sessionCreatedAt.getTime();
   if (ageMs > FRESH_SESSION_MINUTES * 60_000) {
-    throw new HttpError(403, 'REAUTH_REQUIRED', `For your security, sign in again to do this (required every ${FRESH_SESSION_MINUTES} minutes for sensitive actions).`);
+    throw new HttpError(
+      403,
+      'REAUTH_REQUIRED',
+      `For your security, sign in again to do this (required every ${FRESH_SESSION_MINUTES} minutes for sensitive actions).`,
+    );
   }
 }

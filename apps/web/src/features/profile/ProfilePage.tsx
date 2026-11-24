@@ -44,7 +44,14 @@ function ProfileView({ profile, isOwner, signedIn }: { profile: PublicProfile; i
       <div className="relative h-[152px] overflow-hidden rounded-[19px] border border-[#285640] sm:h-[190px]">
         {profile.cover ? (
           <>
-            <ResponsiveImage media={profile.cover} alt="" priority aspect="auto" className="h-full" sizes="(min-width: 1024px) 1200px, 100vw" />
+            <ResponsiveImage
+              media={profile.cover}
+              alt=""
+              priority
+              aspect="auto"
+              className="h-full"
+              sizes="(min-width: 1024px) 1200px, 100vw"
+            />
             <span aria-hidden className="absolute inset-0 bg-[linear-gradient(90deg,#092018cc_0%,#09201840_50%,transparent_100%)]" />
           </>
         ) : (
@@ -54,24 +61,43 @@ function ProfileView({ profile, isOwner, signedIn }: { profile: PublicProfile; i
       </div>
 
       <div className="relative -mt-9 flex flex-col gap-3 px-3 sm:-mt-12 sm:flex-row sm:items-end sm:gap-5 sm:px-7">
-        <Avatar name={profile.name} image={profile.image} className="size-[84px] border-[5px] border-[#09251b] text-2xl shadow-[0_0_0_2px_#56b888] sm:size-[105px] sm:text-3xl" />
+        <Avatar
+          name={profile.name}
+          image={profile.image}
+          className="size-[84px] border-[5px] border-[#09251b] text-2xl shadow-[0_0_0_2px_#56b888] sm:size-[105px] sm:text-3xl"
+        />
         <div className="min-w-0 flex-1 sm:pb-1">
           <Eyebrow>{profile.primaryUse === 'FAN' ? 'Member profile' : 'Creator profile'}</Eyebrow>
           <h1 className="mt-1 text-[23px] font-bold tracking-[-0.05em] break-words sm:text-[29px]">{profile.name}</h1>
           <p className="mt-0.5 text-xs text-[#aacbb9]">
             @{profile.username}
             {headline && <> · {headline}</>}
-            {profile.location && (<> · <MapPin className="inline size-3 align-[-1px]" aria-hidden /> {profile.location}</>)}
+            {profile.location && (
+              <>
+                {' '}
+                · <MapPin className="inline size-3 align-[-1px]" aria-hidden /> {profile.location}
+              </>
+            )}
           </p>
           <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-sage">
-            <span><strong className="text-foreground">{profile.stats.followers}</strong> followers</span>
-            <span><strong className="text-foreground">{profile.stats.following}</strong> following</span>
-            <span><strong className="text-foreground">{profile.stats.connections}</strong> connections</span>
+            <span>
+              <strong className="text-foreground">{profile.stats.followers}</strong> followers
+            </span>
+            <span>
+              <strong className="text-foreground">{profile.stats.following}</strong> following
+            </span>
+            <span>
+              <strong className="text-foreground">{profile.stats.connections}</strong> connections
+            </span>
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:pb-1">
           {isOwner ? (
-            <Button asChild variant="outline" size="sm"><Link to="/settings/profile"><Pencil /> Edit profile</Link></Button>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/settings/profile">
+                <Pencil /> Edit profile
+              </Link>
+            </Button>
           ) : (
             <>
               <RelationshipActions username={profile.username} name={profile.name} />
@@ -85,7 +111,16 @@ function ProfileView({ profile, isOwner, signedIn }: { profile: PublicProfile; i
 
       <div role="tablist" aria-label="Profile sections" className="mt-5 flex gap-1 overflow-x-auto border-b border-[#264b3d]">
         {TABS.map((t) => (
-          <button key={t} role="tab" aria-selected={tab === t} onClick={() => setParams(t === 'portfolio' ? {} : { tab: t }, { replace: true })} className={cn('min-h-11 border-b-2 px-4 text-xs font-bold capitalize', tab === t ? 'border-[#26ed9f] text-[#76f5bc]' : 'border-transparent text-[#9ac2b0] hover:text-foreground')}>
+          <button
+            key={t}
+            role="tab"
+            aria-selected={tab === t}
+            onClick={() => setParams(t === 'portfolio' ? {} : { tab: t }, { replace: true })}
+            className={cn(
+              'min-h-11 border-b-2 px-4 text-xs font-bold capitalize',
+              tab === t ? 'border-[#26ed9f] text-[#76f5bc]' : 'border-transparent text-[#9ac2b0] hover:text-foreground',
+            )}
+          >
             {t === 'portfolio' ? `Portfolio${profile.stats.publishedWork ? ` (${profile.stats.publishedWork})` : ''}` : t}
           </button>
         ))}
@@ -108,14 +143,31 @@ function PortfolioTab({ profile, isOwner }: { profile: PublicProfile; isOwner: b
   if (items.length === 0) {
     return (
       <Panel className="p-8 text-center">
-        <p className="text-sm text-sage">{isOwner ? "You haven't published any work yet." : `${profile.name} hasn't published any work yet.`}</p>
-        {isOwner && <Button asChild size="sm" className="mt-4"><Link to="/studio/new"><Plus /> Add work</Link></Button>}
+        <p className="text-sm text-sage">
+          {isOwner ? "You haven't published any work yet." : `${profile.name} hasn't published any work yet.`}
+        </p>
+        {isOwner && (
+          <Button asChild size="sm" className="mt-4">
+            <Link to="/studio/new">
+              <Plus /> Add work
+            </Link>
+          </Button>
+        )}
       </Panel>
     );
   }
   return (
-    <InfiniteList hasNextPage={query.hasNextPage} isFetchingNextPage={query.isFetchingNextPage} fetchNextPage={() => void query.fetchNextPage()} isError={query.isError}>
-      <PortfolioGrid>{items.map((i) => <PortfolioCard key={i.id} item={i} />)}</PortfolioGrid>
+    <InfiniteList
+      hasNextPage={query.hasNextPage}
+      isFetchingNextPage={query.isFetchingNextPage}
+      fetchNextPage={() => void query.fetchNextPage()}
+      isError={query.isError}
+    >
+      <PortfolioGrid>
+        {items.map((i) => (
+          <PortfolioCard key={i.id} item={i} />
+        ))}
+      </PortfolioGrid>
     </InfiniteList>
   );
 }
@@ -126,11 +178,34 @@ function PostsTab({ username, isOwner }: { username: string; isOwner: boolean })
   if (query.isPending) return <PageLoading />;
   if (query.isError && posts.length === 0) return <LoadFailed message={errorMessage(query.error)} onRetry={() => void query.refetch()} />;
   if (posts.length === 0) {
-    return <Panel className="p-8 text-center text-sm text-sage">{isOwner ? <>No posts yet. <Link to="/home" className="text-mint-soft hover:underline">Share something</Link>.</> : 'No posts yet.'}</Panel>;
+    return (
+      <Panel className="p-8 text-center text-sm text-sage">
+        {isOwner ? (
+          <>
+            No posts yet.{' '}
+            <Link to="/home" className="text-mint-soft hover:underline">
+              Share something
+            </Link>
+            .
+          </>
+        ) : (
+          'No posts yet.'
+        )}
+      </Panel>
+    );
   }
   return (
-    <InfiniteList hasNextPage={query.hasNextPage} isFetchingNextPage={query.isFetchingNextPage} fetchNextPage={() => void query.fetchNextPage()} isError={query.isError}>
-      <div className="mx-auto max-w-2xl space-y-4">{posts.map((p) => <PostCard key={p.id} post={p} />)}</div>
+    <InfiniteList
+      hasNextPage={query.hasNextPage}
+      isFetchingNextPage={query.isFetchingNextPage}
+      fetchNextPage={() => void query.fetchNextPage()}
+      isError={query.isError}
+    >
+      <div className="mx-auto max-w-2xl space-y-4">
+        {posts.map((p) => (
+          <PostCard key={p.id} post={p} />
+        ))}
+      </div>
     </InfiniteList>
   );
 }
@@ -154,10 +229,16 @@ function AboutTab({ profile, isOwner, roleLabels }: { profile: PublicProfile; is
           {profile.skills.length > 0 && <Glance label="Skills">{profile.skills.join(' · ')}</Glance>}
           {profile.location && <Glance label="Location">{profile.location}</Glance>}
           {profile.careerStage && <Glance label="Career stage">{CAREER_STAGES[profile.careerStage]}</Glance>}
-          <Glance label="Member since">{new Date(profile.joinedAt).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</Glance>
+          <Glance label="Member since">
+            {new Date(profile.joinedAt).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
+          </Glance>
         </dl>
         {profile.roles.length > 0 && (
-          <div className="mt-4 flex flex-wrap gap-1.5">{profile.roles.map((r) => <Pill key={r}>{CREATIVE_ROLES[r]}</Pill>)}</div>
+          <div className="mt-4 flex flex-wrap gap-1.5">
+            {profile.roles.map((r) => (
+              <Pill key={r}>{CREATIVE_ROLES[r]}</Pill>
+            ))}
+          </div>
         )}
       </Panel>
     </div>
@@ -182,7 +263,9 @@ function ProfileNotFound({ username }: { username: string }) {
       <Eyebrow className="justify-center">Profile not found</Eyebrow>
       <h1 className="mt-3 text-2xl font-bold [overflow-wrap:anywhere]">There's no one at @{username}</h1>
       <p className="mt-2 mb-6 text-sm text-sage">The username may have changed, or the account is no longer active.</p>
-      <Button asChild variant="outline"><Link to="/">Go to MuzikHub</Link></Button>
+      <Button asChild variant="outline">
+        <Link to="/">Go to MuzikHub</Link>
+      </Button>
     </div>
   );
 }

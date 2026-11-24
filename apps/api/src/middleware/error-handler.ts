@@ -38,9 +38,12 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
     (err as { code?: unknown })?.code === 'P2034' ||
     // With @prisma/adapter-pg the same condition arrives as a DriverAdapterError.
     ((err as { name?: string })?.name === 'DriverAdapterError' &&
-      ((err as { cause?: { kind?: string } }).cause?.kind === 'TransactionWriteConflict' || /TransactionWriteConflict/.test(String((err as Error).message))));
+      ((err as { cause?: { kind?: string } }).cause?.kind === 'TransactionWriteConflict' ||
+        /TransactionWriteConflict/.test(String((err as Error).message))));
   if (writeConflict) {
-    const body: ApiError = { error: { code: 'CONFLICT_RETRY', message: 'Someone else changed this at the same time. Refresh and try again.' } };
+    const body: ApiError = {
+      error: { code: 'CONFLICT_RETRY', message: 'Someone else changed this at the same time. Refresh and try again.' },
+    };
     res.status(409).json(body);
     return;
   }

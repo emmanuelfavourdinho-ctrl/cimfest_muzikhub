@@ -58,8 +58,7 @@ export function toPortfolioView(item: ItemRow, viewer: string | null): Portfolio
     updatedAt: item.updatedAt.toISOString(),
     owner: toPerson(item.owner),
     isOwner: viewer === item.ownerId,
-    moderation:
-      viewer === item.ownerId && item.removedAt ? { removedAt: item.removedAt.toISOString(), reason: item.removalReason } : null,
+    moderation: viewer === item.ownerId && item.removedAt ? { removedAt: item.removedAt.toISOString(), reason: item.removalReason } : null,
   };
 }
 
@@ -87,8 +86,18 @@ async function checkAttachments(
   if (mediaId && mediaId === coverId) throw new HttpError(400, 'MEDIA_INVALID', 'Use different files for the media and the cover');
 }
 
-function assertPublishable(item: { type: PortfolioType; mediaAssetId: string | null; externalUrl: string | null; description: string | null }) {
-  const problem = publishProblem({ type: item.type, hasMedia: Boolean(item.mediaAssetId), externalUrl: item.externalUrl, description: item.description });
+function assertPublishable(item: {
+  type: PortfolioType;
+  mediaAssetId: string | null;
+  externalUrl: string | null;
+  description: string | null;
+}) {
+  const problem = publishProblem({
+    type: item.type,
+    hasMedia: Boolean(item.mediaAssetId),
+    externalUrl: item.externalUrl,
+    description: item.description,
+  });
   if (problem) throw new HttpError(400, 'NOT_PUBLISHABLE', problem);
 }
 
@@ -217,7 +226,12 @@ export async function getItem(id: string, viewer: string | null): Promise<Portfo
   return toPortfolioView(item, viewer);
 }
 
-const portfolioOrder = [{ featured: 'desc' }, { publishedAt: 'desc' }, { createdAt: 'desc' }, { id: 'desc' }] satisfies Prisma.PortfolioItemOrderByWithRelationInput[];
+const portfolioOrder = [
+  { featured: 'desc' },
+  { publishedAt: 'desc' },
+  { createdAt: 'desc' },
+  { id: 'desc' },
+] satisfies Prisma.PortfolioItemOrderByWithRelationInput[];
 
 /** A profile's public portfolio (featured first). The owner sees their private published items too. */
 export async function listProfilePortfolio(username: string, viewer: string | null, page: PageQuery): Promise<Page<PortfolioItemView>> {
@@ -232,7 +246,11 @@ export async function listProfilePortfolio(username: string, viewer: string | nu
 }
 
 /** The owner's studio view, filterable by status (drafts, published, archived). */
-export async function listOwnPortfolio(ownerId: string, status: PortfolioStatus | undefined, page: PageQuery): Promise<Page<PortfolioItemView>> {
+export async function listOwnPortfolio(
+  ownerId: string,
+  status: PortfolioStatus | undefined,
+  page: PageQuery,
+): Promise<Page<PortfolioItemView>> {
   const result = await paginate(page, (args) =>
     prisma.portfolioItem.findMany({
       where: { ownerId, ...(status && { status }) },

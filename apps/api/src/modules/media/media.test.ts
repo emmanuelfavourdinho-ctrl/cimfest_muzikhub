@@ -15,7 +15,9 @@ describe('POST /api/v1/media/uploads — signing', () => {
 
   it("signs an upload into the user's own folder with format limits and no overwrite", async () => {
     const { agent, userId } = await signUp(app);
-    const res = await agent.post('/api/v1/media/uploads').send({ kind: 'AUDIO', purpose: 'PORTFOLIO', bytes: 5_000_000, filename: 'demo.wav' });
+    const res = await agent
+      .post('/api/v1/media/uploads')
+      .send({ kind: 'AUDIO', purpose: 'PORTFOLIO', bytes: 5_000_000, filename: 'demo.wav' });
     expect(res.status).toBe(201);
     expect(res.body.fields.public_id).toBe(`muzikhub/test/${userId}/${res.body.assetId}`);
     expect(res.body.fields.allowed_formats).toContain('mp3');

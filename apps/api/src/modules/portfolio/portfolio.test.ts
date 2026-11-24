@@ -64,7 +64,9 @@ describe('portfolio lifecycle (draft → publish → edit → archive → delete
 
   it('private published work is visible only to its owner', async () => {
     const { agent, input, cover } = await creator();
-    const res = await agent.post('/api/v1/portfolio').send({ type: 'IMAGE', title: 'Unreleased artwork', mediaId: cover, visibility: 'PRIVATE', publish: true });
+    const res = await agent
+      .post('/api/v1/portfolio')
+      .send({ type: 'IMAGE', title: 'Unreleased artwork', mediaId: cover, visibility: 'PRIVATE', publish: true });
     expect(res.status).toBe(201);
     expect((await request(app).get(`/api/v1/portfolio/${res.body.id}`)).status).toBe(404);
     expect((await request(app).get(`/api/v1/profiles/${input.username}/portfolio`)).body.items).toHaveLength(0);
@@ -170,7 +172,9 @@ describe('ownership', () => {
 describe('share to feed (approved: opt-in)', () => {
   it('creates exactly one showcase post, only when asked, and only for public work', async () => {
     const { agent, audio, cover } = await creator();
-    const shared = await agent.post('/api/v1/portfolio').send({ type: 'BEAT', title: 'x', mediaId: audio, publish: true, shareToFeed: true });
+    const shared = await agent
+      .post('/api/v1/portfolio')
+      .send({ type: 'BEAT', title: 'x', mediaId: audio, publish: true, shareToFeed: true });
     expect(await prisma.post.count({ where: { portfolioItemId: shared.body.id, type: 'SHOWCASE' } })).toBe(1);
 
     // Publishing again (e.g. after un-archiving) never duplicates the post.
@@ -188,7 +192,9 @@ describe('share to feed (approved: opt-in)', () => {
 
   it('refuses to share private work', async () => {
     const { agent, audio } = await creator();
-    const res = await agent.post('/api/v1/portfolio').send({ type: 'BEAT', title: 'x', mediaId: audio, visibility: 'PRIVATE', publish: true, shareToFeed: true });
+    const res = await agent
+      .post('/api/v1/portfolio')
+      .send({ type: 'BEAT', title: 'x', mediaId: audio, visibility: 'PRIVATE', publish: true, shareToFeed: true });
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('NOT_SHAREABLE');
   });

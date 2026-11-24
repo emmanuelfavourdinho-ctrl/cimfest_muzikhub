@@ -46,10 +46,7 @@ export function PageHeader({
 export function Panel({ className, ...props }: ComponentProps<'section'>) {
   return (
     <section
-      className={cn(
-        'overflow-hidden rounded-panel border border-hairline-strong bg-surface-raised shadow-e1',
-        className,
-      )}
+      className={cn('overflow-hidden rounded-panel border border-hairline-strong bg-surface-raised shadow-e1', className)}
       {...props}
     />
   );
@@ -86,11 +83,7 @@ export function Pill({
 }
 
 /** `.filterchip` as a toggle button (used for roles, genres and goals pickers). */
-export function ToggleChip({
-  selected,
-  className,
-  ...props
-}: ComponentProps<'button'> & { selected: boolean }) {
+export function ToggleChip({ selected, className, ...props }: ComponentProps<'button'> & { selected: boolean }) {
   return (
     <button
       type="button"
@@ -123,22 +116,16 @@ export function PageLoading() {
 /** `.hint` — left-ruled explanatory note. */
 export function Hint({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={cn('rounded-md border-l-2 border-[#2beca1] bg-[#163c2f] px-3.5 py-3 text-xs leading-relaxed text-[#b1d4c1]', className)}>
+    <div
+      className={cn('rounded-md border-l-2 border-[#2beca1] bg-[#163c2f] px-3.5 py-3 text-xs leading-relaxed text-[#b1d4c1]', className)}
+    >
       {children}
     </div>
   );
 }
 
 /** Initials avatar used until profile photo upload exists. */
-export function Avatar({
-  name,
-  image,
-  className,
-}: {
-  name: string;
-  image?: string | null;
-  className?: string;
-}) {
+export function Avatar({ name, image, className }: { name: string; image?: string | null; className?: string }) {
   const initials = name
     .split(/\s+/)
     .filter(Boolean)
@@ -147,7 +134,17 @@ export function Avatar({
     .join('');
   if (image) {
     // 192px square from Cloudinary; lazy because avatars repeat down long feeds.
-    return <img src={image} alt="" loading="lazy" decoding="async" width={192} height={192} className={cn('rounded-full border-2 border-[#37694e] object-cover', className)} />;
+    return (
+      <img
+        src={image}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        width={192}
+        height={192}
+        className={cn('rounded-full border-2 border-[#37694e] object-cover', className)}
+      />
+    );
   }
   return (
     <span

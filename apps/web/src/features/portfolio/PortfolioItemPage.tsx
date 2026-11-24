@@ -59,7 +59,14 @@ export function PortfolioItemPage() {
           {item.media && item.media.kind !== 'AUDIO' ? (
             <MediaBlock media={item.media} title={item.title} />
           ) : item.cover ? (
-            <ResponsiveImage media={item.cover} alt={item.title} priority maxVariant="large" className="rounded-xl" sizes="(min-width: 1024px) 560px, 100vw" />
+            <ResponsiveImage
+              media={item.cover}
+              alt={item.title}
+              priority
+              maxVariant="large"
+              className="rounded-xl"
+              sizes="(min-width: 1024px) 560px, 100vw"
+            />
           ) : null}
           {item.media?.kind === 'AUDIO' && <MediaBlock media={item.media} title={item.title} />}
         </div>
@@ -98,13 +105,16 @@ export function PortfolioItemPage() {
             </Button>
           )}
           {item.publishedAt && (
-            <p className="mt-4 text-[11px] text-sage-dim">Published {new Date(item.publishedAt).toLocaleDateString(undefined, { dateStyle: 'medium' })}</p>
+            <p className="mt-4 text-[11px] text-sage-dim">
+              Published {new Date(item.publishedAt).toLocaleDateString(undefined, { dateStyle: 'medium' })}
+            </p>
           )}
 
           {item.isOwner ? (
             <Panel className="mt-5 p-4">
               <p className="mb-3 text-xs text-sage">
-                Status: <strong className="text-foreground">{item.status.toLowerCase()}</strong> · {item.visibility === 'PUBLIC' ? 'Public' : 'Only you'}
+                Status: <strong className="text-foreground">{item.status.toLowerCase()}</strong> ·{' '}
+                {item.visibility === 'PUBLIC' ? 'Public' : 'Only you'}
               </p>
               <div className="flex flex-wrap gap-2">
                 <Button asChild size="sm" variant="outline">
@@ -113,7 +123,12 @@ export function PortfolioItemPage() {
                   </Link>
                 </Button>
                 {item.status === 'PUBLISHED' ? (
-                  <Button size="sm" variant="outline" disabled={busy} onClick={() => void act(() => api.archivePortfolio(item.id), 'Archived — hidden from your public profile')}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={busy}
+                    onClick={() => void act(() => api.archivePortfolio(item.id), 'Archived — hidden from your public profile')}
+                  >
                     <Archive /> Archive
                   </Button>
                 ) : (
@@ -139,7 +154,9 @@ export function PortfolioItemPage() {
           “{item.title}” and its uploaded files will be permanently deleted, including any feed post that shares it. This can't be undone.
         </p>
         <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => setConfirmDelete(false)}>Cancel</Button>
+          <Button variant="outline" onClick={() => setConfirmDelete(false)}>
+            Cancel
+          </Button>
           <Button
             variant="destructive"
             disabled={busy}

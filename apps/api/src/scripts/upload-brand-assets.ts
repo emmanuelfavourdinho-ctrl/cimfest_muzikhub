@@ -69,7 +69,9 @@ async function main() {
       await res.arrayBuffer();
     }
     manifest.push(entry);
-    console.log(`✓ ${photo.slug}: ${r.width}×${r.height} → ${entry.srcset.map((s) => s.w).join('/')}w${r.existing ? ' (already uploaded)' : ''}`);
+    console.log(
+      `✓ ${photo.slug}: ${r.width}×${r.height} → ${entry.srcset.map((s) => s.w).join('/')}w${r.existing ? ' (already uploaded)' : ''}`,
+    );
   }
 
   writeFileSync(MANIFEST, `${JSON.stringify(manifest, null, 2)}\n`);

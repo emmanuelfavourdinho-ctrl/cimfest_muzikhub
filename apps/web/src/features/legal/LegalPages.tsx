@@ -27,8 +27,8 @@ function LegalLayout({ title, intro, sections }: { title: string; intro: string;
       </header>
       <main id="main" className="mx-auto max-w-measure px-gutter py-section">
         <p role="note" className="rounded-m border border-warning/40 bg-warning/10 px-4 py-3 text-small text-text-1">
-          <strong className="text-warning">Draft — pending legal review.</strong> This page describes how MuzikHub works today. It is not yet a
-          final legal document.
+          <strong className="text-warning">Draft — pending legal review.</strong> This page describes how MuzikHub works today. It is not
+          yet a final legal document.
         </p>
         <h1 className="mt-8 text-h1 text-text-1">{title}</h1>
         <p className="mt-4 text-lead text-text-2">{intro}</p>
@@ -65,19 +65,39 @@ export function PrivacyPage() {
         },
         {
           heading: 'Cookies',
-          body: <p>MuzikHub uses only the cookies needed to keep you signed in. They are HTTP-only, so scripts in the page cannot read them. There are no advertising or analytics cookies.</p>,
+          body: (
+            <p>
+              MuzikHub uses only the cookies needed to keep you signed in. They are HTTP-only, so scripts in the page cannot read them.
+              There are no advertising or analytics cookies.
+            </p>
+          ),
         },
         {
           heading: 'Who can see what',
-          body: <p>Your profile and published portfolio items are public. Portfolio items you keep private are visible only to you. Your email address is not shown on your profile.</p>,
+          body: (
+            <p>
+              Your profile and published portfolio items are public. Portfolio items you keep private are visible only to you. Your email
+              address is not shown on your profile.
+            </p>
+          ),
         },
         {
           heading: 'Services we use',
-          body: <p>Uploaded media is stored with our media provider, and account emails (verification and password reset) are sent through our email provider.</p>,
+          body: (
+            <p>
+              Uploaded media is stored with our media provider, and account emails (verification and password reset) are sent through our
+              email provider.
+            </p>
+          ),
         },
         {
           heading: 'Your choices',
-          body: <p>You can edit your profile and delete your own posts and portfolio items at any time. Data export and self-service account deletion are on the roadmap. {contactPending}</p>,
+          body: (
+            <p>
+              You can edit your profile and delete your own posts and portfolio items at any time. Data export and self-service account
+              deletion are on the roadmap. {contactPending}
+            </p>
+          ),
         },
       ]}
     />
@@ -92,7 +112,12 @@ export function TermsPage() {
       sections={[
         {
           heading: 'Status',
-          body: <p>Final terms of use will be published here after legal review. Until then, the community expectations on the Safety and trust page apply.</p>,
+          body: (
+            <p>
+              Final terms of use will be published here after legal review. Until then, the community expectations on the Safety and trust
+              page apply.
+            </p>
+          ),
         },
         {
           heading: 'Your content',
@@ -115,13 +140,19 @@ export function SafetyPage() {
       sections={[
         {
           heading: 'Reporting',
-          body: <p>If you are signed in, use “Report” on a post, a piece of work or a profile. Choose a reason and add details if you like. Reports go to MuzikHub moderators.</p>,
+          body: (
+            <p>
+              If you are signed in, use “Report” on a post, a piece of work or a profile. Choose a reason and add details if you like.
+              Reports go to MuzikHub moderators.
+            </p>
+          ),
         },
         {
           heading: 'Moderation',
           body: (
             <p>
-              Moderators can remove content and restrict or suspend accounts; bans can only be made by administrators. Every action requires a reason and is recorded in an audit log that cannot be edited. Staff accounts require two-step verification.
+              Moderators can remove content and restrict or suspend accounts; bans can only be made by administrators. Every action requires
+              a reason and is recorded in an audit log that cannot be edited. Staff accounts require two-step verification.
             </p>
           ),
         },
@@ -141,7 +172,15 @@ export function ContactPage() {
       intro="How to reach the MuzikHub team."
       sections={[
         { heading: 'Email', body: <p>{contactPending}</p> },
-        { heading: 'Reporting content', body: <p>To report a post, a piece of work or a profile, use the “Report” option on it while signed in — that reaches our moderators directly.</p> },
+        {
+          heading: 'Reporting content',
+          body: (
+            <p>
+              To report a post, a piece of work or a profile, use the “Report” option on it while signed in — that reaches our moderators
+              directly.
+            </p>
+          ),
+        },
       ]}
     />
   );

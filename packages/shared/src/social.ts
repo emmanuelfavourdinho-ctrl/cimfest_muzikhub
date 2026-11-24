@@ -117,9 +117,7 @@ export const relationshipSchema = z.object({
   isSelf: z.boolean(),
   following: z.boolean(),
   followsYou: z.boolean(),
-  connection: z
-    .object({ id: z.string(), status: z.enum(['PENDING', 'ACCEPTED']), direction: z.enum(['incoming', 'outgoing']) })
-    .nullable(),
+  connection: z.object({ id: z.string(), status: z.enum(['PENDING', 'ACCEPTED']), direction: z.enum(['incoming', 'outgoing']) }).nullable(),
   /** When a declined request can be sent again (approved 30-day cooldown), else null. */
   canRequestAfter: z.iso.datetime().nullable(),
 });
@@ -133,7 +131,14 @@ const csvEnum = <T extends readonly [string, ...string[]]>(values: T) =>
   z
     .string()
     .optional()
-    .transform((v) => (v ? v.split(',').map((s) => s.trim()).filter(Boolean) : []))
+    .transform((v) =>
+      v
+        ? v
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : [],
+    )
     .pipe(z.array(z.enum(values)).max(10));
 
 export const discoverPeopleQuerySchema = pageQuerySchema.extend({

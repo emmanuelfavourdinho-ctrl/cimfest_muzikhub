@@ -64,7 +64,8 @@ export const setAccountStatusSchema = z
   .superRefine((v, ctx) => {
     if (v.status === 'SUSPENDED') {
       if (!v.until) ctx.addIssue({ code: 'custom', path: ['until'], message: 'A suspension needs an end date' });
-      else if (new Date(v.until) <= new Date()) ctx.addIssue({ code: 'custom', path: ['until'], message: 'The end date must be in the future' });
+      else if (new Date(v.until) <= new Date())
+        ctx.addIssue({ code: 'custom', path: ['until'], message: 'The end date must be in the future' });
     } else if (v.until) {
       ctx.addIssue({ code: 'custom', path: ['until'], message: 'Only suspensions have an end date' });
     }
@@ -76,9 +77,7 @@ export const reasonOnlySchema = z.object({ reason: reasonSchema }).strict();
 
 export const MODERATION_TARGETS = ['post', 'comment', 'portfolio-item', 'profile-avatar', 'profile-cover'] as const;
 export type ModerationTarget = (typeof MODERATION_TARGETS)[number];
-export const moderationActionSchema = z
-  .object({ reason: reasonSchema, reportId: z.string().min(1).optional() })
-  .strict();
+export const moderationActionSchema = z.object({ reason: reasonSchema, reportId: z.string().min(1).optional() }).strict();
 
 export const reportNoteSchema = z.object({ body: z.string().trim().min(1, 'Write a note').max(2000) }).strict();
 export const resolveReportSchema = z

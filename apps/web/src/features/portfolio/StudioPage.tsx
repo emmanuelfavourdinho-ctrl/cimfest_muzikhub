@@ -44,7 +44,10 @@ export function StudioPage() {
             role="tab"
             aria-selected={status === t.key}
             onClick={() => setStatus(t.key)}
-            className={cn('min-h-11 border-b-2 px-4 text-xs font-bold whitespace-nowrap', status === t.key ? 'border-[#26ed9f] text-[#76f5bc]' : 'border-transparent text-[#9ac2b0] hover:text-foreground')}
+            className={cn(
+              'min-h-11 border-b-2 px-4 text-xs font-bold whitespace-nowrap',
+              status === t.key ? 'border-[#26ed9f] text-[#76f5bc]' : 'border-transparent text-[#9ac2b0] hover:text-foreground',
+            )}
           >
             {t.label}
           </button>
@@ -68,7 +71,12 @@ export function StudioPage() {
           </Button>
         </Panel>
       ) : (
-        <InfiniteList hasNextPage={query.hasNextPage} isFetchingNextPage={query.isFetchingNextPage} fetchNextPage={() => void query.fetchNextPage()} isError={query.isError}>
+        <InfiniteList
+          hasNextPage={query.hasNextPage}
+          isFetchingNextPage={query.isFetchingNextPage}
+          fetchNextPage={() => void query.fetchNextPage()}
+          isError={query.isError}
+        >
           <PortfolioGrid>
             {items.map((item) => (
               <PortfolioCard key={item.id} item={item} showStatus />

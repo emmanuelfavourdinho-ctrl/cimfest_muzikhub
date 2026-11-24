@@ -84,7 +84,15 @@ export function Composer() {
           {media.map((m) => (
             <div key={m.id} className="relative">
               <img src={m.urls.small} alt="" className="aspect-square w-full rounded-lg object-cover" />
-              <button type="button" aria-label="Remove image" onClick={() => { void api.deleteUpload(m.id).catch(() => undefined); setMedia(media.filter((x) => x.id !== m.id)); }} className="absolute top-1 right-1 rounded-full bg-black/70 p-1 text-white">
+              <button
+                type="button"
+                aria-label="Remove image"
+                onClick={() => {
+                  void api.deleteUpload(m.id).catch(() => undefined);
+                  setMedia(media.filter((x) => x.id !== m.id));
+                }}
+                className="absolute top-1 right-1 rounded-full bg-black/70 p-1 text-white"
+              >
                 <X className="size-3" />
               </button>
             </div>
@@ -99,7 +107,13 @@ export function Composer() {
             kinds={[attachKind]}
             value={attachKind === 'IMAGE' ? null : (media[0] ?? null)}
             onChange={(m) => setMedia(attachKind === 'IMAGE' ? (m ? [...media, m] : media) : m ? [m] : [])}
-            label={attachKind === 'IMAGE' ? `Add an image (${media.length}/${MAX_POST_IMAGES})` : attachKind === 'AUDIO' ? 'Choose an audio file' : 'Choose a video'}
+            label={
+              attachKind === 'IMAGE'
+                ? `Add an image (${media.length}/${MAX_POST_IMAGES})`
+                : attachKind === 'AUDIO'
+                  ? 'Choose an audio file'
+                  : 'Choose a video'
+            }
             previewTitle={body.slice(0, 60) || 'Your post'}
             onBusyChange={setUploading}
           />
@@ -107,7 +121,13 @@ export function Composer() {
       )}
 
       <div className="mt-3 flex flex-wrap items-center gap-1 border-t border-line pt-3">
-        {([['IMAGE', ImagePlus, 'Images'], ['AUDIO', Music2, 'Audio'], ['VIDEO', Video, 'Video']] as const).map(([kind, Icon, label]) => (
+        {(
+          [
+            ['IMAGE', ImagePlus, 'Images'],
+            ['AUDIO', Music2, 'Audio'],
+            ['VIDEO', Video, 'Video'],
+          ] as const
+        ).map(([kind, Icon, label]) => (
           <Button
             key={kind}
             type="button"

@@ -16,8 +16,14 @@ const names = (res: { body: { items: { username: string }[] } }) => res.body.ite
 
 describe('GET /api/v1/discover/people', () => {
   it('filters by role, genre, location and text — against real profiles', async () => {
-    const kora = await person({ username: 'kora.beats', name: 'Kora Beats' }, { roles: ['PRODUCER', 'AUDIO_ENGINEER'], genres: ['afrobeats'], location: 'Buea, Cameroon', skills: ['Logic Pro'] });
-    const ayo = await person({ username: 'ayo.nova', name: 'Ayo Nova' }, { roles: ['SINGER', 'SONGWRITER'], genres: ['afro_fusion', 'soul'], location: 'Douala, Cameroon', bio: 'Melody-driven Afrobeats.' });
+    const kora = await person(
+      { username: 'kora.beats', name: 'Kora Beats' },
+      { roles: ['PRODUCER', 'AUDIO_ENGINEER'], genres: ['afrobeats'], location: 'Buea, Cameroon', skills: ['Logic Pro'] },
+    );
+    const ayo = await person(
+      { username: 'ayo.nova', name: 'Ayo Nova' },
+      { roles: ['SINGER', 'SONGWRITER'], genres: ['afro_fusion', 'soul'], location: 'Douala, Cameroon', bio: 'Melody-driven Afrobeats.' },
+    );
     await person({ username: 'dj.north', name: 'DJ North' }, { roles: ['DJ'], genres: ['afro_house'], location: 'Limbé' });
 
     expect(names(await request(app).get('/api/v1/discover/people?roles=PRODUCER'))).toEqual(['kora.beats']);
@@ -58,8 +64,12 @@ describe('GET /api/v1/discover/work', () => {
   it('returns only published public work, filterable by type and genre', async () => {
     const { agent } = await signUp(app);
     const audio = await uploadMedia(agent, { kind: 'AUDIO' });
-    await agent.post('/api/v1/portfolio').send({ type: 'BEAT', title: 'Amapiano loop', genres: ['amapiano'], mediaId: audio, publish: true });
-    await agent.post('/api/v1/portfolio').send({ type: 'PROJECT', title: 'Hidden', description: 'd', visibility: 'PRIVATE', publish: true });
+    await agent
+      .post('/api/v1/portfolio')
+      .send({ type: 'BEAT', title: 'Amapiano loop', genres: ['amapiano'], mediaId: audio, publish: true });
+    await agent
+      .post('/api/v1/portfolio')
+      .send({ type: 'PROJECT', title: 'Hidden', description: 'd', visibility: 'PRIVATE', publish: true });
     await agent.post('/api/v1/portfolio').send({ type: 'PROJECT', title: 'Draft', description: 'd' });
 
     const all = await request(app).get('/api/v1/discover/work');

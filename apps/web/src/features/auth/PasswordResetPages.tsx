@@ -55,7 +55,9 @@ export function ForgotPasswordPage() {
               {formState.isSubmitting ? 'Sending…' : 'Send reset link'}
             </Button>
             <p className="mt-6 text-center text-sm">
-              <Link to="/login" className="font-semibold text-mint-soft hover:underline">Back to sign in</Link>
+              <Link to="/login" className="font-semibold text-mint-soft hover:underline">
+                Back to sign in
+              </Link>
             </p>
           </form>
         )}

@@ -13,13 +13,24 @@ export const typeIcons: Record<PortfolioType, typeof Music2> = {
 };
 
 /** Prototype `.work` card. The image is the cover, the image item itself, or a video poster. */
-export function PortfolioCard({ item, showOwner = false, showStatus = false }: { item: PortfolioItemView; showOwner?: boolean; showStatus?: boolean }) {
+export function PortfolioCard({
+  item,
+  showOwner = false,
+  showStatus = false,
+}: {
+  item: PortfolioItemView;
+  showOwner?: boolean;
+  showStatus?: boolean;
+}) {
   const Icon = typeIcons[item.type];
   const visual = item.cover ?? (item.media?.kind === 'IMAGE' ? item.media : null);
   const poster = !visual && item.media?.kind === 'VIDEO' ? item.media.urls.poster : null;
 
   return (
-    <Link to={`/work/${item.id}`} className="group block overflow-hidden rounded-[13px] border border-[#2d5441] bg-[#102920] transition hover:border-[#3a7f60]">
+    <Link
+      to={`/work/${item.id}`}
+      className="group block overflow-hidden rounded-[13px] border border-[#2d5441] bg-[#102920] transition hover:border-[#3a7f60]"
+    >
       <div className="relative">
         {visual ? (
           <ResponsiveImage media={visual} alt="" aspect="4 / 3" sizes="(min-width: 1024px) 25vw, 50vw" />
@@ -55,7 +66,8 @@ export function PortfolioCard({ item, showOwner = false, showStatus = false }: {
         <strong className="mt-1 block truncate text-sm">{item.title}</strong>
         <span className="block truncate text-[11px] text-[#9ab9a6]">
           {showOwner ? `${item.owner.name} · ` : ''}
-          {item.genres.map((g) => GENRES[g]).join(' · ') || (item.externalPlatform ? `On ${LINK_PLATFORMS[item.externalPlatform].label}` : ' ')}
+          {item.genres.map((g) => GENRES[g]).join(' · ') ||
+            (item.externalPlatform ? `On ${LINK_PLATFORMS[item.externalPlatform].label}` : ' ')}
         </span>
       </div>
     </Link>

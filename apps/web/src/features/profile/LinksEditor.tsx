@@ -1,12 +1,6 @@
 import { useState } from 'react';
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
-import {
-  detectLinkPlatform,
-  LINK_PLATFORMS,
-  MAX_PROFILE_LINKS,
-  normaliseHttpsUrl,
-  type ProfileLink,
-} from '@muzikhub/shared';
+import { detectLinkPlatform, LINK_PLATFORMS, MAX_PROFILE_LINKS, normaliseHttpsUrl, type ProfileLink } from '@muzikhub/shared';
 import { Button } from '@/components/ui/button';
 import { FormError, Input } from '@/components/ui/form';
 import { errorMessage } from '@/lib/api';
@@ -83,10 +77,24 @@ export function LinksEditor({
                 spellCheck={false}
               />
               <div className="hidden shrink-0 sm:flex">
-                <Button type="button" variant="quiet" size="icon" aria-label="Move up" onClick={() => move(index, -1)} disabled={index === 0}>
+                <Button
+                  type="button"
+                  variant="quiet"
+                  size="icon"
+                  aria-label="Move up"
+                  onClick={() => move(index, -1)}
+                  disabled={index === 0}
+                >
                   <ArrowUp />
                 </Button>
-                <Button type="button" variant="quiet" size="icon" aria-label="Move down" onClick={() => move(index, 1)} disabled={index === urls.length - 1}>
+                <Button
+                  type="button"
+                  variant="quiet"
+                  size="icon"
+                  aria-label="Move down"
+                  onClick={() => move(index, 1)}
+                  disabled={index === urls.length - 1}
+                >
                   <ArrowDown />
                 </Button>
               </div>
@@ -98,7 +106,13 @@ export function LinksEditor({
         })}
       </ol>
       <div className="mt-4 flex flex-wrap items-center gap-3">
-        <Button type="button" variant="outline" size="sm" onClick={() => setUrls((l) => [...l, ''])} disabled={urls.length >= MAX_PROFILE_LINKS}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setUrls((l) => [...l, ''])}
+          disabled={urls.length >= MAX_PROFILE_LINKS}
+        >
           <Plus /> Add link
         </Button>
         <Button type="submit" size="sm" disabled={save.isPending}>
@@ -106,7 +120,8 @@ export function LinksEditor({
         </Button>
       </div>
       <p className="mt-3 text-xs text-sage-dim">
-        Spotify, Apple Music, YouTube, SoundCloud, Audiomack, Boomplay, Deezer, Bandcamp, Instagram, TikTok, Facebook, X, LinkedIn or your own website. Up to {MAX_PROFILE_LINKS}.
+        Spotify, Apple Music, YouTube, SoundCloud, Audiomack, Boomplay, Deezer, Bandcamp, Instagram, TikTok, Facebook, X, LinkedIn or your
+        own website. Up to {MAX_PROFILE_LINKS}.
       </p>
     </form>
   );

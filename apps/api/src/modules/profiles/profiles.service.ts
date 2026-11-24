@@ -142,11 +142,7 @@ export async function completeOnboarding(userId: string): Promise<Me> {
  * Sets (or clears) the profile photo or cover. The previous image is removed from
  * Cloudinary afterwards, so replaced photos don't accumulate as orphans.
  */
-export async function setProfileImage(
-  userId: string,
-  slot: 'avatar' | 'cover',
-  mediaId: string | null,
-): Promise<Me> {
+export async function setProfileImage(userId: string, slot: 'avatar' | 'cover', mediaId: string | null): Promise<Me> {
   const field = slot === 'avatar' ? 'avatarAssetId' : 'coverAssetId';
   const current = await prisma.profile.findUniqueOrThrow({
     where: { userId },

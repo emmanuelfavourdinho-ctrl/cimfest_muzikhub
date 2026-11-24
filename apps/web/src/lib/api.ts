@@ -119,16 +119,13 @@ export const api = {
 
   // Feed
   feed: (tab: FeedTab, cursor?: string) => request('/feed', postPageSchema, { query: { tab, cursor } }),
-  profilePosts: (username: string, cursor?: string) =>
-    request(`/profiles/${path(username)}/posts`, postPageSchema, { query: { cursor } }),
+  profilePosts: (username: string, cursor?: string) => request(`/profiles/${path(username)}/posts`, postPageSchema, { query: { cursor } }),
   post: (id: string) => request(`/posts/${path(id)}`, postSchema),
   createPost: (input: CreatePostInput) => request('/posts', postSchema, { method: 'POST', body: input }),
   updatePost: (id: string, body: string) => request(`/posts/${path(id)}`, postSchema, { method: 'PATCH', body: { body } }),
   deletePost: (id: string) => request(`/posts/${path(id)}`, null, { method: 'DELETE' }),
-  setLike: (id: string, liked: boolean) =>
-    request(`/posts/${path(id)}/like`, likeStateSchema, { method: liked ? 'PUT' : 'DELETE' }),
-  comments: (postId: string, cursor?: string) =>
-    request(`/posts/${path(postId)}/comments`, commentPageSchema, { query: { cursor } }),
+  setLike: (id: string, liked: boolean) => request(`/posts/${path(id)}/like`, likeStateSchema, { method: liked ? 'PUT' : 'DELETE' }),
+  comments: (postId: string, cursor?: string) => request(`/posts/${path(postId)}/comments`, commentPageSchema, { query: { cursor } }),
   addComment: (postId: string, body: string) =>
     request(`/posts/${path(postId)}/comments`, commentSchema, { method: 'POST', body: { body } }),
   deleteComment: (id: string) => request(`/comments/${path(id)}`, null, { method: 'DELETE' }),

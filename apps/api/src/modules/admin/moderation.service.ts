@@ -32,16 +32,41 @@ interface Removable {
 async function loadRemovable(type: ModerationTarget, id: string): Promise<Removable | null> {
   switch (type) {
     case 'post': {
-      const p = await prisma.post.findUnique({ where: { id }, select: { authorId: true, removedAt: true, removalReason: true, body: true, type: true } });
-      return p && { ownerId: p.authorId, removedAt: p.removedAt, removalReason: p.removalReason, summary: { postType: p.type, excerpt: excerpt(p.body) } };
+      const p = await prisma.post.findUnique({
+        where: { id },
+        select: { authorId: true, removedAt: true, removalReason: true, body: true, type: true },
+      });
+      return (
+        p && {
+          ownerId: p.authorId,
+          removedAt: p.removedAt,
+          removalReason: p.removalReason,
+          summary: { postType: p.type, excerpt: excerpt(p.body) },
+        }
+      );
     }
     case 'comment': {
-      const c = await prisma.comment.findUnique({ where: { id }, select: { authorId: true, removedAt: true, removalReason: true, body: true, postId: true } });
-      return c && { ownerId: c.authorId, removedAt: c.removedAt, removalReason: c.removalReason, summary: { postId: c.postId, excerpt: excerpt(c.body) } };
+      const c = await prisma.comment.findUnique({
+        where: { id },
+        select: { authorId: true, removedAt: true, removalReason: true, body: true, postId: true },
+      });
+      return (
+        c && {
+          ownerId: c.authorId,
+          removedAt: c.removedAt,
+          removalReason: c.removalReason,
+          summary: { postId: c.postId, excerpt: excerpt(c.body) },
+        }
+      );
     }
     case 'portfolio-item': {
-      const i = await prisma.portfolioItem.findUnique({ where: { id }, select: { ownerId: true, removedAt: true, removalReason: true, title: true, type: true } });
-      return i && { ownerId: i.ownerId, removedAt: i.removedAt, removalReason: i.removalReason, summary: { title: i.title, workType: i.type } };
+      const i = await prisma.portfolioItem.findUnique({
+        where: { id },
+        select: { ownerId: true, removedAt: true, removalReason: true, title: true, type: true },
+      });
+      return (
+        i && { ownerId: i.ownerId, removedAt: i.removedAt, removalReason: i.removalReason, summary: { title: i.title, workType: i.type } }
+      );
     }
     default:
       return null;
@@ -49,7 +74,9 @@ async function loadRemovable(type: ModerationTarget, id: string): Promise<Remova
 }
 
 const removalData = (staff: StaffContext, reason: string | null, removed: boolean) =>
-  removed ? { removedAt: new Date(), removedById: staff.id, removalReason: reason } : { removedAt: null, removedById: null, removalReason: null };
+  removed
+    ? { removedAt: new Date(), removedById: staff.id, removalReason: reason }
+    : { removedAt: null, removedById: null, removalReason: null };
 
 async function applyRemoval(tx: Prisma.TransactionClient, type: ModerationTarget, id: string, data: ReturnType<typeof removalData>) {
   if (type === 'post') await tx.post.update({ where: { id }, data });
@@ -67,7 +94,10 @@ export async function removeContent(staff: StaffContext, type: ModerationTarget,
 
   if (type === 'profile-avatar' || type === 'profile-cover') {
     const field = type === 'profile-avatar' ? 'avatarAssetId' : 'coverAssetId';
-    const profile = await prisma.profile.findUnique({ where: { userId: id }, select: { avatarAssetId: true, coverAssetId: true, avatarAsset: true, coverAsset: true } });
+    const profile = await prisma.profile.findUnique({
+      where: { userId: id },
+      select: { avatarAssetId: true, coverAssetId: true, avatarAsset: true, coverAsset: true },
+    });
     const assetId = profile?.[field];
     if (!profile || !assetId) throw new HttpError(404, 'CONTENT_NOT_FOUND', 'There is no image to remove');
     await assertOwnerBelow(staff, id);
@@ -139,7 +169,11 @@ export async function listContent(staff: StaffContext, query: ContentQuery) {
     const page = await paginate(query, (args) =>
       prisma.post.findMany({
         where: { ...removed, ...(q && { body: q }) },
-        include: { author: { select: personSelect }, media: { include: { asset: true }, orderBy: { position: 'asc' }, take: 1 }, portfolioItem: { select: { title: true } } },
+        include: {
+          author: { select: personSelect },
+          media: { include: { asset: true }, orderBy: { position: 'asc' }, take: 1 },
+          portfolioItem: { select: { title: true } },
+        },
         orderBy: order,
         ...args,
       }),
@@ -159,7 +193,12 @@ export async function listContent(staff: StaffContext, query: ContentQuery) {
   }
   if (query.type === 'comment') {
     const page = await paginate(query, (args) =>
-      prisma.comment.findMany({ where: { ...removed, ...(q && { body: q }) }, include: { author: { select: personSelect } }, orderBy: order, ...args }),
+      prisma.comment.findMany({
+        where: { ...removed, ...(q && { body: q }) },
+        include: { author: { select: personSelect } },
+        orderBy: order,
+        ...args,
+      }),
     );
     return withReportCounts('COMMENT', page, (c) => ({
       id: c.id,
