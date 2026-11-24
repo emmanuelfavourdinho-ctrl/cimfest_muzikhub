@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/cn';
-import { CreditCard, LogOut, Settings, ShieldCheck, UserRound } from 'lucide-react';
+import { CreditCard, Gem, LogOut, Settings, ShieldCheck, UserRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { CREATIVE_ROLES, PRIMARY_USES } from '@muzikhub/shared';
 import { Button } from '@/components/ui/button';
@@ -109,6 +109,9 @@ function AccountMenu() {
             </div>
             <MenuLink to={`/u/${me.profile.username}`} icon={UserRound} onSelect={() => setOpen(false)}>
               View profile
+            </MenuLink>
+            <MenuLink to="/pricing" icon={Gem} onSelect={() => setOpen(false)}>
+              Plans
             </MenuLink>
             <MenuLink to="/settings/billing" icon={CreditCard} onSelect={() => setOpen(false)}>
               Billing

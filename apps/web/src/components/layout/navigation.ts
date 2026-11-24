@@ -1,6 +1,7 @@
 import {
   Briefcase,
   Contact,
+  Gem,
   Home,
   MessageCircle,
   Mic,
@@ -33,6 +34,7 @@ export const primaryNav: NavItem[] = [
   { label: 'Communities', icon: UsersRound },
   { label: 'Collaborate', icon: Users },
   { label: 'Opportunities', icon: Briefcase, to: '/opportunities' },
+  { label: 'Plans', icon: Gem, to: '/pricing' },
   { label: 'Competitions', icon: Trophy },
   { label: 'Messages', icon: MessageCircle },
 ];
