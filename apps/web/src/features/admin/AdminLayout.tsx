@@ -35,6 +35,7 @@ const NAV = [
   { to: '/admin/content', label: 'Content', icon: Layers, permission: 'content.moderate' },
   { to: '/admin/payments', label: 'Payments', icon: Wallet, permission: 'billing.view' },
   { to: '/admin/promotions', label: 'Promotions', icon: Megaphone, permission: 'content.moderate' },
+  { to: '/admin/competitions', label: 'Competitions', icon: Trophy, permission: 'competitions.disputes' },
   { to: '/admin/pricing', label: 'Pricing', icon: Tags, permission: 'pricing.manage' },
   { to: '/admin/audit', label: 'Audit log', icon: ScrollText, permission: 'audit.view' },
 ] as const;
@@ -42,7 +43,6 @@ const NAV = [
 /** Areas that need product pillars that don't exist yet — visible, disabled, labelled. */
 const PENDING = [
   { label: 'Communities', icon: UsersRound },
-  { label: 'Competitions & opportunities', icon: Trophy },
   { label: 'Announcements', icon: Megaphone },
 ];
 

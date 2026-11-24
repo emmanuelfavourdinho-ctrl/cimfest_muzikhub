@@ -105,6 +105,11 @@ model User {
   collabRequestsReceived  CollaborationRequest[]     @relation("CollabRecipient")
   collaborations          CollaborationParticipant[]
   collaborationUpdates    CollaborationUpdate[]
+  competitionsOrganised   Competition[]
+  competitionEntries      CompetitionEntry[]
+  competitionJudging      CompetitionJudge[]
+  judgements              Judgement[]
+  competitionDisputes     CompetitionDispute[]
   analyticsDaily          AnalyticsDaily[]
 
   @@map("user")
@@ -322,12 +327,14 @@ model MediaAsset {
   createdAt        DateTime     @default(now())
   readyAt          DateTime?
 
-  profileAvatar   Profile?       @relation("ProfileAvatar")
-  profileCover    Profile?       @relation("ProfileCover")
-  portfolioMedia  PortfolioItem? @relation("PortfolioMedia")
-  portfolioCover  PortfolioItem? @relation("PortfolioCover")
-  postMedia       PostMedia?
-  communityCovers Community[]
+  profileAvatar      Profile?           @relation("ProfileAvatar")
+  profileCover       Profile?           @relation("ProfileCover")
+  portfolioMedia     PortfolioItem?     @relation("PortfolioMedia")
+  portfolioCover     PortfolioItem?     @relation("PortfolioCover")
+  postMedia          PostMedia?
+  communityCovers    Community[]
+  competitionCovers  Competition[]
+  competitionEntries CompetitionEntry[]
 
   @@index([ownerId, status])
   @@index([status, createdAt])
@@ -1425,4 +1432,191 @@ model CollaborationUpdate {
 
   @@index([collaborationId, createdAt])
   @@map("collaboration_update")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Competitions (FR-30–33, COMP-001–009, UJ-07). Run by admin-approved organisers (D7).
+// Dates are compared with database time. Rules are versioned; entries record the version accepted.
+// ─────────────────────────────────────────────────────────────
+
+enum CompetitionCategory {
+  SONGWRITING
+  PRODUCTION
+  VOCALS
+  PERFORMANCE
+  DJ
+  REMIX
+  VIDEO
+  OTHER
+}
+
+enum CompetitionStatus {
+  DRAFT
+  PUBLISHED
+  RESULTS_PUBLISHED
+  CANCELLED
+}
+
+enum EntryFormat {
+  AUDIO
+  VIDEO
+  IMAGE
+  LINK
+}
+
+model Competition {
+  id                 String               @id @default(cuid(2))
+  slug               String               @unique
+  organiserId        String
+  organiser          User                 @relation(fields: [organiserId], references: [id], onDelete: Restrict)
+  title              String
+  description        String
+  category           CompetitionCategory
+  coverAssetId       String?
+  coverAsset         MediaAsset?          @relation(fields: [coverAssetId], references: [id], onDelete: SetNull)
+  eligibility        String
+  prize              String
+  /// How many places are awarded (1–10).
+  prizePlaces        Int                  @default(3)
+  judgingMethod      String
+  disqualification   String
+  disputeProcess     String
+  formats            EntryFormat[]
+  /// [{ "name": "Originality", "weight": 40 }, …] — weights add up to 100.
+  criteria           Json
+  opensAt            DateTime
+  closesAt           DateTime
+  /// COMP-006: a recorded, authorised extension replaces closesAt for entries.
+  extendedUntil      DateTime?
+  extensionReason    String?
+  status             CompetitionStatus    @default(DRAFT)
+  rulesVersion       Int                  @default(1)
+  publishedAt        DateTime?
+  resultsPublishedAt DateTime?
+  cancelledAt        DateTime?
+  cancelReason       String?
+  featuredAt         DateTime?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  removedAt          DateTime?
+  removedById        String?
+  removalReason      String?
+  rules              CompetitionRules[]
+  entries            CompetitionEntry[]
+  judges             CompetitionJudge[]
+  results            CompetitionResult[]
+  disputes           CompetitionDispute[]
+
+  @@index([status, closesAt])
+  @@map("competition")
+}
+
+model CompetitionRules {
+  competitionId String
+  competition   Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  version       Int
+  rules         String
+  createdAt     DateTime    @default(now())
+
+  @@id([competitionId, version])
+  @@map("competition_rules")
+}
+
+enum EntryStatus {
+  SUBMITTED
+  WITHDRAWN
+  DISQUALIFIED
+}
+
+model CompetitionEntry {
+  id                 String             @id @default(cuid(2))
+  competitionId      String
+  competition        Competition        @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  participantId      String
+  participant        User               @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  title              String
+  description        String?
+  mediaAssetId       String?
+  mediaAsset         MediaAsset?        @relation(fields: [mediaAssetId], references: [id], onDelete: SetNull)
+  externalUrl        String?
+  /// COMP-004: the rules version the participant accepted.
+  rulesVersion       Int
+  status             EntryStatus        @default(SUBMITTED)
+  disqualifiedReason String?
+  submittedAt        DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  removedAt          DateTime?
+  removedById        String?
+  removalReason      String?
+  judgements         Judgement[]
+  result             CompetitionResult?
+
+  @@unique([competitionId, participantId])
+  @@map("competition_entry")
+}
+
+model CompetitionJudge {
+  competitionId String
+  competition   Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignedAt    DateTime    @default(now())
+
+  @@id([competitionId, userId])
+  @@index([userId])
+  @@map("competition_judge")
+}
+
+model Judgement {
+  id        String           @id @default(cuid(2))
+  entryId   String
+  entry     CompetitionEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  judgeId   String
+  judge     User             @relation(fields: [judgeId], references: [id], onDelete: Cascade)
+  /// { "<criterion name>": 0–10 }
+  scores    Json
+  /// Weighted total, 0–100.
+  total     Float
+  feedback  String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@unique([entryId, judgeId])
+  @@map("judgement")
+}
+
+model CompetitionResult {
+  competitionId String
+  competition   Competition      @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  entryId       String           @unique
+  entry         CompetitionEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  placement     Int
+  averageScore  Float
+
+  @@id([competitionId, placement])
+  @@map("competition_result")
+}
+
+enum DisputeStatus {
+  OPEN
+  UPHELD
+  REJECTED
+}
+
+model CompetitionDispute {
+  id            String        @id @default(cuid(2))
+  competitionId String
+  competition   Competition   @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reason        String
+  status        DisputeStatus @default(OPEN)
+  resolution    String?
+  resolvedById  String?
+  createdAt     DateTime      @default(now())
+  resolvedAt    DateTime?
+
+  @@unique([competitionId, userId])
+  @@index([status, createdAt])
+  @@map("competition_dispute")
 }

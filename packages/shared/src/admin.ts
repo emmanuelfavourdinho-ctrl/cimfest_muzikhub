@@ -42,6 +42,8 @@ export const PERMISSIONS = {
   'billing.view': ['ADMIN'],
   'payments.refund': ['ADMIN'],
   'payments.repair': ['ADMIN'],
+  /** D9: competition disputes are decided by an admin. */
+  'competitions.disputes': ['ADMIN'],
 } as const satisfies Record<string, readonly PlatformRole[]>;
 export type Permission = keyof typeof PERMISSIONS;
 

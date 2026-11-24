@@ -186,6 +186,16 @@ export interface AdminPromotion {
   running: boolean;
   endedReason: string | null;
 }
+export interface AdminDispute {
+  id: string;
+  status: 'OPEN' | 'UPHELD' | 'REJECTED';
+  reason: string;
+  resolution: string | null;
+  createdAt: string;
+  resolvedAt: string | null;
+  user: { id: string; name: string; username: string | null };
+  competition: { slug: string; title: string };
+}
 export interface PriceVersion {
   id: string;
   priceXaf: number;
@@ -239,6 +249,13 @@ export const adminApi = {
   paymentOrder: (ref: string) => request<AdminOrderDetail>(`/admin/payments/orders/${encodeURIComponent(ref)}`, null),
   paymentAction: (ref: string, action: 'recheck' | 'retry-fulfilment' | 'approve-late' | 'refund', reason: string) =>
     request<unknown>(`/admin/payments/orders/${encodeURIComponent(ref)}/${action}`, null, { method: 'POST', body: { reason } }),
+  competitionDisputes: (status: 'OPEN' | 'UPHELD' | 'REJECTED') =>
+    request<{ items: AdminDispute[] }>('/admin/competition-disputes', null, { query: { status } }),
+  resolveDispute: (id: string, outcome: 'UPHELD' | 'REJECTED', resolution: string) =>
+    request<unknown>(`/admin/competition-disputes/${encodeURIComponent(id)}/resolve`, null, {
+      method: 'POST',
+      body: { outcome, resolution },
+    }),
   promotions: (state: 'running' | 'all') => request<{ items: AdminPromotion[] }>('/admin/promotions', null, { query: { state } }),
   endPromotion: (id: string, reason: string) =>
     request<unknown>(`/admin/promotions/${encodeURIComponent(id)}/end`, null, { method: 'POST', body: { reason } }),

@@ -33,6 +33,14 @@ const LABELS: Record<string, string> = {
   'payment.approve_late': 'Approved late payment',
   'promotion.end': 'Ended promotion',
   'catalogue.availability.change': 'Changed availability',
+  'competition.publish': 'Published competition',
+  'competition.extend': 'Extended competition deadline',
+  'competition.cancel': 'Cancelled competition',
+  'competition.entry.disqualify': 'Disqualified entry',
+  'competition.results.publish': 'Published results',
+  'competition.dispute.resolve': 'Decided dispute',
+  'community.discussion.remove': 'Removed discussion',
+  'community.comment.remove': 'Removed community comment',
 };
 export const describeAction = (action: string) => LABELS[action] ?? action;
 
@@ -72,6 +80,8 @@ export function AuditPage() {
           <option value="catalogue.">Pricing</option>
           <option value="payment.">Payments</option>
           <option value="promotion.">Promotions</option>
+          <option value="competition.">Competitions</option>
+          <option value="community.">Communities</option>
         </select>
       </div>
       {query.isPending ? (

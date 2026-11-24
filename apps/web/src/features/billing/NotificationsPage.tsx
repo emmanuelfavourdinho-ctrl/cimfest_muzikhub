@@ -46,7 +46,7 @@ export function NotificationsPage() {
       ) : q.isError && rows.length === 0 ? (
         <LoadFailed message={errorMessage(q.error)} onRetry={() => void q.refetch()} />
       ) : rows.length === 0 ? (
-        <EmptyState title="Nothing yet">Payment, plan and promotion updates will show up here.</EmptyState>
+        <EmptyState title="Nothing yet">Messages, collaboration, community, competition and payment updates will show up here.</EmptyState>
       ) : (
         <InfiniteList
           hasNextPage={q.hasNextPage}

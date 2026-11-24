@@ -10,6 +10,7 @@ import {
   FRESH_SESSION_MINUTES,
   MODERATION_TARGETS,
   ORDER_STATUSES,
+  resolveDisputeSchema,
   BILLING_PRODUCT_KEYS,
   CATALOGUE_OPTION_KEYS,
   moderationActionSchema,
@@ -42,6 +43,7 @@ import * as catalogue from '../billing/catalogue.service.js';
 import { adminReadBilling } from '../billing/billing.routes.js';
 import * as payments from '../payments/orders.service.js';
 import * as promotions from '../promotions/promotions.service.js';
+import * as competitions from '../competitions/competitions.service.js';
 
 const adminOrdersQuerySchema = z.object({
   status: z.enum(ORDER_STATUSES).optional(),
@@ -232,6 +234,21 @@ export function adminRouter(): Router {
   router.post('/promotions/:id/end', requirePermission('content.moderate'), validateBody(reasonOnlySchema), async (req, res) => {
     res.json(await promotions.endPromotion(staffOf(res.locals), param(req, 'id'), req.body.reason));
   });
+
+  // ── Competition disputes (D9: an ADMIN decides; recorded and audited) ──
+  router.get('/competition-disputes', requirePermission('competitions.disputes'), async (req, res) => {
+    const status =
+      req.query.status === 'UPHELD' || req.query.status === 'REJECTED' || req.query.status === 'OPEN' ? req.query.status : undefined;
+    res.json(await competitions.listDisputes(status));
+  });
+  router.post(
+    '/competition-disputes/:id/resolve',
+    requirePermission('competitions.disputes'),
+    validateBody(resolveDisputeSchema),
+    async (req, res) => {
+      res.json(await competitions.resolveDispute(staffOf(res.locals), param(req, 'id'), req.body.outcome, req.body.resolution));
+    },
+  );
 
   // ── Audit log (administrators) ──
   router.get('/audit', async (req, res) => {
