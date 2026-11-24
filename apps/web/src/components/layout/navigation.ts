@@ -31,7 +31,7 @@ export const primaryNav: NavItem[] = [
   { label: 'Discover', icon: Search, to: '/discover' },
   { label: 'Network', icon: Contact, to: '/network' },
   { label: 'Creator studio', icon: Mic, to: '/studio' },
-  { label: 'Communities', icon: UsersRound },
+  { label: 'Communities', icon: UsersRound, to: '/communities' },
   { label: 'Collaborate', icon: Users },
   { label: 'Opportunities', icon: Briefcase, to: '/opportunities' },
   { label: 'Plans', icon: Gem, to: '/pricing' },

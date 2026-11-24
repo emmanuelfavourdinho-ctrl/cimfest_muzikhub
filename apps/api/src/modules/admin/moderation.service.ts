@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { adminContentQuerySchema, ROLE_RANK, type ModerationTarget, type PlatformRole } from '@muzikhub/shared';
 import { endPromotionsForTarget } from '../promotions/promotions.service.js';
+import { moderationHandler, type Removable as RegisteredRemovable } from './moderation-registry.js';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { writeAudit } from '../../lib/audit.js';
 import { HttpError } from '../../lib/http-error.js';
@@ -23,12 +24,7 @@ async function assertOwnerBelow(staff: StaffContext, ownerId: string) {
   }
 }
 
-interface Removable {
-  ownerId: string;
-  removedAt: Date | null;
-  removalReason: string | null;
-  summary: Record<string, unknown>;
-}
+type Removable = RegisteredRemovable;
 
 async function loadRemovable(type: ModerationTarget, id: string): Promise<Removable | null> {
   switch (type) {
@@ -70,7 +66,7 @@ async function loadRemovable(type: ModerationTarget, id: string): Promise<Remova
       );
     }
     default:
-      return null;
+      return (await moderationHandler(type)?.load(id)) ?? null;
   }
 }
 
@@ -83,6 +79,7 @@ async function applyRemoval(tx: Prisma.TransactionClient, type: ModerationTarget
   if (type === 'post') await tx.post.update({ where: { id }, data });
   else if (type === 'comment') await tx.comment.update({ where: { id }, data });
   else if (type === 'portfolio-item') await tx.portfolioItem.update({ where: { id }, data });
+  else await moderationHandler(type)?.apply(tx, id, data);
 }
 
 /**

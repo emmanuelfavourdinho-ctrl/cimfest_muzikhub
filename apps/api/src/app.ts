@@ -32,6 +32,8 @@ import { registerSubscriptionFulfillers } from './modules/billing/fulfillers.js'
 import { notificationsRouter } from './modules/notifications/notifications.routes.js';
 import { analyticsRouter } from './modules/analytics/analytics.routes.js';
 import { blocksRouter } from './modules/safety/blocks.routes.js';
+import { communitiesRouter, communityCommentsRouter, discussionsRouter } from './modules/communities/communities.routes.js';
+import { registerCommunityIntegrations } from './modules/communities/registry.js';
 import { promotedRouter } from './modules/promotions/promotions.routes.js';
 import { registerPromotionFulfillers } from './modules/promotions/fulfillers.js';
 
@@ -68,6 +70,7 @@ export function createApp(overrides: Partial<AppDependencies> = {}): Express {
   registerPaymentJobs();
   registerSubscriptionFulfillers();
   registerPromotionFulfillers();
+  registerCommunityIntegrations();
 
   app.use(express.json({ limit: '1mb' }));
 
@@ -103,6 +106,9 @@ export function createApp(overrides: Partial<AppDependencies> = {}): Express {
   v1.use('/notifications', notificationsRouter());
   v1.use('/analytics', analyticsRouter());
   v1.use('/blocks', blocksRouter());
+  v1.use('/communities', communitiesRouter());
+  v1.use('/discussions', discussionsRouter());
+  v1.use('/community-comments', communityCommentsRouter());
   v1.use('/promoted', promotedRouter());
   // Development-only sandbox helpers (never mounted in production; see runtime.ts).
   if (devSandboxEnabled()) {

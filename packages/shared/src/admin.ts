@@ -83,7 +83,19 @@ export type SetAccountStatusInput = z.infer<typeof setAccountStatusSchema>;
 export const setRoleSchema = z.object({ role: z.enum(PLATFORM_ROLES), reason: reasonSchema }).strict();
 export const reasonOnlySchema = z.object({ reason: reasonSchema }).strict();
 
-export const MODERATION_TARGETS = ['post', 'comment', 'portfolio-item', 'profile-avatar', 'profile-cover'] as const;
+export const MODERATION_TARGETS = [
+  'post',
+  'comment',
+  'portfolio-item',
+  'profile-avatar',
+  'profile-cover',
+  'community',
+  'discussion',
+  'discussion-comment',
+  'competition',
+  'competition-entry',
+  'message',
+] as const;
 export type ModerationTarget = (typeof MODERATION_TARGETS)[number];
 export const moderationActionSchema = z.object({ reason: reasonSchema, reportId: z.string().min(1).optional() }).strict();
 

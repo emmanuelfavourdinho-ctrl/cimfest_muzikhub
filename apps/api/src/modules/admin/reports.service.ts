@@ -1,3 +1,4 @@
+import { reportDescribers } from './moderation-registry.js';
 import { z } from 'zod';
 import { adminReportsQuerySchema, can } from '@muzikhub/shared';
 import type { Prisma, Report } from '../../generated/prisma/client.js';
@@ -96,6 +97,11 @@ async function describeTargets(reports: Pick<Report, 'targetType' | 'targetId'>[
       link: `/u/${u.username}`,
       moderationType: null,
     });
+  }
+  // Content types contributed by feature modules (communities, competitions, messages).
+  for (const [type, describe] of reportDescribers()) {
+    const found = await describe(ids(type));
+    for (const [id, entry] of found) map.set(`${type}:${id}`, entry);
   }
   return (r: Pick<Report, 'targetType' | 'targetId'>) =>
     map.get(`${r.targetType}:${r.targetId}`) ?? { exists: false, title: 'Content no longer exists' };

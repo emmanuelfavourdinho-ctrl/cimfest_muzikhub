@@ -93,6 +93,12 @@ model User {
   blocksMade              UserBlock[]              @relation("BlocksMade")
   blocksReceived          UserBlock[]              @relation("BlocksReceived")
   notificationSettings    NotificationSetting[]
+  communitiesCreated      Community[]
+  communityMemberships    CommunityMember[]
+  discussions             Discussion[]
+  discussionComments      DiscussionComment[]
+  discussionReactions     DiscussionReaction[]
+  discussionFollows       DiscussionFollow[]
   analyticsDaily          AnalyticsDaily[]
 
   @@map("user")
@@ -308,11 +314,12 @@ model MediaAsset {
   createdAt        DateTime     @default(now())
   readyAt          DateTime?
 
-  profileAvatar  Profile?       @relation("ProfileAvatar")
-  profileCover   Profile?       @relation("ProfileCover")
-  portfolioMedia PortfolioItem? @relation("PortfolioMedia")
-  portfolioCover PortfolioItem? @relation("PortfolioCover")
-  postMedia      PostMedia?
+  profileAvatar   Profile?       @relation("ProfileAvatar")
+  profileCover    Profile?       @relation("ProfileCover")
+  portfolioMedia  PortfolioItem? @relation("PortfolioMedia")
+  portfolioCover  PortfolioItem? @relation("PortfolioCover")
+  postMedia       PostMedia?
+  communityCovers Community[]
 
   @@index([ownerId, status])
   @@index([status, createdAt])
@@ -1061,4 +1068,174 @@ model NotificationSetting {
 
   @@id([userId, category])
   @@map("notification_setting")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Communities (FR-24–29): ongoing discussion, knowledge-sharing and mentorship around shared
+// interests. Scoped roles: community roles never grant platform powers (CLAUDE.md §11).
+// ─────────────────────────────────────────────────────────────
+
+enum CommunityCategory {
+  PRODUCTION
+  SONGWRITING
+  PERFORMANCE
+  ENGINEERING
+  BUSINESS
+  MARKETING
+  GENRE
+  LOCAL_SCENE
+  MENTORSHIP
+  OTHER
+}
+
+/// OPEN: anyone can read and join. REQUEST: listed; members approve joins; content members-only.
+/// INVITE: listed; join by invitation only; content members-only.
+enum CommunityPolicy {
+  OPEN
+  REQUEST
+  INVITE
+}
+
+enum CommunityRole {
+  OWNER
+  ADMIN
+  MODERATOR
+  MEMBER
+}
+
+enum MembershipStatus {
+  ACTIVE
+  PENDING
+  INVITED
+  BANNED
+}
+
+model Community {
+  id            String            @id @default(cuid(2))
+  slug          String            @unique
+  name          String
+  description   String
+  category      CommunityCategory
+  rules         String
+  policy        CommunityPolicy   @default(OPEN)
+  /// Genre keys (packages/shared GENRES) the community is about.
+  interests     String[]
+  coverAssetId  String?
+  coverAsset    MediaAsset?       @relation(fields: [coverAssetId], references: [id], onDelete: SetNull)
+  createdById   String
+  createdBy     User              @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  /// Set by platform staff only (no invented "featured" rankings).
+  featuredAt    DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  removedAt     DateTime?
+  removedById   String?
+  removalReason String?
+  members       CommunityMember[]
+  discussions   Discussion[]
+
+  @@index([category])
+  @@index([removedAt, createdAt])
+  @@map("community")
+}
+
+model CommunityMember {
+  communityId String
+  community   Community        @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        CommunityRole    @default(MEMBER)
+  status      MembershipStatus
+  /// Join-request note (REQUEST policy), shown to moderators.
+  requestNote String?
+  invitedById String?
+  joinedAt    DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@id([communityId, userId])
+  @@index([userId, status])
+  @@index([communityId, status, role])
+  @@map("community_member")
+}
+
+enum DiscussionKind {
+  DISCUSSION
+  QUESTION
+  GUIDE
+  MENTORSHIP
+  ANNOUNCEMENT
+}
+
+model Discussion {
+  id                String               @id @default(cuid(2))
+  communityId       String
+  community         Community            @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  authorId          String
+  author            User                 @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  kind              DiscussionKind       @default(DISCUSSION)
+  title             String
+  body              String
+  pinnedAt          DateTime?
+  lockedAt          DateTime?
+  /// QUESTION only: the reply the asker (or a moderator) marked as the answer.
+  acceptedCommentId String?
+  lastActivityAt    DateTime             @default(now())
+  createdAt         DateTime             @default(now())
+  editedAt          DateTime?
+  removedAt         DateTime?
+  removedById       String?
+  removalReason     String?
+  comments          DiscussionComment[]
+  reactions         DiscussionReaction[]
+  follows           DiscussionFollow[]
+
+  @@index([communityId, pinnedAt, lastActivityAt])
+  @@index([authorId])
+  @@map("discussion")
+}
+
+model DiscussionComment {
+  id            String              @id @default(cuid(2))
+  discussionId  String
+  discussion    Discussion          @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+  authorId      String
+  author        User                @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  /// One level of replies.
+  parentId      String?
+  parent        DiscussionComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies       DiscussionComment[] @relation("CommentReplies")
+  body          String
+  createdAt     DateTime            @default(now())
+  editedAt      DateTime?
+  removedAt     DateTime?
+  removedById   String?
+  removalReason String?
+
+  @@index([discussionId, createdAt])
+  @@map("discussion_comment")
+}
+
+/// "Helpful" — one per member per discussion.
+model DiscussionReaction {
+  discussionId String
+  discussion   Discussion @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@id([discussionId, userId])
+  @@map("discussion_reaction")
+}
+
+/// Members following a discussion get reply notifications (author and repliers follow automatically).
+model DiscussionFollow {
+  discussionId String
+  discussion   Discussion @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@id([discussionId, userId])
+  @@map("discussion_follow")
 }
