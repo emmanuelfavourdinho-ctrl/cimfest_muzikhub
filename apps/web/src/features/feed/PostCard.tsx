@@ -185,7 +185,8 @@ export function PostCard({ post, promoted }: { post: PostView; promoted?: boolea
           variant="quiet"
           size="sm"
           aria-pressed={post.likedByMe}
-          aria-label={post.likedByMe ? 'Unlike' : 'Like'}
+          // The visible count is part of the name (WCAG 2.5.3 label in name).
+          aria-label={`${post.likedByMe ? 'Unlike' : 'Like'}${post.likeCount > 0 ? `, ${post.likeCount} ${post.likeCount === 1 ? 'like' : 'likes'}` : ''}`}
           onClick={() =>
             requireSignIn() && toggleLike.mutate({ post, liked: !post.likedByMe }, { onError: (e) => toast.error(errorMessage(e)) })
           }
