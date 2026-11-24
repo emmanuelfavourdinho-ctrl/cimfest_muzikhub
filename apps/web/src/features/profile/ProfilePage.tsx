@@ -102,11 +102,16 @@ function ProfileView({ profile, isOwner, signedIn }: { profile: PublicProfile; i
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:pb-1">
           {isOwner ? (
-            <Button asChild variant="outline" size="sm">
-              <Link to="/settings/profile">
-                <Pencil /> Edit profile
-              </Link>
-            </Button>
+            <>
+              <Button asChild variant="outline" size="sm">
+                <Link to="/settings/profile">
+                  <Pencil /> Edit profile
+                </Link>
+              </Button>
+              <Button asChild variant="ghost" size="sm">
+                <Link to="/promote?product=PROFILE_SPOTLIGHT">Spotlight my profile</Link>
+              </Button>
+            </>
           ) : (
             <>
               <RelationshipActions username={profile.username} name={profile.name} />

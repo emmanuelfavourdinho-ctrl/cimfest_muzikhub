@@ -9,6 +9,7 @@ import { paymentsRuntime } from './modules/payments/runtime.js';
 import { sweepWebhookEvents } from './modules/payments/webhook.js';
 import { subscriptionNoticesSweep } from './modules/billing/subscriptions.service.js';
 import { sweepAnalytics } from './modules/analytics/analytics.service.js';
+import { promotionNoticesSweep } from './modules/promotions/promotions.service.js';
 
 const app = createApp();
 
@@ -55,6 +56,7 @@ if (paymentsRuntime().mode !== 'off') {
 // In-app subscription notices (ends soon / ended). Informational only: entitlements never depend on it.
 const noticesTimer = setInterval(() => {
   subscriptionNoticesSweep().catch((e) => console.error('[billing] notices sweep failed:', (e as Error).message));
+  promotionNoticesSweep().catch((e) => console.error('[promotions] notices sweep failed:', (e as Error).message));
 }, 15 * 60_000);
 noticesTimer.unref();
 

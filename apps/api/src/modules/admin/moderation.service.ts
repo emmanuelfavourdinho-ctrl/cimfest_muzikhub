@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { adminContentQuerySchema, ROLE_RANK, type ModerationTarget, type PlatformRole } from '@muzikhub/shared';
+import { endPromotionsForTarget } from '../promotions/promotions.service.js';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { writeAudit } from '../../lib/audit.js';
 import { HttpError } from '../../lib/http-error.js';
@@ -123,6 +124,8 @@ export async function removeContent(staff: StaffContext, type: ModerationTarget,
   await assertOwnerBelow(staff, item.ownerId);
   await prisma.$transaction(async (tx) => {
     await applyRemoval(tx, type, id, removalData(staff, reason, true));
+    // A removed post loses any paid promotion immediately (the owner is told why).
+    if (type === 'post') await endPromotionsForTarget(tx, 'POST', id, 'The post was removed by moderation', staff.id);
     await writeAudit(tx, {
       actor: actorOf(staff),
       action: 'content.remove',

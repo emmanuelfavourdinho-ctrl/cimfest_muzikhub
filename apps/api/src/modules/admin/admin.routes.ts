@@ -39,6 +39,7 @@ import { setOrganiser } from '../opportunities/opportunities.service.js';
 import * as catalogue from '../billing/catalogue.service.js';
 import { adminReadBilling } from '../billing/billing.routes.js';
 import * as payments from '../payments/orders.service.js';
+import * as promotions from '../promotions/promotions.service.js';
 
 const adminOrdersQuerySchema = z.object({
   status: z.enum(ORDER_STATUSES).optional(),
@@ -185,6 +186,14 @@ export function adminRouter(): Router {
       res.json(await payments.refundOrder(staff, param(req, 'reference'), req.body.reason));
     },
   );
+
+  // ── Promotions (moderation can end them early) ──
+  router.get('/promotions', requirePermission('content.moderate'), async (req, res) => {
+    res.json({ items: await promotions.adminPromotions(req.query.state === 'all' ? 'all' : 'running') });
+  });
+  router.post('/promotions/:id/end', requirePermission('content.moderate'), validateBody(reasonOnlySchema), async (req, res) => {
+    res.json(await promotions.endPromotion(staffOf(res.locals), param(req, 'id'), req.body.reason));
+  });
 
   // ── Audit log (administrators) ──
   router.get('/audit', async (req, res) => {

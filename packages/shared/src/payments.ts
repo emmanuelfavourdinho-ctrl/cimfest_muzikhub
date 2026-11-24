@@ -36,6 +36,8 @@ export const ORDER_STATUS_MESSAGES: Record<OrderStatus, string> = {
 export const startCheckoutSchema = z.strictObject({
   product: z.enum(BILLING_PRODUCT_KEYS),
   option: z.enum(CATALOGUE_OPTION_KEYS),
+  /** Post Boost: the post id. Profile Spotlight: optional (always your own profile). */
+  targetId: z.string().min(1).max(64).optional(),
 });
 export type StartCheckoutInput = z.infer<typeof startCheckoutSchema>;
 

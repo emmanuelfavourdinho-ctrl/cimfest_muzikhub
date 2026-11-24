@@ -1,6 +1,6 @@
 # Payments: order state machine
 
-_Phase 3, 2026-11-24. Source of truth: `apps/api/src/modules/payments/state-machine.ts`. A test fails if this table and the code disagree, and another test checks every status × trigger pair (117 cases), valid and invalid._
+_Phase 3, 2026-11-24. Source of truth: `apps/api/src/modules/payments/state-machine.ts`. A test fails if this table and the code disagree, and another test checks every status × trigger pair (126 cases), valid and invalid._
 
 ## States
 
@@ -13,7 +13,7 @@ _Phase 3, 2026-11-24. Source of truth: `apps/api/src/modules/payments/state-mach
 | `FAILED` | The provider reported a failure, or we could not start the checkout. Nothing was charged. | Yes* |
 | `CANCELLED` | Cancelled by the customer, or by the provider (`canceled`, `cancelled`, `abandoned`). | Yes* |
 | `EXPIRED` | Our time limit (3 h, database time) passed without a verified payment, or the provider reported `expired`. | Yes* |
-| `NEEDS_REVIEW` | Money may have moved, but we can't act on it automatically: a late success, an amount/currency/reference mismatch, a partial payment (`incomplete`), or a refund made outside MuzikHub. **Never fulfilled automatically.** An admin decides. | No (admin) |
+| `NEEDS_REVIEW` | Money may have moved, but we can't act on it automatically: a late success, an amount/currency/reference mismatch, a partial payment (`incomplete`), a refund made outside MuzikHub, or a paid promotion whose target can no longer receive it (e.g. the post was removed). **Never fulfilled automatically.** An admin decides. | No (admin) |
 | `REFUNDED` | Refunded by an admin through MuzikHub. The related entitlement period is marked `REFUNDED`, so it grants nothing. The provider's original fee is not returned. | Yes |
 
 \* The only way out of FAILED, CANCELLED and EXPIRED is to NEEDS_REVIEW, if the provider later verifies a payment. **An expired order can never be fulfilled afterwards.**
@@ -36,6 +36,7 @@ Anything not listed is rejected. Provider events that don't apply are ignored, b
 | PENDING | CANCELLED | `member.cancel` | order owner | provider cancelPayment |
 | FULFILMENT_PENDING, FULFILLED | NEEDS_REVIEW | `provider.refunded_externally` | provider (verified) | refund made outside MuzikHub; admin review |
 | FULFILMENT_PENDING | FULFILLED | `fulfilment.done` | fulfilment job | same transaction: fulfilment record (unique per order) + entitlement |
+| FULFILMENT_PENDING | NEEDS_REVIEW | `fulfilment.impossible` | fulfilment job | paid, but the target can no longer receive it (e.g. the post was removed); nothing granted; admin review |
 | FULFILMENT_PENDING, FULFILLED, NEEDS_REVIEW | REFUNDED | `admin.refund` | ADMIN (payments.refund, fresh session, reason) | provider refund; entitlement → REFUNDED; audit; provider fee not refunded |
 
 The order is also created in `PENDING` by `member.checkout` (owner, Idempotency-Key required).

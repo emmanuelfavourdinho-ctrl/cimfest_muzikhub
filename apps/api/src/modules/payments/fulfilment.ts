@@ -14,9 +14,15 @@ export interface Fulfiller {
   key: string;
   fulfil(
     tx: Prisma.TransactionClient,
-    order: { id: string; userId: string; product: BillingProduct; durationDays: number },
+    order: { id: string; userId: string; product: BillingProduct; durationDays: number; targetId: string | null },
   ): Promise<FulfilmentResult>;
 }
+
+/**
+ * Thrown by a fulfiller when the purchase can never be delivered (e.g. the boosted post was
+ * removed after payment). The order goes to NEEDS_REVIEW (an admin refunds) instead of retrying.
+ */
+export class FulfilmentImpossible extends Error {}
 
 const registry = new Map<BillingProduct, Fulfiller>();
 

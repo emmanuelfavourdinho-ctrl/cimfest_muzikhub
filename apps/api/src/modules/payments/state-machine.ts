@@ -18,6 +18,7 @@ export type Trigger =
   | 'system.expire'
   | 'member.cancel'
   | 'fulfilment.done'
+  | 'fulfilment.impossible'
   | 'admin.refund';
 
 export interface Transition {
@@ -85,6 +86,13 @@ export const TRANSITIONS: readonly Transition[] = [
     trigger: 'fulfilment.done',
     who: 'fulfilment job',
     effects: 'same transaction: fulfilment record (unique per order) + entitlement',
+  },
+  {
+    from: ['FULFILMENT_PENDING'],
+    to: 'NEEDS_REVIEW',
+    trigger: 'fulfilment.impossible',
+    who: 'fulfilment job',
+    effects: 'paid, but the target can no longer receive it (e.g. the post was removed); nothing granted; admin review',
   },
   {
     from: ['FULFILMENT_PENDING', 'FULFILLED', 'NEEDS_REVIEW'],

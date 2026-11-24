@@ -3,6 +3,7 @@ import { clearFulfillers, registerFulfiller } from '../modules/payments/fulfilme
 import { FakePaymentProvider } from '../modules/payments/providers/fake.js';
 import { configurePayments } from '../modules/payments/runtime.js';
 import { registerSubscriptionFulfillers } from '../modules/billing/fulfillers.js';
+import { registerPromotionFulfillers } from '../modules/promotions/fulfillers.js';
 
 /**
  * TEST-ONLY fulfiller for TEST_ITEM orders (Phase 3 ships no real fulfillers). It grants a
@@ -29,6 +30,7 @@ export function useSandboxPayments({ supportsRefund = true } = {}) {
   configurePayments({ mode: 'sandbox', provider: fake });
   clearFulfillers();
   registerSubscriptionFulfillers();
+  registerPromotionFulfillers();
   registerFulfiller('TEST_ITEM', testFulfiller);
   testFulfiller.failuresLeft = 0;
   testFulfiller.calls = 0;

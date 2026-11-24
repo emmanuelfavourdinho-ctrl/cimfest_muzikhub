@@ -17,7 +17,7 @@ import { assertCanReadBilling } from '../../lib/policy.js';
 import { prisma } from '../../lib/prisma.js';
 import { dbNow } from '../../lib/db-time.js';
 import type { StaffContext } from '../../middleware/require-staff.js';
-import { fulfillerFor } from './fulfilment.js';
+import { FulfilmentImpossible, fulfillerFor } from './fulfilment.js';
 import type { ProviderPayment } from './provider.js';
 import { callbackUrl, paymentsRuntime } from './runtime.js';
 import { isPurchasable } from './purchasable.js';
@@ -55,10 +55,30 @@ export function assertTestItemAllowed(nodeEnv: string = env.NODE_ENV) {
   if (nodeEnv === 'production') throw new HttpError(409, 'PRODUCT_NOT_AVAILABLE', 'That item is not available to buy.');
 }
 
-export const requestHashOf = (body: { product: string; option: string }) =>
+export const requestHashOf = (body: { product: string; option: string; targetId?: string | null }) =>
   createHash('sha256')
-    .update(JSON.stringify({ product: body.product, option: body.option }))
+    .update(JSON.stringify({ product: body.product, option: body.option, targetId: body.targetId ?? null }))
     .digest('hex');
+
+/**
+ * Promotions must name a target the buyer may promote: Post Boost → one of their own visible
+ * posts; Profile Spotlight → their own profile (the default). Other products take no target.
+ */
+async function resolveTarget(tx: Tx, userId: string, product: BillingProduct, targetId: string | undefined): Promise<string | null> {
+  if (product === 'POST_BOOST') {
+    if (!targetId) throw new HttpError(400, 'TARGET_REQUIRED', 'Choose which of your posts to boost.');
+    const post = await tx.post.findFirst({ where: { id: targetId, removedAt: null }, select: { authorId: true } });
+    if (!post) throw new HttpError(404, 'POST_NOT_FOUND', 'That post no longer exists.');
+    if (post.authorId !== userId) throw new HttpError(403, 'NOT_OWNER', 'You can only boost your own posts.');
+    return targetId;
+  }
+  if (product === 'PROFILE_SPOTLIGHT') {
+    if (targetId && targetId !== userId) throw new HttpError(403, 'NOT_OWNER', 'You can only spotlight your own profile.');
+    return userId;
+  }
+  if (targetId) throw new HttpError(400, 'VALIDATION_ERROR', 'This product does not take a target.');
+  return null;
+}
 
 async function transition(
   tx: Tx,
@@ -125,7 +145,7 @@ async function lockOrder(tx: Tx, where: { reference: string } | { id: string }) 
 
 export async function startCheckout(
   user: { id: string; email: string },
-  body: { product: BillingProduct; option: CatalogueOption },
+  body: { product: BillingProduct; option: CatalogueOption; targetId?: string },
   idempotencyKey: string,
 ): Promise<{ order: OrderView; reused: boolean; replayed: boolean; created: boolean }> {
   const { mode, provider } = paymentsRuntime();
@@ -146,8 +166,9 @@ export async function startCheckout(
       return { order: same, reused: false, replayed: true, created: false };
     }
 
+    const targetId = await resolveTarget(tx, user.id, body.product, body.targetId);
     const open = await tx.order.findMany({ where: { userId: user.id, status: { in: OPEN }, expiresAt: { gt: now } } });
-    const existing = open.find((o) => o.product === body.product && o.option === body.option && o.checkoutUrl);
+    const existing = open.find((o) => o.product === body.product && o.option === body.option && o.targetId === targetId && o.checkoutUrl);
     if (existing) return { order: existing, reused: true, replayed: false, created: false };
     if (open.length >= PENDING_ORDER_CAP) {
       throw new HttpError(
@@ -174,6 +195,7 @@ export async function startCheckout(
         product: item.product,
         option: item.option,
         durationDays: item.durationDays,
+        targetId,
         amountXaf: item.priceXaf,
         idempotencyKey,
         requestHash,
@@ -343,7 +365,14 @@ export async function fulfilOrder(orderId: string) {
     if (!order || order.status !== 'FULFILMENT_PENDING') return { fulfilled: false, status: order?.status ?? null };
     const fulfiller = fulfillerFor(order.product);
     if (!fulfiller) throw new Error(`no fulfiller registered for ${order.product}`);
-    const result = await fulfiller.fulfil(tx, order);
+    let result;
+    try {
+      result = await fulfiller.fulfil(tx, order);
+    } catch (e) {
+      if (!(e instanceof FulfilmentImpossible)) throw e;
+      await transition(tx, order, 'NEEDS_REVIEW', 'fulfilment.impossible', { statusReason: 'target_unavailable' }, { detail: e.message });
+      return { fulfilled: false, status: 'NEEDS_REVIEW' as const };
+    }
     await tx.fulfilment.create({ data: { orderId: order.id, fulfiller: fulfiller.key, ...result } });
     await transition(tx, order, 'FULFILLED', 'fulfilment.done', { fulfilledAt: await dbNow(tx) }, { detail: fulfiller.key });
     return { fulfilled: true, status: 'FULFILLED' as const };

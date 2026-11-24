@@ -22,7 +22,11 @@ const KEY_FORMAT = /^[A-Za-z0-9_.:-]{8,128}$/;
 const checkoutBody =
   env.NODE_ENV === 'production'
     ? startCheckoutSchema
-    : z.strictObject({ product: z.enum([...BILLING_PRODUCT_KEYS, 'TEST_ITEM']), option: z.enum(CATALOGUE_OPTION_KEYS) });
+    : z.strictObject({
+        product: z.enum([...BILLING_PRODUCT_KEYS, 'TEST_ITEM']),
+        option: z.enum(CATALOGUE_OPTION_KEYS),
+        targetId: z.string().min(1).max(64).optional(),
+      });
 
 /** /api/v1/checkout — start and follow your own orders. No checkout screens yet (Phase 6). */
 export function checkoutRouter(): Router {

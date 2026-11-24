@@ -17,6 +17,7 @@ const TRIGGERS: Trigger[] = [
   'system.expire',
   'member.cancel',
   'fulfilment.done',
+  'fulfilment.impossible',
   'admin.refund',
 ];
 
@@ -44,7 +45,12 @@ const EXPECTED: Partial<Record<OrderStatus, Partial<Record<Trigger, OrderStatus>
     'provider.expired': 'EXPIRED',
     'system.expire': 'EXPIRED',
   },
-  FULFILMENT_PENDING: { 'fulfilment.done': 'FULFILLED', 'admin.refund': 'REFUNDED', 'provider.refunded_externally': 'NEEDS_REVIEW' },
+  FULFILMENT_PENDING: {
+    'fulfilment.done': 'FULFILLED',
+    'fulfilment.impossible': 'NEEDS_REVIEW',
+    'admin.refund': 'REFUNDED',
+    'provider.refunded_externally': 'NEEDS_REVIEW',
+  },
   FULFILLED: { 'admin.refund': 'REFUNDED', 'provider.refunded_externally': 'NEEDS_REVIEW' },
   FAILED: { 'provider.paid_late': 'NEEDS_REVIEW', 'provider.mismatch': 'NEEDS_REVIEW' },
   CANCELLED: { 'provider.paid_late': 'NEEDS_REVIEW', 'provider.mismatch': 'NEEDS_REVIEW' },
@@ -55,7 +61,7 @@ const EXPECTED: Partial<Record<OrderStatus, Partial<Record<Trigger, OrderStatus>
 
 describe('order state machine: every (status, trigger) pair', () => {
   const cases = ORDER_STATUSES.flatMap((from) => TRIGGERS.map((t) => [from, t, EXPECTED[from]?.[t] ?? null] as const));
-  it(`covers ${ORDER_STATUSES.length} × ${TRIGGERS.length} = ${cases.length} pairs`, () => expect(cases).toHaveLength(117));
+  it(`covers ${ORDER_STATUSES.length} × ${TRIGGERS.length} = ${cases.length} pairs`, () => expect(cases).toHaveLength(126));
   it.each(cases)('%s + %s → %s', (from, trigger, to) => {
     expect(nextStatus(from, trigger)).toBe(to);
   });

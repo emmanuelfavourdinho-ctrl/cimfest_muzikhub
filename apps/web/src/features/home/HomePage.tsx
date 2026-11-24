@@ -8,6 +8,7 @@ import { Avatar, Eyebrow, PageLoading, Panel } from '@/components/ui/primitives'
 import { LoadFailed } from '@/features/auth/guards';
 import { Composer } from '@/features/feed/Composer';
 import { PostCard } from '@/features/feed/PostCard';
+import { PromotedPost } from '@/features/promotions/PromotedPlaces';
 import { SocialLinks } from '@/features/profile/SocialLinks';
 import { errorMessage } from '@/lib/api';
 import { useMe } from '@/lib/queries';
@@ -43,6 +44,7 @@ export function HomePage() {
               </button>
             ))}
           </div>
+          {tab === 'discover' && <PromotedPost />}
           <Feed tab={tab} />
         </div>
         <aside className="space-y-4">

@@ -814,6 +814,10 @@ model Promotion {
   periodStart DateTime
   periodEnd   DateTime
   status      EntitlementStatus @default(ACTIVE)
+  /// Ended early by moderation or an admin (status CANCELLED), with the reason shown to the owner.
+  endedAt     DateTime?
+  endedReason String?
+  endedById   String?
   createdAt   DateTime          @default(now())
 
   @@index([targetType, targetId, periodEnd])
@@ -860,6 +864,8 @@ model Order {
   product               BillingProduct
   option                CatalogueOption
   durationDays          Int
+  /// Promotions only: the post (Post Boost) or the buyer's own user id (Profile Spotlight).
+  targetId              String?
   amountXaf             Int
   currency              String           @default("XAF")
   status                OrderStatus      @default(PENDING)

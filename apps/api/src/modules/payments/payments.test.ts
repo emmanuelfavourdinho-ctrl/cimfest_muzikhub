@@ -105,14 +105,17 @@ describe('checkout', () => {
     expect((await checkout(u.agent, { product: 'TEST_ITEM', option: 'MONTHLY' })).status).toBe(201);
   });
 
-  it('refuses products that are not on sale (every real product today)', async () => {
+  it('refuses items that are not in the catalogue, and promotions without a target the buyer owns', async () => {
     const u = await member();
-    await prisma.serviceCatalogue.create({
-      data: { product: 'POST_BOOST', option: 'DAYS_3', durationDays: 3, priceXaf: 1000, active: false },
-    });
-    const res = await checkout(u.agent, { product: 'POST_BOOST', option: 'DAYS_3' });
-    expect(res.status).toBe(409);
-    expect(res.body.code).toBe('PRODUCT_NOT_AVAILABLE');
+    await prisma.serviceCatalogue.create({ data: { product: 'POST_BOOST', option: 'DAYS_3', durationDays: 3, priceXaf: 1000 } });
+    const missing = await checkout(u.agent, { product: 'CREATOR_PLUS', option: 'DAYS_3' });
+    expect(missing.status).toBe(409);
+    expect(missing.body.code).toBe('PRODUCT_NOT_AVAILABLE');
+    expect((await checkout(u.agent, { product: 'POST_BOOST', option: 'DAYS_3' })).body.code).toBe('TARGET_REQUIRED');
+    const other = await member();
+    const post = await other.agent.post('/api/v1/posts').send({ body: 'not yours' });
+    expect((await checkout(u.agent, { product: 'POST_BOOST', option: 'DAYS_3', targetId: post.body.id })).body.code).toBe('NOT_OWNER');
+    expect((await checkout(u.agent, { ...ITEM, targetId: 'x' })).status).toBe(400);
   });
 
   it('PAYMENTS_MODE=off rejects every checkout and the webhook route', async () => {

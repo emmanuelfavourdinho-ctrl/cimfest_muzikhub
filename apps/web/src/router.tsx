@@ -103,6 +103,7 @@ export const router = createBrowserRouter([
       { path: '/checkout/return', element: auth(() => import('@/features/billing/CheckoutReturnPage'), 'CheckoutReturnPage') },
       { path: '/billing/orders/:reference', element: auth(() => import('@/features/billing/ReceiptPage'), 'ReceiptPage') },
       { path: '/settings/billing', element: auth(() => import('@/features/billing/BillingPage'), 'BillingPage') },
+      { path: '/promote', element: auth(() => import('@/features/promotions/PromotePage'), 'PromotePage') },
       { path: '/studio/analytics', element: auth(() => import('@/features/analytics/AnalyticsPage'), 'AnalyticsPage') },
       { path: '/notifications', element: auth(() => import('@/features/billing/NotificationsPage'), 'NotificationsPage') },
       // Development-only payment sandbox (Phase 3). `import.meta.env.DEV` is false in production

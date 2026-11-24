@@ -7,12 +7,18 @@ import type { StaffContext } from '../../middleware/require-staff.js';
 import { currentRows, publicCatalogue } from './catalogue.service.js';
 import { getEntitlements, previewSubscription } from './entitlements.js';
 import { billingOverview, cancelSubscription } from './subscriptions.service.js';
+import { ownPromotions, previewPromotion } from '../promotions/promotions.service.js';
 import { ownOrders, ownReceipt } from '../payments/orders.service.js';
 import { parseQuery } from '../../middleware/validate.js';
 import { HttpError } from '../../lib/http-error.js';
 import { z } from 'zod';
 
 const previewQuery = z.object({ product: z.enum(['CREATOR_PLUS', 'PRO']), option: z.enum(['MONTHLY', 'ANNUAL']) });
+const promotionPreviewQuery = z.object({
+  product: z.enum(['POST_BOOST', 'PROFILE_SPOTLIGHT']),
+  option: z.enum(['DAYS_3', 'DAYS_7', 'DAYS_14']),
+  targetId: z.string().min(1).max(64).optional(),
+});
 const ordersQuery = z.object({ cursor: z.string().max(64).optional(), limit: z.coerce.number().int().min(1).max(50).default(20) });
 
 const toIso = <T extends { periodStart: Date; periodEnd: Date; createdAt: Date }>(r: T) => ({
@@ -49,6 +55,13 @@ export function billingRouter(): Router {
   });
   router.post('/subscription/cancel', async (_req, res) => {
     res.json(await cancelSubscription(currentUserId(res.locals)));
+  });
+  router.get('/promotions', async (_req, res) => {
+    res.json({ items: await ownPromotions(currentUserId(res.locals)) });
+  });
+  router.get('/promotion-preview', async (req, res) => {
+    const q = parseQuery(promotionPreviewQuery, req.query);
+    res.json(await previewPromotion(currentUserId(res.locals), q.product, q.option, q.targetId));
   });
   router.get('/orders', async (req, res) => {
     res.json(await ownOrders(currentUserId(res.locals), parseQuery(ordersQuery, req.query)));

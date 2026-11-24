@@ -330,4 +330,24 @@ export const operations: Operation[] = [
     'member',
   ),
   op('GET', '/analytics/items', 'Analytics', 'Per-item plays and clicks (MuzikHub Pro)', 'member'),
+  // Promotions (monetization milestone 3)
+  op(
+    'GET',
+    '/promoted/posts',
+    'Promotions',
+    'The labelled Promoted slot: one running Post Boost, outside the organic feed and its paging',
+    'optional',
+  ),
+  op('GET', '/promoted/spotlight', 'Promotions', 'The labelled Spotlight row: profiles with a running Profile Spotlight', 'optional'),
+  op('GET', '/billing/promotions', 'Billing', 'Your promotions: running, queued or ended (with any early-end reason)', 'member'),
+  op('GET', '/billing/promotion-preview', 'Billing', 'When a promotion would run (extends from the current end; never overlaps)', 'member'),
+  op('GET', '/admin/promotions', 'Admin', 'Running (or all) promotions (content.moderate)', 'staff'),
+  op(
+    'POST',
+    '/admin/promotions/{id}/end',
+    'Admin',
+    'End a promotion early with a reason; audited; owner notified (content.moderate)',
+    'staff',
+    { body: reasonOnlySchema },
+  ),
 ];

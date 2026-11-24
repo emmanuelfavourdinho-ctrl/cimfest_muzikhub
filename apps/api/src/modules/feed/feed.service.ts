@@ -177,3 +177,11 @@ export async function deleteComment(viewer: string, commentId: string): Promise<
   if (!comment) throw new HttpError(404, 'COMMENT_NOT_FOUND', 'Comment not found');
   await prisma.comment.delete({ where: { id: commentId } });
 }
+
+/** Visible posts by id, in the given order (used by the labelled promoted slot). */
+export async function visiblePostsByIds(ids: string[], viewer: string | null): Promise<PostView[]> {
+  if (ids.length === 0) return [];
+  const rows = await prisma.post.findMany({ where: { id: { in: ids }, ...visiblePost }, include: postInclude(viewer) });
+  const byId = new Map(rows.map((r) => [r.id, toPostView(r, viewer)]));
+  return ids.flatMap((id) => byId.get(id) ?? []);
+}

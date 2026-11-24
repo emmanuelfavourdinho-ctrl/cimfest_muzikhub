@@ -26,6 +26,7 @@ export function BillingPage() {
       ) : (
         <div className="space-y-4">
           <PlanPanel o={overview.data} />
+          <Promotions />
           <Transactions />
         </div>
       )}
@@ -126,6 +127,38 @@ function PlanPanel({ o }: { o: BillingOverview }) {
         </div>
       </Dialog>
     </Panel>
+  );
+}
+
+function Promotions() {
+  const q = useQuery({ queryKey: ['billing', 'promotions'], queryFn: billingApi.promotions });
+  if (q.isPending || q.isError || q.data.items.length === 0) return null;
+  return (
+    <section aria-labelledby="promotions">
+      <h2 id="promotions" className="mb-2 text-h3">
+        Your promotions
+      </h2>
+      <ul className="space-y-2">
+        {q.data.items.map((p) => (
+          <li key={p.id}>
+            <Panel className="p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="font-semibold">
+                  {p.product === 'POST_BOOST' ? 'Post Boost' : 'Profile Spotlight'}: {p.targetLabel}
+                </p>
+                <Pill variant={p.state === 'running' ? 'signal' : 'gray'}>
+                  {{ running: 'Running', queued: 'Starts later', ended: 'Ended' }[p.state]}
+                </Pill>
+              </div>
+              <p className="mt-1 text-caption text-text-2">
+                {formatDate(p.periodStart)} to {formatDate(p.periodEnd)}
+                {p.endedReason && <> · Ended early: {p.endedReason}</>}
+              </p>
+            </Panel>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

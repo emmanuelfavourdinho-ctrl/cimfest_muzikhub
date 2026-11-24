@@ -194,3 +194,20 @@ Exact string match: no case folding and no trimming. **Anything else is `unknown
 - **Cancel:** plans are prepaid and never renew. Cancelling stops renewal reminders, and benefits continue to the end date. There's no automatic refund; an admin can refund on request.
 - **Notifications** are in-app only: payment outcomes, cancellation confirmation, a reminder 3 days before the end, and "plan ended". Each is sent at most once (unique dedupe key). Email is off until the sending domain is verified.
 - **Receipts** are on screen (`/billing/orders/:reference`) and show what was granted (the subscription period).
+
+## Promotions in the product (milestone 3, 2026-11-24)
+- **Orders carry a target** (`payment_order.targetId`, CHECK: promotions must have one, other products mustn't).
+  - Post Boost: one of the buyer's own, non-removed posts.
+  - Profile Spotlight: always the buyer's own profile.
+- **Fulfillers** grant via `grantPromotion`: one per target, buying again extends, never overlaps. If the target can't receive it any more (post deleted or removed, account inactive), the order goes **FULFILMENT_PENDING → NEEDS_REVIEW** (`fulfilment.impossible`). Nothing is granted, and an admin refunds.
+- **Placement** (`/api/v1/promoted/posts`, `/promoted/spotlight`):
+  - The places are separate from the organic feed and Discover queries, and from their paging.
+  - At most **1** promoted post (random among running ones) and **8** Spotlight profiles.
+  - Each is labelled ("Promoted" / "Spotlight", plus "Paid placement").
+  - Only content that is still visible appears; expiry is computed at read time.
+- **Moderation:**
+  - Removing a post ends its promotions in the same transaction, and the owner is notified with the reason.
+  - Restoring the post does **not** revive the promotion.
+  - Staff with `content.moderate` can end any promotion with a reason (audited).
+  - Suspended or banned authors drop out at once (visibility filter).
+  - Refunds for ended promotions are an admin decision.

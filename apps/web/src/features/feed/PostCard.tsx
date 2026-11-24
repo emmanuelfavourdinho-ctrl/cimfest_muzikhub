@@ -2,14 +2,14 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/cn';
-import { Heart, Link2, MessageCircle, Pencil, Trash2 } from 'lucide-react';
+import { Heart, Link2, Megaphone, MessageCircle, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { PostView } from '@muzikhub/shared';
 import { MediaBlock, ResponsiveImage } from '@/components/media/Media';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/Dialog';
 import { Textarea } from '@/components/ui/form';
-import { Avatar, Panel } from '@/components/ui/primitives';
+import { Avatar, Panel, Pill } from '@/components/ui/primitives';
 import { PortfolioCard } from '@/features/portfolio/PortfolioCard';
 import { api, errorMessage } from '@/lib/api';
 import { useMe } from '@/lib/queries';
@@ -25,7 +25,8 @@ export function timeAgo(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 }
 
-export function PostCard({ post }: { post: PostView }) {
+/** `promoted`: rendered in the paid Promoted slot (mandatory label; never mixed into organic lists). */
+export function PostCard({ post, promoted }: { post: PostView; promoted?: boolean }) {
   const { data: me } = useMe();
   const navigate = useNavigate();
   const toggleLike = useToggleLike();
@@ -77,7 +78,16 @@ export function PostCard({ post }: { post: PostView }) {
   const other = post.media.filter((m) => m.kind !== 'IMAGE');
 
   return (
-    <Panel className="p-4 sm:p-5">
+    <Panel
+      className={cn('p-4 sm:p-5', promoted && 'border-control-border')}
+      aria-label={promoted ? `Promoted post by ${post.author.name}` : undefined}
+    >
+      {promoted && (
+        <p className="mb-3 flex items-center gap-2 text-caption text-text-2">
+          <Pill variant="gold">Promoted</Pill>
+          <span>Paid placement</span>
+        </p>
+      )}
       <header className="flex items-center gap-3">
         {/* Same destination as the name link beside it: kept for mouse/touch, hidden from AT and Tab. */}
         <Link to={`/u/${post.author.username}`} className="shrink-0" tabIndex={-1} aria-hidden="true">
@@ -98,6 +108,11 @@ export function PostCard({ post }: { post: PostView }) {
         </div>
         {post.isAuthor ? (
           <div className="flex">
+            <Button asChild variant="quiet" size="icon">
+              <Link to={`/promote?product=POST_BOOST&targetId=${encodeURIComponent(post.id)}`} aria-label="Boost post">
+                <Megaphone />
+              </Link>
+            </Button>
             {post.type !== 'SHOWCASE' && (
               <Button variant="quiet" size="icon" aria-label="Edit post" onClick={() => setEditing((v) => !v)}>
                 <Pencil />

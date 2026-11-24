@@ -6,6 +6,8 @@ import {
   orderViewSchema,
   publicCatalogueSchema,
   receiptSchema,
+  postSchema,
+  personSummarySchema,
   subscriptionPreviewSchema,
   type BillingProduct,
   type CatalogueOption,
@@ -37,7 +39,26 @@ export const notificationSchema = z.object({
 });
 export type NotificationView = z.infer<typeof notificationSchema>;
 
+const promotionSchema = z.object({
+  id: z.string(),
+  product: z.enum(['POST_BOOST', 'PROFILE_SPOTLIGHT']),
+  targetType: z.enum(['POST', 'PROFILE']),
+  targetId: z.string(),
+  targetLabel: z.string(),
+  periodStart: z.string(),
+  periodEnd: z.string(),
+  state: z.enum(['running', 'queued', 'ended']),
+  endedReason: z.string().nullable(),
+});
+export type OwnPromotion = z.infer<typeof promotionSchema>;
+const promotionPreviewSchema = z.object({ startsAt: z.string(), endsAt: z.string(), extendsCurrent: z.boolean(), targetId: z.string() });
+
 export const billingApi = {
+  promotedPosts: () => request('/promoted/posts', z.object({ items: z.array(postSchema.extend({ promotedUntil: z.string() })) })),
+  spotlight: () => request('/promoted/spotlight', z.object({ people: z.array(personSummarySchema) })),
+  promotions: () => request('/billing/promotions', z.object({ items: z.array(promotionSchema) })),
+  promotionPreview: (product: string, option: string, targetId?: string) =>
+    request('/billing/promotion-preview', promotionPreviewSchema, { query: { product, option, targetId } }),
   catalogue: () => request('/catalogue', publicCatalogueSchema),
   entitlements: () => request('/billing/entitlements', entitlementsSchema),
   overview: () => request('/billing/overview', billingOverviewSchema),

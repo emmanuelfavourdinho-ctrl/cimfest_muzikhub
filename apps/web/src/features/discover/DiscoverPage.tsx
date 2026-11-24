@@ -13,6 +13,7 @@ import {
   type PersonCard as PersonCardData,
 } from '@muzikhub/shared';
 import { ResponsiveImage } from '@/components/media/Media';
+import { PromotedPost, SpotlightRow } from '@/features/promotions/PromotedPlaces';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/form';
 import { InfiniteList } from '@/components/ui/InfiniteList';
@@ -183,6 +184,8 @@ export function DiscoverPage() {
         </Button>
       )}
 
+      <SpotlightRow />
+      <PromotedPost />
       {view === 'people' ? (
         <PeopleResults q={q} roles={roles} genres={genre ? [genre] : []} location={location} />
       ) : (
