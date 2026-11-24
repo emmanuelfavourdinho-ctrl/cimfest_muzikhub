@@ -71,7 +71,7 @@ describe('non-staff cannot reach any admin endpoint', () => {
   it('tells a staff member without two-factor exactly what to do', async () => {
     const mod = await makeStaff(app, 'MODERATOR', { twoFactor: false });
     const res = await mod.agent.get('/api/v1/admin/overview');
-    expect(res.body.error.code).toBe('TWO_FACTOR_REQUIRED');
+    expect(res.body.code).toBe('TWO_FACTOR_REQUIRED');
     const me = await mod.agent.get('/api/v1/admin/me');
     expect(me.body).toMatchObject({ isStaff: true, role: 'MODERATOR', twoFactorEnabled: false });
   });
@@ -107,7 +107,7 @@ describe('moderator permissions (approved matrix)', () => {
     const tooLong = await mod.agent
       .post(`/api/v1/admin/users/${target.userId}/status`)
       .send({ status: 'SUSPENDED', reason: 'Harassment', until: days(45) });
-    expect(tooLong.body.error.code).toBe('SUSPENSION_TOO_LONG');
+    expect(tooLong.body.code).toBe('SUSPENSION_TOO_LONG');
     const ok = await mod.agent
       .post(`/api/v1/admin/users/${target.userId}/status`)
       .send({ status: 'SUSPENDED', reason: 'Harassment', until: days(7) });
@@ -134,16 +134,16 @@ describe('privilege escalation', () => {
     const res = (agent: typeof mod.agent, id: string) =>
       agent.post(`/api/v1/admin/users/${id}/status`).send({ status: 'RESTRICTED', reason: 'Testing rules' });
 
-    expect((await res(mod.agent, mod.userId)).body.error.code).toBe('CANNOT_ACT_ON_SELF');
-    expect((await res(mod.agent, mod2.userId)).body.error.code).toBe('FORBIDDEN_TARGET');
-    expect((await res(mod.agent, admin.userId)).body.error.code).toBe('FORBIDDEN_TARGET');
+    expect((await res(mod.agent, mod.userId)).body.code).toBe('CANNOT_ACT_ON_SELF');
+    expect((await res(mod.agent, mod2.userId)).body.code).toBe('FORBIDDEN_TARGET');
+    expect((await res(mod.agent, admin.userId)).body.code).toBe('FORBIDDEN_TARGET');
     expect((await res(admin.agent, mod.userId)).status).toBe(200); // admins may act on moderators
   });
 
   it('an admin cannot change their own role', async () => {
     const admin = await makeStaff(app, 'ADMIN');
     const self = await admin.agent.post(`/api/v1/admin/users/${admin.userId}/role`).send({ role: 'USER', reason: 'Stepping down' });
-    expect(self.body.error.code).toBe('CANNOT_ACT_ON_SELF');
+    expect(self.body.code).toBe('CANNOT_ACT_ON_SELF');
     expect((await prisma.user.findUniqueOrThrow({ where: { id: admin.userId } })).platformRole).toBe('ADMIN');
   });
 
@@ -166,7 +166,7 @@ describe('privilege escalation', () => {
     const b = await makeStaff(app, 'ADMIN');
     expect((await b.agent.get('/api/v1/admin/overview')).status).toBe(200);
     await a.agent.post(`/api/v1/admin/users/${b.userId}/role`).send({ role: 'USER', reason: 'Leaving the team' });
-    expect((await b.agent.get('/api/v1/admin/overview')).body.error.code).toBe('NOT_STAFF');
+    expect((await b.agent.get('/api/v1/admin/overview')).body.code).toBe('NOT_STAFF');
   });
 
   it('roles can only be promoted onto active, verified accounts', async () => {
@@ -175,7 +175,7 @@ describe('privilege escalation', () => {
     const res = await admin.agent
       .post(`/api/v1/admin/users/${unverified.userId}/role`)
       .send({ role: 'MODERATOR', reason: 'Join the team' });
-    expect(res.body.error.code).toBe('NOT_ELIGIBLE');
+    expect(res.body.code).toBe('NOT_ELIGIBLE');
   });
 
   it('sign-up and profile updates still cannot set a platform role', async () => {
@@ -202,9 +202,9 @@ describe('fresh session for sensitive actions', () => {
     const ban = await admin.agent
       .post(`/api/v1/admin/users/${target.userId}/status`)
       .send({ status: 'BANNED', reason: 'Fraudulent account' });
-    expect(ban.body.error.code).toBe('REAUTH_REQUIRED');
+    expect(ban.body.code).toBe('REAUTH_REQUIRED');
     const role = await admin.agent.post(`/api/v1/admin/users/${target.userId}/role`).send({ role: 'USER', reason: 'whatever' });
-    expect(role.body.error.code).toBe('REAUTH_REQUIRED');
+    expect(role.body.code).toBe('REAUTH_REQUIRED');
     // Less sensitive moderation still works on an older session.
     expect(
       (await admin.agent.post(`/api/v1/admin/users/${target.userId}/status`).send({ status: 'RESTRICTED', reason: 'Spam behaviour' }))

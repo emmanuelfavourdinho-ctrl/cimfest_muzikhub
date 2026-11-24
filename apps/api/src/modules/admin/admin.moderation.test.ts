@@ -53,7 +53,7 @@ describe('report lifecycle', () => {
     expect(detail.body.history.map((h: { action: string }) => h.action)).toEqual(['report.assign', 'report.note', 'report.resolve']);
 
     // Closed reports can't be reopened or re-decided.
-    expect((await mod.agent.post(`/api/v1/admin/reports/${id}/dismiss`).send({ resolution: 'Changed my mind' })).body.error.code).toBe(
+    expect((await mod.agent.post(`/api/v1/admin/reports/${id}/dismiss`).send({ resolution: 'Changed my mind' })).body.code).toBe(
       'REPORT_CLOSED',
     );
   });
@@ -64,7 +64,7 @@ describe('report lifecycle', () => {
     const { reports } = await reportedPost();
     const id = reports[0]!.id;
     await mod.agent.post(`/api/v1/admin/reports/${id}/escalate`).send({ reason: 'Possible legal issue' });
-    expect((await mod.agent.post(`/api/v1/admin/reports/${id}/resolve`).send({ resolution: 'Handled by mod' })).body.error.code).toBe(
+    expect((await mod.agent.post(`/api/v1/admin/reports/${id}/resolve`).send({ resolution: 'Handled by mod' })).body.code).toBe(
       'ESCALATED',
     );
     expect((await mod.agent.get(`/api/v1/admin/reports/${id}`)).body.canDecide).toBe(false);
@@ -127,7 +127,7 @@ describe('content moderation', () => {
     ).toBe(false);
     expect((await request(app).get(`/api/v1/profiles/${b.input.username}`)).body.image).toBeNull();
     expect(
-      (await mod.agent.post(`/api/v1/admin/content/profile-avatar/${b.userId}/restore`).send({ reason: 'Try restore' })).body.error.code,
+      (await mod.agent.post(`/api/v1/admin/content/profile-avatar/${b.userId}/restore`).send({ reason: 'Try restore' })).body.code,
     ).toBe('NOT_RESTORABLE');
   });
 
@@ -136,11 +136,11 @@ describe('content moderation', () => {
     const admin = await makeStaff(app, 'ADMIN');
     const own = await mod.agent.post('/api/v1/posts').send({ body: 'mod post' });
     const adminPost = await admin.agent.post('/api/v1/posts').send({ body: 'admin post' });
+    expect((await mod.agent.post(`/api/v1/admin/content/post/${own.body.id}/remove`).send({ reason: 'Testing rules' })).body.code).toBe(
+      'CANNOT_ACT_ON_SELF',
+    );
     expect(
-      (await mod.agent.post(`/api/v1/admin/content/post/${own.body.id}/remove`).send({ reason: 'Testing rules' })).body.error.code,
-    ).toBe('CANNOT_ACT_ON_SELF');
-    expect(
-      (await mod.agent.post(`/api/v1/admin/content/post/${adminPost.body.id}/remove`).send({ reason: 'Testing rules' })).body.error.code,
+      (await mod.agent.post(`/api/v1/admin/content/post/${adminPost.body.id}/remove`).send({ reason: 'Testing rules' })).body.code,
     ).toBe('FORBIDDEN_TARGET');
   });
 });

@@ -47,7 +47,7 @@ describe('RESTRICTED: can sign in and browse, cannot publish or interact', () =>
     for (const [label, pending] of blocked) {
       const res = await pending;
       expect(res.status, label).toBe(403);
-      expect(res.body.error.code, label).toBe('ACCOUNT_RESTRICTED');
+      expect(res.body.code, label).toBe('ACCOUNT_RESTRICTED');
     }
     // Reducing actions remain possible: delete own post, decline, report.
     expect((await target.agent.delete(`/api/v1/posts/${ownPost.body.id}`)).status).toBe(204);
@@ -119,11 +119,9 @@ describe('BANNED: indefinite; only an administrator can reinstate', () => {
     expect(signIn.status).toBe(403);
 
     expect((await setStatus(mod.agent, t.userId, { status: 'ACTIVE', reason: 'Appeal accepted' })).status).toBe(403);
-    expect((await setStatus(admin.agent, t.userId, { status: 'RESTRICTED', reason: 'Downgrade it' })).body.error.code).toBe('BANNED');
+    expect((await setStatus(admin.agent, t.userId, { status: 'RESTRICTED', reason: 'Downgrade it' })).body.code).toBe('BANNED');
     await ageSessions(admin.userId);
-    expect((await setStatus(admin.agent, t.userId, { status: 'ACTIVE', reason: 'Appeal accepted' })).body.error.code).toBe(
-      'REAUTH_REQUIRED',
-    );
+    expect((await setStatus(admin.agent, t.userId, { status: 'ACTIVE', reason: 'Appeal accepted' })).body.code).toBe('REAUTH_REQUIRED');
     await prisma.session.updateMany({ where: { userId: admin.userId }, data: { createdAt: new Date() } });
     expect((await setStatus(admin.agent, t.userId, { status: 'ACTIVE', reason: 'Appeal accepted' })).status).toBe(200);
     expect(

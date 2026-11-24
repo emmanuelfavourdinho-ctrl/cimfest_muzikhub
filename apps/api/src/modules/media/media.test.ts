@@ -64,7 +64,7 @@ describe('POST /api/v1/media/uploads — signing', () => {
     fakeMedia.configured = false;
     const res = await agent.post('/api/v1/media/uploads').send({ kind: 'IMAGE', purpose: 'POST', bytes: 1000 });
     expect(res.status).toBe(503);
-    expect(res.body.error.code).toBe('MEDIA_NOT_CONFIGURED');
+    expect(res.body.code).toBe('MEDIA_NOT_CONFIGURED');
   });
 });
 
@@ -79,7 +79,7 @@ describe('POST /api/v1/media/:id/confirm — verification', () => {
     const { assetId } = await sign(agent);
     const res = await agent.post(`/api/v1/media/${assetId}/confirm`);
     expect(res.status).toBe(409);
-    expect(res.body.error.code).toBe('UPLOAD_INCOMPLETE');
+    expect(res.body.code).toBe('UPLOAD_INCOMPLETE');
   });
 
   it('stores what Cloudinary actually holds and returns delivery URLs (idempotent)', async () => {
@@ -119,7 +119,7 @@ describe('POST /api/v1/media/:id/confirm — verification', () => {
 
     const res = await agent.post(`/api/v1/media/${assetId}/confirm`);
     expect(res.status).toBe(400);
-    expect(res.body.error.code).toBe('MEDIA_REJECTED');
+    expect(res.body.code).toBe('MEDIA_REJECTED');
     expect(fakeMedia.destroyed).toContain(fields.public_id);
     expect(await prisma.mediaAsset.count({ where: { id: assetId } })).toBe(0);
   });
@@ -154,7 +154,7 @@ describe('profile photo and cover', () => {
 
     const pending = (await alice.agent.post('/api/v1/media/uploads').send({ kind: 'IMAGE', purpose: 'AVATAR', bytes: 1000 })).body.assetId;
     const notReady = await alice.agent.put('/api/v1/me/profile/avatar').send({ mediaId: pending });
-    expect(notReady.body.error.code).toBe('MEDIA_NOT_READY');
+    expect(notReady.body.code).toBe('MEDIA_NOT_READY');
 
     const coverImage = await uploadMedia(alice.agent, { purpose: 'COVER' });
     expect((await alice.agent.put('/api/v1/me/profile/avatar').send({ mediaId: coverImage })).status).toBe(400);

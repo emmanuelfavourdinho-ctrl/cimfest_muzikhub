@@ -83,7 +83,7 @@ describe('publish requirements', () => {
     const { agent } = await signUp(app);
     const publish = await agent.post('/api/v1/portfolio').send({ ...body, publish: true });
     expect(publish.status).toBe(400);
-    expect(publish.body.error.code).toBe('NOT_PUBLISHABLE');
+    expect(publish.body.code).toBe('NOT_PUBLISHABLE');
     expect((await agent.post('/api/v1/portfolio').send(body)).status).toBe(201);
   });
 
@@ -109,7 +109,7 @@ describe('publish requirements', () => {
     const { agent, cover } = await creator();
     const item = await agent.post('/api/v1/portfolio').send({ type: 'IMAGE', title: 'x', mediaId: cover, publish: true });
     const res = await agent.patch(`/api/v1/portfolio/${item.body.id}`).send({ mediaId: null });
-    expect(res.body.error.code).toBe('NOT_PUBLISHABLE');
+    expect(res.body.code).toBe('NOT_PUBLISHABLE');
   });
 });
 
@@ -196,7 +196,7 @@ describe('share to feed (approved: opt-in)', () => {
       .post('/api/v1/portfolio')
       .send({ type: 'BEAT', title: 'x', mediaId: audio, visibility: 'PRIVATE', publish: true, shareToFeed: true });
     expect(res.status).toBe(400);
-    expect(res.body.error.code).toBe('NOT_SHAREABLE');
+    expect(res.body.code).toBe('NOT_SHAREABLE');
   });
 });
 

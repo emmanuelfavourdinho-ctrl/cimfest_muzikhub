@@ -8,7 +8,7 @@ Base path for product endpoints: **`/api/v1`**. Authentication (Better Auth): **
 - Bodies and query strings are validated with Zod schemas from `packages/shared`. Unknown fields on create/update endpoints are rejected.
 - **Lists are cursor-paginated**: `?limit=` (1–30, default 12) and `?cursor=` (the previous page's `nextCursor`). Response: `{ items: [...], nextCursor: string | null }`.
 - Things you may not see are reported as **404**, not 403 — ids of private items can't be probed.
-- Errors always look like `{ "error": { "code", "message", "details?" } }`.
+- Errors are **RFC 9457 problem details** (`Content-Type: application/problem+json`): `{ "type", "title", "status", "detail", "code", "instance?", "errors?" }`. `code` is the stable machine code, `detail` is safe to show users, and `errors` lists field issues for `VALIDATION_ERROR`. Better Auth routes under `/api/auth/*` keep the library's own error format. See `docs/migrations/2026-11-rfc9457-errors.md`.
 
 | Status | Codes | Meaning |
 |---|---|---|

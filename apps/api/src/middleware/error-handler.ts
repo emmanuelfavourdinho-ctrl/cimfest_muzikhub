@@ -1,35 +1,29 @@
 import type { ErrorRequestHandler, RequestHandler } from 'express';
-import type { ApiError } from '@muzikhub/shared';
 import { HttpError } from '../lib/http-error.js';
+import { sendProblem } from '../lib/problem.js';
 
+/** Every error from /api/v1 is an RFC 9457 problem document (see lib/problem.ts). */
 export const notFound: RequestHandler = (req, res) => {
-  const body: ApiError = {
-    error: { code: 'NOT_FOUND', message: `No route for ${req.method} ${req.path}` },
-  };
-  res.status(404).json(body);
+  sendProblem(res, 404, 'NOT_FOUND', `No route for ${req.method} ${req.path}`, { instance: req.originalUrl });
 };
 
-export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
+export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
+  const instance = req.originalUrl;
   if (err instanceof HttpError) {
-    const body: ApiError = {
-      error: { code: err.code, message: err.message, details: err.details },
-    };
-    res.status(err.status).json(body);
+    sendProblem(res, err.status, err.code, err.message, { instance, errors: err.details });
     return;
   }
 
   // Malformed JSON body from express.json()
   if (err instanceof SyntaxError && 'body' in err) {
-    const body: ApiError = { error: { code: 'INVALID_JSON', message: 'Request body is not valid JSON' } };
-    res.status(400).json(body);
+    sendProblem(res, 400, 'INVALID_JSON', 'Request body is not valid JSON', { instance });
     return;
   }
 
   // A database unique constraint was hit (e.g. the same media attached twice, a race on a
   // relationship). The constraint is the safety net; report it as a conflict, not a crash.
   if ((err as { code?: unknown })?.code === 'P2002') {
-    const body: ApiError = { error: { code: 'CONFLICT', message: 'That conflicts with something that already exists' } };
-    res.status(409).json(body);
+    sendProblem(res, 409, 'CONFLICT', 'That conflicts with something that already exists', { instance });
     return;
   }
 
@@ -41,15 +35,11 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
       ((err as { cause?: { kind?: string } }).cause?.kind === 'TransactionWriteConflict' ||
         /TransactionWriteConflict/.test(String((err as Error).message))));
   if (writeConflict) {
-    const body: ApiError = {
-      error: { code: 'CONFLICT_RETRY', message: 'Someone else changed this at the same time. Refresh and try again.' },
-    };
-    res.status(409).json(body);
+    sendProblem(res, 409, 'CONFLICT_RETRY', 'Someone else changed this at the same time. Refresh and try again.', { instance });
     return;
   }
 
   // Unknown errors: log server-side, never leak internals to the client.
   console.error(err);
-  const body: ApiError = { error: { code: 'INTERNAL_ERROR', message: 'Something went wrong' } };
-  res.status(500).json(body);
+  sendProblem(res, 500, 'INTERNAL_ERROR', 'Something went wrong', { instance });
 };

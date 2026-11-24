@@ -34,6 +34,6 @@ describe('unknown routes', () => {
     const res = await request(app).get('/api/v1/does-not-exist');
 
     expect(res.status).toBe(404);
-    expect(res.body.error.code).toBe('NOT_FOUND');
+    expect(res.body.code).toBe('NOT_FOUND');
   });
 });

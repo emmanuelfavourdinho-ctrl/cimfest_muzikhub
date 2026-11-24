@@ -160,7 +160,7 @@ describe('account status enforcement', () => {
 
     const me = await agent.get('/api/v1/me');
     expect(me.status).toBe(403);
-    expect(me.body.error.code).toBe('ACCOUNT_INACTIVE');
+    expect(me.body.code).toBe('ACCOUNT_INACTIVE');
 
     const signIn = await request(app)
       .post('/api/auth/sign-in/email')

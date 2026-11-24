@@ -1,6 +1,5 @@
 import {
   API_V1_PREFIX,
-  apiErrorSchema,
   commentPageSchema,
   commentSchema,
   connectionPageSchema,
@@ -16,6 +15,7 @@ import {
   portfolioPageSchema,
   postPageSchema,
   postSchema,
+  problemSchema,
   publicProfileSchema,
   relationshipSchema,
   signedUploadSchema,
@@ -73,10 +73,11 @@ export async function request<T>(
   if (res.status === 204) return undefined as T;
   const body: unknown = await res.json().catch(() => null);
   if (!res.ok) {
-    const parsed = apiErrorSchema.safeParse(body);
+    // RFC 9457 problem details: `code` is stable, `detail` is safe to show, `errors` are field issues.
+    const parsed = problemSchema.safeParse(body);
     if (parsed.success) {
-      const { code, message, details } = parsed.data.error;
-      throw new ApiRequestError(res.status, code, message, details);
+      const { code, detail, errors } = parsed.data;
+      throw new ApiRequestError(res.status, code, detail, errors);
     }
     throw new ApiRequestError(res.status, 'UNEXPECTED_RESPONSE', 'Something went wrong. Please try again.');
   }
