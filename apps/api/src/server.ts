@@ -1,5 +1,6 @@
 import { env } from './config/env.js';
 import { createApp } from './app.js';
+import { attachRealtime } from './lib/realtime.js';
 import { prisma } from './lib/prisma.js';
 import { reinstateExpiredSuspensions } from './lib/account-status.js';
 import { dispatchOutbox } from './lib/outbox.js';
@@ -16,6 +17,8 @@ const app = createApp();
 const server = app.listen(env.PORT, () => {
   console.log(`MuzikHub API listening on http://localhost:${env.PORT} (${env.NODE_ENV})`);
 });
+// Real-time push (messages, notifications) on the same server: /api/realtime.
+attachRealtime(server);
 
 // Reinstate suspensions whose end date has passed (also checked at sign-in and in admin views).
 const suspensionSweep = setInterval(() => {

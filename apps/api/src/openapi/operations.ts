@@ -7,6 +7,8 @@ import {
   grantOrganiserSchema,
   changePriceSchema,
   startCheckoutSchema,
+  blockSchema,
+  updateNotificationSettingsSchema,
   setAvailabilitySchema,
   updateOpportunitySchema,
   createCommentSchema,
@@ -383,4 +385,19 @@ export const operations: Operation[] = [
     'staff',
     { body: reasonOnlySchema },
   ),
+  // Safety and preferences (platform milestone 1)
+  op('GET', '/blocks', 'Safety', 'Members you have blocked', 'member'),
+  op(
+    'POST',
+    '/blocks',
+    'Safety',
+    'Block a member: ends follows and connections; blocks messages, requests and invites both ways',
+    'member',
+    { body: blockSchema },
+  ),
+  op('DELETE', '/blocks/{username}', 'Safety', 'Unblock a member', 'member'),
+  op('GET', '/notifications/settings', 'Notifications', 'Your in-app notification categories', 'member'),
+  op('PUT', '/notifications/settings', 'Notifications', 'Turn categories on or off (payments and safety notices always on)', 'member', {
+    body: updateNotificationSettingsSchema,
+  }),
 ];

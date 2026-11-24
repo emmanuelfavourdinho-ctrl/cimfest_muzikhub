@@ -4,7 +4,7 @@ export const MEDIA_KINDS = ['IMAGE', 'AUDIO', 'VIDEO'] as const;
 export type MediaKind = (typeof MEDIA_KINDS)[number];
 
 /** Where an upload will be used. Decides which kinds are allowed. */
-export const MEDIA_PURPOSES = ['AVATAR', 'COVER', 'PORTFOLIO', 'POST'] as const;
+export const MEDIA_PURPOSES = ['AVATAR', 'COVER', 'PORTFOLIO', 'POST', 'COMMUNITY', 'COMPETITION'] as const;
 export type MediaPurpose = (typeof MEDIA_PURPOSES)[number];
 
 const MB = 1024 * 1024;
@@ -46,6 +46,10 @@ export const PURPOSE_KINDS: Record<MediaPurpose, readonly MediaKind[]> = {
   COVER: ['IMAGE'],
   PORTFOLIO: ['IMAGE', 'AUDIO', 'VIDEO'],
   POST: ['IMAGE', 'AUDIO', 'VIDEO'],
+  /** Community cover image. */
+  COMMUNITY: ['IMAGE'],
+  /** Competition cover and entries. */
+  COMPETITION: ['IMAGE', 'AUDIO', 'VIDEO'],
 };
 
 /** Files larger than this are uploaded in chunks (Cloudinary requires chunks ≥ 5 MB). */

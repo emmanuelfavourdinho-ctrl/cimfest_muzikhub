@@ -105,6 +105,7 @@ export const router = createBrowserRouter([
       { path: '/billing/checkout', element: auth(() => import('@/features/billing/CheckoutPage'), 'CheckoutPage') },
       { path: '/checkout/return', element: auth(() => import('@/features/billing/CheckoutReturnPage'), 'CheckoutReturnPage') },
       { path: '/billing/orders/:reference', element: auth(() => import('@/features/billing/ReceiptPage'), 'ReceiptPage') },
+      { path: '/settings/preferences', element: auth(() => import('@/features/settings/PreferencesPage'), 'PreferencesPage') },
       { path: '/settings/billing', element: auth(() => import('@/features/billing/BillingPage'), 'BillingPage') },
       { path: '/promote', element: auth(() => import('@/features/promotions/PromotePage'), 'PromotePage') },
       { path: '/studio/analytics', element: auth(() => import('@/features/analytics/AnalyticsPage'), 'AnalyticsPage') },

@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { Check, Clock, Plus, UserCheck, UserPlus, X } from 'lucide-react';
+import { Ban, Check, Clock, Plus, UserCheck, UserPlus, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { CONNECTION_MESSAGE_MAX } from '@muzikhub/shared';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/Dialog';
 import { Field, Textarea } from '@/components/ui/form';
-import { api, errorMessage } from '@/lib/api';
+import { api, errorMessage, request } from '@/lib/api';
 import { useMe } from '@/lib/queries';
 import { socialKeys, useRelationship } from '@/lib/social-queries';
 
@@ -23,6 +23,7 @@ export function RelationshipActions({ username, name }: { username: string; name
   const [busy, setBusy] = useState(false);
   const [requestOpen, setRequestOpen] = useState(false);
   const [message, setMessage] = useState('');
+  const [blockOpen, setBlockOpen] = useState(false);
 
   if (!me) {
     return (
@@ -56,6 +57,26 @@ export function RelationshipActions({ username, name }: { username: string; name
       setBusy(false);
     }
   };
+
+  const block = (on: boolean) =>
+    run(
+      () =>
+        on
+          ? request('/blocks', null, { method: 'POST', body: { username } })
+          : request(`/blocks/${encodeURIComponent(username)}`, null, { method: 'DELETE' }),
+      on ? `You blocked ${name}` : `You unblocked ${name}`,
+    );
+
+  if (r.blocked) {
+    // Blocked either way: no interaction controls. Only the blocker sees "Unblock".
+    return r.blockedByMe ? (
+      <Button size="sm" variant="outline" disabled={busy} onClick={() => void block(false)}>
+        <Ban /> Unblock
+      </Button>
+    ) : (
+      <p className="text-caption text-text-2">You can’t interact with this member.</p>
+    );
+  }
 
   const c = r.connection;
   return (
@@ -130,6 +151,31 @@ export function RelationshipActions({ username, name }: { username: string; name
           <UserPlus /> Connect
         </Button>
       )}
+
+      <Button size="sm" variant="quiet" disabled={busy} onClick={() => setBlockOpen(true)}>
+        <Ban /> Block
+      </Button>
+      <Dialog open={blockOpen} onClose={() => setBlockOpen(false)} title={`Block ${name}?`}>
+        <p className="mb-4 text-sm text-text-2">
+          You won’t be able to message, follow, connect or collaborate with each other, and existing follows and connections end.
+          {` ${name}`} isn’t told. You can unblock later from your settings.
+        </p>
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={() => setBlockOpen(false)}>
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            disabled={busy}
+            onClick={() => {
+              setBlockOpen(false);
+              void block(true);
+            }}
+          >
+            Block
+          </Button>
+        </div>
+      </Dialog>
 
       <Dialog open={requestOpen} onClose={() => setRequestOpen(false)} title={`Connect with ${name}`}>
         <p className="mb-4 text-sm text-text-2">Connections are mutual — {name} will need to accept. Following doesn't need approval.</p>

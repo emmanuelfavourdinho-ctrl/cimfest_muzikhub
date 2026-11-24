@@ -7,8 +7,18 @@ import { validateBody } from '../../middleware/validate.js';
 import { limits } from '../../lib/rate-limit.js';
 import { idempotent } from '../../middleware/idempotency.js';
 
+/**
+ * Owners for report targets contributed by other modules (communities, competitions, messages).
+ * Each module registers a resolver; the reporter must be able to see the target (else null → 404).
+ */
+type OwnerResolver = (targetId: string, reporterId: string) => Promise<string | null>;
+const resolvers = new Map<string, OwnerResolver>();
+export function registerReportTarget(type: string, resolve: OwnerResolver) {
+  resolvers.set(type, resolve);
+}
+
 /** Who owns the reported thing, or null if it doesn't exist. */
-async function targetOwner(input: CreateReportInput): Promise<string | null> {
+async function targetOwner(input: CreateReportInput, reporterId: string): Promise<string | null> {
   switch (input.targetType) {
     case 'POST':
       return (await prisma.post.findUnique({ where: { id: input.targetId }, select: { authorId: true } }))?.authorId ?? null;
@@ -18,6 +28,8 @@ async function targetOwner(input: CreateReportInput): Promise<string | null> {
       return (await prisma.portfolioItem.findUnique({ where: { id: input.targetId }, select: { ownerId: true } }))?.ownerId ?? null;
     case 'PROFILE':
       return (await prisma.user.findUnique({ where: { username: input.targetId.toLowerCase() }, select: { id: true } }))?.id ?? null;
+    default:
+      return (await resolvers.get(input.targetType)?.(input.targetId, reporterId)) ?? null;
   }
 }
 
@@ -30,7 +42,7 @@ export function reportsRouter(): Router {
   router.post('/', requireAuth, limits.report, validateBody(createReportSchema), idempotent(), async (req, res) => {
     const reporterId = currentUserId(res.locals);
     const input = req.body as CreateReportInput;
-    const owner = await targetOwner(input);
+    const owner = await targetOwner(input, reporterId);
     if (!owner) throw new HttpError(404, 'REPORT_TARGET_NOT_FOUND', 'That content no longer exists');
     if (owner === reporterId) throw new HttpError(400, 'CANNOT_REPORT_SELF', "You can't report your own content");
     const targetId = input.targetType === 'PROFILE' ? owner : input.targetId;

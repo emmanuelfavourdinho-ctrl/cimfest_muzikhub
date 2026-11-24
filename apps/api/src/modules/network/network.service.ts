@@ -10,6 +10,8 @@ import type { Connection, Prisma } from '../../generated/prisma/client.js';
 import { HttpError } from '../../lib/http-error.js';
 import { mapPage, paginate } from '../../lib/pagination.js';
 import { prisma } from '../../lib/prisma.js';
+import { assertNotBlocked, isBlockedEither } from '../safety/blocks.service.js';
+import { notify } from '../notifications/notifications.service.js';
 import { personSelect, toPerson } from '../profiles/people.js';
 import { isVisibleStatus, visibleUser } from '../../lib/account-status.js';
 
@@ -35,8 +37,19 @@ const between = (a: string, b: string): Prisma.ConnectionWhereInput => ({
 export async function follow(followerId: string, username: string) {
   const followingId = await requireActiveUser(username);
   if (followingId === followerId) throw new HttpError(400, 'CANNOT_FOLLOW_SELF', "You can't follow yourself");
+  await assertNotBlocked(followerId, followingId);
   // Idempotent: following twice is a no-op, never a duplicate row.
-  await prisma.follow.createMany({ data: [{ followerId, followingId }], skipDuplicates: true });
+  const { count } = await prisma.follow.createMany({ data: [{ followerId, followingId }], skipDuplicates: true });
+  if (count > 0) {
+    const who = await prisma.user.findUniqueOrThrow({ where: { id: followerId }, select: { name: true, username: true } });
+    await notify(prisma, followingId, {
+      type: 'follow.new',
+      title: `${who.name} followed you`,
+      body: 'See their profile and follow back if you like.',
+      link: `/u/${who.username}`,
+      dedupeKey: `follow:${followerId}:${followingId}`,
+    });
+  }
   return { following: true, followers: await prisma.follow.count({ where: { followingId } }) };
 }
 
@@ -83,6 +96,7 @@ async function cooldownUntil(requesterId: string, addresseeId: string): Promise<
 export async function requestConnection(requesterId: string, username: string, message?: string) {
   const addresseeId = await requireActiveUser(username);
   if (addresseeId === requesterId) throw new HttpError(400, 'CANNOT_CONNECT_SELF', "You can't connect with yourself");
+  await assertNotBlocked(requesterId, addresseeId);
 
   const live = await prisma.connection.findFirst({ where: { ...between(requesterId, addresseeId), status: { in: [...LIVE] } } });
   if (live?.status === 'ACCEPTED') throw new HttpError(409, 'ALREADY_CONNECTED', "You're already connected");
@@ -98,6 +112,12 @@ export async function requestConnection(requesterId: string, username: string, m
   const created = await prisma.connection.create({
     data: { requesterId, addresseeId, message: message || null },
     include: connectionInclude,
+  });
+  await notify(prisma, addresseeId, {
+    type: 'connection.request',
+    title: `${created.requester.name} wants to connect`,
+    body: message ? `“${message.slice(0, 120)}”` : 'Accept or decline from your network page.',
+    link: '/network?tab=requests',
   });
   return toConnectionView(created, requesterId);
 }
@@ -133,6 +153,14 @@ async function transition(
     throw new HttpError(409, 'INVALID_TRANSITION', 'This request has already been answered or withdrawn');
   }
   const updated = await prisma.connection.findUniqueOrThrow({ where: { id: connectionId }, include: connectionInclude });
+  if (rule.to === 'ACCEPTED') {
+    await notify(prisma, updated.requesterId, {
+      type: 'connection.accepted',
+      title: `${updated.addressee.name} accepted your connection request`,
+      body: 'You can now message each other and start a collaboration.',
+      link: `/u/${updated.addressee.username}`,
+    });
+  }
   return toConnectionView(updated, actorId);
 }
 
@@ -191,8 +219,20 @@ export async function listConnections(
 export async function relationship(viewerId: string | null, username: string): Promise<Relationship> {
   const targetId = await requireActiveUser(username);
   if (!viewerId || viewerId === targetId) {
-    return { isSelf: viewerId === targetId, following: false, followsYou: false, connection: null, canRequestAfter: null };
+    return {
+      isSelf: viewerId === targetId,
+      following: false,
+      followsYou: false,
+      connection: null,
+      canRequestAfter: null,
+      blockedByMe: false,
+      blocked: false,
+    };
   }
+  const [mine, anyBlock] = await Promise.all([
+    prisma.userBlock.count({ where: { blockerId: viewerId, blockedId: targetId } }),
+    isBlockedEither(viewerId, targetId),
+  ]);
   const [following, followsYou, live, until] = await Promise.all([
     prisma.follow.count({ where: { followerId: viewerId, followingId: targetId } }),
     prisma.follow.count({ where: { followerId: targetId, followingId: viewerId } }),
@@ -207,6 +247,8 @@ export async function relationship(viewerId: string | null, username: string): P
       ? { id: live.id, status: live.status as 'PENDING' | 'ACCEPTED', direction: live.requesterId === viewerId ? 'outgoing' : 'incoming' }
       : null,
     canRequestAfter: until?.toISOString() ?? null,
+    blockedByMe: mine > 0,
+    blocked: anyBlock,
   };
 }
 

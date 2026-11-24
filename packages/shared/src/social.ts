@@ -62,7 +62,18 @@ export type CommentView = z.infer<typeof commentSchema>;
 export const commentPageSchema = pageSchema(commentSchema);
 
 // ── Reports (reviewed by moderators in Milestone 5) ──────────
-export const REPORT_TARGETS = ['POST', 'COMMENT', 'PORTFOLIO_ITEM', 'PROFILE'] as const;
+export const REPORT_TARGETS = [
+  'POST',
+  'COMMENT',
+  'PORTFOLIO_ITEM',
+  'PROFILE',
+  'COMMUNITY',
+  'DISCUSSION',
+  'DISCUSSION_COMMENT',
+  'COMPETITION',
+  'COMPETITION_ENTRY',
+  'MESSAGE',
+] as const;
 export const REPORT_REASONS = {
   SPAM: 'Spam or scam',
   HARASSMENT: 'Harassment or bullying',
@@ -120,6 +131,10 @@ export const relationshipSchema = z.object({
   connection: z.object({ id: z.string(), status: z.enum(['PENDING', 'ACCEPTED']), direction: z.enum(['incoming', 'outgoing']) }).nullable(),
   /** When a declined request can be sent again (approved 30-day cooldown), else null. */
   canRequestAfter: z.iso.datetime().nullable(),
+  /** You blocked them (you can unblock). */
+  blockedByMe: z.boolean(),
+  /** Either side blocked the other: interactions are unavailable. */
+  blocked: z.boolean(),
 });
 export type Relationship = z.infer<typeof relationshipSchema>;
 
@@ -178,3 +193,25 @@ export const profileStatsSchema = z.object({
   publishedWork: z.number().int(),
 });
 export type ProfileStats = z.infer<typeof profileStatsSchema>;
+
+// ── Safety and preferences ─────────────────────────────────────
+export const NOTIFICATION_CATEGORIES = {
+  MESSAGES: 'Direct messages',
+  COMMUNITIES: 'Communities',
+  COLLABORATION: 'Collaboration requests and projects',
+  COMPETITIONS: 'Competitions',
+  NETWORK: 'Follows and connections',
+  PROMOTIONS: 'Promotions',
+} as const;
+export type NotificationCategory = keyof typeof NOTIFICATION_CATEGORIES;
+export const NOTIFICATION_CATEGORY_KEYS = Object.keys(NOTIFICATION_CATEGORIES) as [NotificationCategory, ...NotificationCategory[]];
+export const notificationSettingsSchema = z.object({
+  settings: z.array(z.object({ category: z.enum(NOTIFICATION_CATEGORY_KEYS), inApp: z.boolean() })),
+});
+export const updateNotificationSettingsSchema = z.strictObject({
+  settings: z
+    .array(z.strictObject({ category: z.enum(NOTIFICATION_CATEGORY_KEYS), inApp: z.boolean() }))
+    .min(1)
+    .max(NOTIFICATION_CATEGORY_KEYS.length),
+});
+export const blockSchema = z.strictObject({ username: z.string().trim().toLowerCase().min(1).max(40) });

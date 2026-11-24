@@ -55,7 +55,8 @@ export default defineConfig(({ mode }) => {
       // Same-origin requests mean auth cookies work without cross-site cookie settings.
       proxy: {
         // API_PROXY_TARGET lets the end-to-end tests point at their own API instance.
-        '/api': { target: process.env.API_PROXY_TARGET ?? 'http://localhost:4000', changeOrigin: false },
+        // ws: the real-time channel (/api/realtime) is a WebSocket upgrade.
+        '/api': { target: process.env.API_PROXY_TARGET ?? 'http://localhost:4000', changeOrigin: false, ws: true },
       },
     },
   };

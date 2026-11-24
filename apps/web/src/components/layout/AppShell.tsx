@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/cn';
-import { CreditCard, Gem, LogOut, Settings, ShieldCheck, UserRound } from 'lucide-react';
+import { BellRing, CreditCard, Gem, LogOut, Settings, ShieldCheck, UserRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { CREATIVE_ROLES, PRIMARY_USES } from '@muzikhub/shared';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ import { AccountStatusBanner } from '@/features/auth/AccountStatusBanner';
 import { VerifyEmailBanner } from '@/features/auth/VerifyEmailBanner';
 import { BrandMark } from './BrandMark';
 import { NotificationBell } from '@/features/billing/NotificationBell';
+import { useRealtimeNotifications } from '@/lib/realtime';
 import { mobileNav, primaryNav, type NavItem } from './navigation';
 
 /**
@@ -22,6 +23,7 @@ import { mobileNav, primaryNav, type NavItem } from './navigation';
  */
 export function AppShell() {
   const { data: me } = useMe();
+  useRealtimeNotifications(Boolean(me));
 
   return (
     <div className="min-h-svh">
@@ -115,6 +117,9 @@ function AccountMenu() {
             </MenuLink>
             <MenuLink to="/settings/billing" icon={CreditCard} onSelect={() => setOpen(false)}>
               Billing
+            </MenuLink>
+            <MenuLink to="/settings/preferences" icon={BellRing} onSelect={() => setOpen(false)}>
+              Notifications &amp; privacy
             </MenuLink>
             <MenuLink to="/settings/profile" icon={Settings} onSelect={() => setOpen(false)}>
               Edit profile
