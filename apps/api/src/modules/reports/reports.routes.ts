@@ -4,6 +4,7 @@ import { HttpError } from '../../lib/http-error.js';
 import { prisma } from '../../lib/prisma.js';
 import { currentUserId, requireAuth } from '../../middleware/require-auth.js';
 import { validateBody } from '../../middleware/validate.js';
+import { limits } from '../../lib/rate-limit.js';
 
 /** Who owns the reported thing, or null if it doesn't exist. */
 async function targetOwner(input: CreateReportInput): Promise<string | null> {
@@ -25,7 +26,7 @@ async function targetOwner(input: CreateReportInput): Promise<string | null> {
  */
 export function reportsRouter(): Router {
   const router = Router();
-  router.post('/', requireAuth, validateBody(createReportSchema), async (req, res) => {
+  router.post('/', requireAuth, limits.report, validateBody(createReportSchema), async (req, res) => {
     const reporterId = currentUserId(res.locals);
     const input = req.body as CreateReportInput;
     const owner = await targetOwner(input);

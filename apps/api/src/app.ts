@@ -19,6 +19,7 @@ import { discoverRouter } from './modules/discover/discover.routes.js';
 import { reportsRouter } from './modules/reports/reports.routes.js';
 import { adminRouter } from './modules/admin/admin.routes.js';
 import type { MediaStorage } from './lib/media-storage.js';
+import { originCheck } from './middleware/origin-check.js';
 
 export interface AppDependencies {
   /** Returns true when the database answers. Injected so tests need no real DB. */
@@ -51,6 +52,8 @@ export function createApp(overrides: Partial<AppDependencies> = {}): Express {
 
   // Versioned REST API. Each feature module contributes one router.
   const v1 = Router();
+  // CSRF: state-changing requests must come from an allowed web origin (see origin-check.ts).
+  v1.use(originCheck(env.CORS_ORIGINS));
   v1.use('/health', healthRouter(deps.checkDatabase));
   // More specific routes first: /me/portfolio and /profiles/:username/portfolio.
   v1.use('/me/portfolio', ownPortfolioRoute());

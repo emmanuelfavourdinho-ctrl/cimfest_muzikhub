@@ -3,6 +3,7 @@ import { createCommentSchema, createPostSchema, feedQuerySchema, pageQuerySchema
 import { currentUserId, optionalAuth, requireAuth, requireFullAccess, viewerId } from '../../middleware/require-auth.js';
 import { parseQuery, validateBody } from '../../middleware/validate.js';
 import * as feed from './feed.service.js';
+import { limits } from '../../lib/rate-limit.js';
 
 const id = (req: { params: Record<string, string | string[] | undefined> }) => String(req.params.id);
 
@@ -20,13 +21,13 @@ export function feedRouter(): Router {
 export function postsRouter(): Router {
   const router = Router();
 
-  router.post('/', requireAuth, requireFullAccess, validateBody(createPostSchema), async (req, res) => {
+  router.post('/', requireAuth, limits.contentWrite, requireFullAccess, validateBody(createPostSchema), async (req, res) => {
     res.status(201).json(await feed.createPost(currentUserId(res.locals), req.body));
   });
   router.get('/:id', optionalAuth, async (req, res) => {
     res.json(await feed.getPost(id(req), viewerId(res.locals)));
   });
-  router.patch('/:id', requireAuth, requireFullAccess, validateBody(updatePostSchema), async (req, res) => {
+  router.patch('/:id', requireAuth, limits.contentWrite, requireFullAccess, validateBody(updatePostSchema), async (req, res) => {
     res.json(await feed.updatePost(currentUserId(res.locals), id(req), req.body.body));
   });
   router.delete('/:id', requireAuth, async (req, res) => {
@@ -34,17 +35,17 @@ export function postsRouter(): Router {
     res.status(204).end();
   });
 
-  router.put('/:id/like', requireAuth, requireFullAccess, async (req, res) => {
+  router.put('/:id/like', requireAuth, limits.reaction, requireFullAccess, async (req, res) => {
     res.json(await feed.setLike(currentUserId(res.locals), id(req), true));
   });
-  router.delete('/:id/like', requireAuth, async (req, res) => {
+  router.delete('/:id/like', requireAuth, limits.reaction, async (req, res) => {
     res.json(await feed.setLike(currentUserId(res.locals), id(req), false));
   });
 
   router.get('/:id/comments', optionalAuth, async (req, res) => {
     res.json(await feed.listComments(id(req), viewerId(res.locals), parseQuery(pageQuerySchema, req.query)));
   });
-  router.post('/:id/comments', requireAuth, requireFullAccess, validateBody(createCommentSchema), async (req, res) => {
+  router.post('/:id/comments', requireAuth, limits.contentWrite, requireFullAccess, validateBody(createCommentSchema), async (req, res) => {
     res.status(201).json(await feed.addComment(currentUserId(res.locals), id(req), req.body.body));
   });
   return router;
