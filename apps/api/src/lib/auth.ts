@@ -4,6 +4,7 @@ import { APIError, createAuthMiddleware } from 'better-auth/api';
 import { twoFactor, username } from 'better-auth/plugins';
 import { PASSWORD_MAX, PASSWORD_MIN, PRIMARY_USE_KEYS, USERNAME_MAX, USERNAME_MIN, usernameSchema } from '@muzikhub/shared';
 import { env } from '../config/env.js';
+import { CLIENT_IP_HEADER } from './proxy-gate.js';
 import { createHash } from 'node:crypto';
 import { passwordResetEmail, verificationEmail } from './email-templates.js';
 import { emailAvailable, EmailUnavailableError, sendEmail } from './mailer.js';
@@ -42,6 +43,10 @@ export const auth = betterAuth({
   baseURL: env.BETTER_AUTH_URL,
   secret: env.BETTER_AUTH_SECRET,
   trustedOrigins: env.CORS_ORIGINS,
+  // Client IP for Better Auth's rate limits and session records: the single address resolved by
+  // lib/proxy-gate.ts (it discards any client-supplied value). Its default, X-Forwarded-For, holds
+  // two addresses behind Vercel + Render and would put every visitor in one shared bucket.
+  advanced: { ipAddress: { ipAddressHeaders: [CLIENT_IP_HEADER] } },
   database: prismaAdapter(prisma, { provider: 'postgresql' }),
 
   user: {

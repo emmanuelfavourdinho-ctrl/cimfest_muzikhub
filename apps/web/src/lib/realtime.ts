@@ -14,7 +14,10 @@ export function getSocket(): Socket {
   socket ??= io(API_BASE || window.location.origin, {
     path: '/api/realtime',
     withCredentials: true,
-    transports: ['websocket', 'polling'],
+    // Long-polling first, then upgrade to WebSocket where the path allows it. In production the
+    // API sits behind Vercel's /api rewrite (setup B), which doesn't carry WebSockets: there the
+    // upgrade fails quietly and the connection stays on polling. Locally (Vite proxy) it upgrades.
+    transports: ['polling', 'websocket'],
   });
   return socket;
 }

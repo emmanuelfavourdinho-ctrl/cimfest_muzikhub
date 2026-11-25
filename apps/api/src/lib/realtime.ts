@@ -4,6 +4,7 @@ import { Server } from 'socket.io';
 import { env } from '../config/env.js';
 import { isVisibleStatus } from './account-status.js';
 import { auth } from './auth.js';
+import { hasProxySecret } from './proxy-gate.js';
 
 /**
  * Real-time push (Socket.IO, decided in the M10 plan). It is a DELIVERY channel only:
@@ -16,12 +17,24 @@ import { auth } from './auth.js';
  */
 let io: Server | null = null;
 
-export function attachRealtime(server: HttpServer, origins: readonly string[] = env.CORS_ORIGINS) {
+export function attachRealtime(
+  server: HttpServer,
+  origins: readonly string[] = env.CORS_ORIGINS,
+  proxySecret: string | undefined = env.PROXY_SHARED_SECRET,
+) {
   io = new Server(server, {
     path: '/api/realtime',
     cors: { origin: [...origins], credentials: true },
     serveClient: false,
+    // Setup B: like the REST API, only requests forwarded by Vercel (lib/proxy-gate.ts).
+    ...(proxySecret ? { allowRequest: (req, done) => done(null, hasProxySecret(req, proxySecret)) } : {}),
   });
+  // Long-polling responses go through Vercel in setup B: never let them be cached.
+  const noStore = (headers: Record<string, string>) => {
+    headers['Cache-Control'] = 'no-store';
+  };
+  io.engine.on('initial_headers', noStore);
+  io.engine.on('headers', noStore);
   io.use(async (socket, next) => {
     try {
       const origin = socket.handshake.headers.origin;

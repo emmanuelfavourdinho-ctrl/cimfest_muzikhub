@@ -267,7 +267,7 @@ The test database URL must contain `muzikhub_test`; the setup refuses to run oth
 
 ## 7b. Deployment plan (not done yet)
 
-- **Frontend → Vercel**, **API → Render**. Recommended: a Vercel rewrite `/api/* → https://<render-app>/api/*` so the browser sees one origin; session cookies then stay first-party (`SameSite=Lax`) with no cross-site cookie configuration. `BETTER_AUTH_URL` and `WEB_APP_URL` become the Vercel URL.
+- **Frontend → Vercel**, **API → Render**. Recommended: a Vercel rewrite `/api/* → https://<render-app>/api/*` so the browser sees one origin; session cookies then stay first-party (`SameSite=Lax`) with no cross-site cookie configuration. `BETTER_AUTH_URL` and `WEB_APP_URL` become the Vercel URL. **Implemented 2026-11-25 (setup B):** `vercel.json` forwards `/api/*` with a shared-secret header that Render requires (`lib/proxy-gate.ts`); both rate limiters use Vercel's `X-Real-IP`; real-time starts on long-polling, because the rewrite doesn't carry WebSockets. Details: `docs/deployment-readiness.md` §8.
 - `PORT` is read from the environment (Render provides it). Health check: `GET /api/v1/health`.
 - **Database → Supabase PostgreSQL** (confirmed 2026-11-24). Nothing has been deployed or created yet; that needs the project owner's approval.
 

@@ -10,6 +10,8 @@ const base = {
 const prod = {
   ...base,
   NODE_ENV: 'production',
+  CORS_ORIGINS: 'https://muzikhub.test',
+  WEB_APP_URL: 'https://muzikhub.test',
   RESEND_API_KEY: 're_fake_key_for_tests',
   EMAIL_FROM: 'MuzikHub <no-reply@mail.muzikhub.test>',
 };

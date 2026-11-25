@@ -1,6 +1,6 @@
 import { env } from './config/env.js';
 import { createApp } from './app.js';
-import { attachRealtime } from './lib/realtime.js';
+import { attachRealtime, closeRealtime } from './lib/realtime.js';
 import { prisma } from './lib/prisma.js';
 import { reinstateExpiredSuspensions } from './lib/account-status.js';
 import { dispatchOutbox } from './lib/outbox.js';
@@ -19,6 +19,7 @@ const server = app.listen(env.PORT, () => {
   if (env.EMAIL_TRANSPORT === 'disabled') {
     console.warn('email: DISABLED (restricted-email mode): password reset and email confirmation are unavailable');
   }
+  if (env.PROXY_SHARED_SECRET) console.log('proxy: setup B, only requests forwarded by the website are accepted');
 });
 // Real-time push (messages, notifications) on the same server: /api/realtime.
 attachRealtime(server);
@@ -81,13 +82,15 @@ const webhookSweep = setInterval(
 );
 webhookSweep.unref();
 
-// Graceful shutdown: stop accepting connections, then close the DB pool.
+// Graceful shutdown: stop accepting connections, disconnect real-time clients (open sockets would
+// otherwise keep server.close() waiting until the forced exit), then close the DB pool.
 function shutdown(signal: string) {
   console.log(`${signal} received, shutting down…`);
   server.close(async () => {
     await prisma.$disconnect();
     process.exit(0);
   });
+  void closeRealtime();
   setTimeout(() => process.exit(1), 10_000).unref();
 }
 

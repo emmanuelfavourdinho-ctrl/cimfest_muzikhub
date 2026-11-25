@@ -87,6 +87,16 @@ const envSchema = z
       .enum(['true', 'false'])
       .default('false')
       .transform((v) => v === 'true'),
+    /**
+     * Setup B (Vercel forwards /api to Render): the secret Vercel adds to every forwarded request.
+     * When set, requests without it are refused (except the health check) and the visitor IP is
+     * read from Vercel's X-Real-IP (lib/proxy-gate.ts). Same value in Vercel and Render.
+     */
+    PROXY_SHARED_SECRET: z
+      .string()
+      .min(32, 'PROXY_SHARED_SECRET must be at least 32 characters (openssl rand -hex 32)')
+      .regex(/^[\x21-\x7e]+$/, 'PROXY_SHARED_SECRET must be printable ASCII without spaces (openssl rand -hex 32)')
+      .optional(),
     // Notch Pay credentials. Server-side only; never logged, never sent to the browser.
     NOTCHPAY_PUBLIC_KEY: z.string().optional(),
     NOTCHPAY_PRIVATE_KEY: z.string().optional(),
@@ -103,6 +113,7 @@ const envSchema = z
     if (!db.ok) for (const message of db.problems) ctx.addIssue({ code: 'custom', path: ['DATABASE_URL'], message });
     for (const message of paymentsConfigProblems(e)) ctx.addIssue({ code: 'custom', path: ['PAYMENTS_MODE'], message });
     for (const issue of emailConfigProblems(e)) ctx.addIssue({ code: 'custom', path: [issue.path], message: issue.message });
+    for (const issue of productionUrlProblems(e)) ctx.addIssue({ code: 'custom', path: [issue.path], message: issue.message });
     if (e.EMAIL_TRANSPORT === 'resend') {
       if (!e.RESEND_API_KEY) ctx.addIssue({ code: 'custom', path: ['RESEND_API_KEY'], message: 'required to send email with Resend' });
       if (!e.EMAIL_FROM)
@@ -118,6 +129,46 @@ const envSchema = z
     const db = resolveDatabaseUrl(e.DATABASE_URL);
     return db.ok ? { ...e, DATABASE_URL: db.url } : e;
   });
+
+/**
+ * Production must point at real, https origins. Without this a missing variable starts an API
+ * whose links lead to localhost and which rejects every browser write (CROSS_ORIGIN_REJECTED).
+ * Messages name the variable, never its value.
+ */
+export function productionUrlProblems(e: {
+  NODE_ENV: string;
+  CORS_ORIGINS: string[];
+  WEB_APP_URL: string;
+  BETTER_AUTH_URL: string;
+}): { path: string; message: string }[] {
+  if (e.NODE_ENV !== 'production') return [];
+  const problems: { path: string; message: string }[] = [];
+  const isLocal = (host: string) => /^(localhost|127\.|0\.0\.0\.0$|\[::1?\]$)/.test(host) || host.endsWith('.localhost');
+  const checkUrl = (path: string, value: string) => {
+    let url: URL;
+    try {
+      url = new URL(value);
+    } catch {
+      problems.push({ path, message: 'must be a valid https URL in production' });
+      return null;
+    }
+    if (url.protocol !== 'https:' || isLocal(url.hostname)) {
+      problems.push({ path, message: 'must be an https URL on a public host in production (not http: or localhost)' });
+      return null;
+    }
+    return url;
+  };
+  checkUrl('WEB_APP_URL', e.WEB_APP_URL);
+  checkUrl('BETTER_AUTH_URL', e.BETTER_AUTH_URL);
+  if (e.CORS_ORIGINS.length === 0) problems.push({ path: 'CORS_ORIGINS', message: 'must list the web origin in production' });
+  for (const origin of e.CORS_ORIGINS) {
+    const url = checkUrl('CORS_ORIGINS', origin);
+    if (url && url.origin !== origin) {
+      problems.push({ path: 'CORS_ORIGINS', message: 'each entry must be an origin only: https://host, no path and no trailing slash' });
+    }
+  }
+  return problems;
+}
 
 /** Startup rules for payments (ADR 0004 §Payment mode). Messages only; never values. */
 function paymentsConfigProblems(e: {

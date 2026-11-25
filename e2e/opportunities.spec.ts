@@ -43,6 +43,8 @@ test('opportunity: organiser drafts and publishes, a member applies, the organis
   await sql(`UPDATE "user" SET "emailVerified" = true, "isOrganiser" = true WHERE username = $1`, [org.username]);
   await page.goto('/opportunities');
   await page.getByRole('link', { name: 'Post an opportunity' }).click();
+  // Wait for the editor: the listing page also has a "Type" filter group until the route changes.
+  await expect(page.getByRole('heading', { name: 'Post an opportunity', level: 1 })).toBeVisible();
   await page.getByLabel('Type').selectOption('GIG');
   await page.getByLabel('Title').fill(title);
   await page.getByLabel('Description').fill('Two-hour open-air set on Saturday evening; sound system provided.');

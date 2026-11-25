@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { fileURLToPath, URL } from 'node:url';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
@@ -42,6 +43,19 @@ function seoFiles(siteUrl: string | undefined): Plugin {
   };
 }
 
+/**
+ * The security headers Vercel sends for the web app (vercel.json, first route). `vite preview`
+ * sends the same ones, so the end-to-end tests run under the production Content-Security-Policy.
+ */
+function productionHeaders(): Record<string, string> {
+  const vercel = JSON.parse(readFileSync(new URL('../../vercel.json', import.meta.url), 'utf8')) as {
+    routes: { src?: string; headers?: Record<string, string> }[];
+  };
+  const route = vercel.routes.find((r) => r.headers?.['Content-Security-Policy']);
+  if (!route?.headers) throw new Error('vercel.json: no route with the security headers');
+  return route.headers;
+}
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_');
   return {
@@ -59,5 +73,6 @@ export default defineConfig(({ mode }) => {
         '/api': { target: process.env.API_PROXY_TARGET ?? 'http://localhost:4000', changeOrigin: false, ws: true },
       },
     },
+    preview: { headers: productionHeaders() },
   };
 });

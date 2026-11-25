@@ -29,7 +29,7 @@ There are two working options:
 | Client IPs | One proxy hop (Render): `trust proxy 1` and Better Auth's IP detection are correct | Two hops (Vercel → Render). `X-Forwarded-For` has two entries, so **Better Auth can't resolve an IP and puts every visitor in one shared bucket**: 5 sign-ups per minute and 10 sign-ins per minute for the whole site. Needs `advanced.ipAddress` configuration and verification on a preview deployment. Express `req.ip` becomes Vercel's edge IP |
 | Needs | A domain and DNS access | Code changes (realtime transport, Better Auth IP config), then verification |
 
-**Update 2026-11-25: no custom domain, so option B applies** (with its code changes). **Status: BLOCKER until those changes are made.** `docs/ARCHITECTURE.md` §7 recommended B, but this audit found
+**Update 2026-11-25: no custom domain, so option B applies.** **Status: implemented (§8).** Real-time uses long-polling through the rewrite, and both rate limiters read the visitor IP that Vercel provides, protected by a shared secret. `docs/ARCHITECTURE.md` §7 recommended B, but this audit found
 the two problems above. A avoids both and is the more robust choice. A domain is also needed for Resend (§5).
 
 ---
@@ -38,21 +38,21 @@ the two problems above. A avoids both and is the more robust choice. A domain is
 
 | # | Area | Finding | Class |
 |---|---|---|---|
-| 1 | Routing | **No SPA fallback.** There's no `vercel.json`, so deep links (`/communities`, `/u/…`, a reload on any app page) return Vercel's 404. Needs `rewrites: [{ "source": "/((?!api/).*)", "destination": "/index.html" }]` | **BLOCKER** |
-| 2 | Cookies / API URL | Cross-site cookie problem (§1). Choose A or B | **BLOCKER** |
+| 1 | Routing | ✅ **Fixed (§8)**: `vercel.json` has the SPA fallback. Was: **No SPA fallback.** There's no `vercel.json`, so deep links (`/communities`, `/u/…`, a reload on any app page) return Vercel's 404. Needs `rewrites: [{ "source": "/((?!api/).*)", "destination": "/index.html" }]` | **BLOCKER** |
+| 2 | Cookies / API URL | ✅ **Option B implemented (§8).** Cross-site cookie problem (§1) | **BLOCKER** |
 | 3 | Email | **Update 2026-11-25:** there's no custom domain, so no Resend sending domain. The API now supports **restricted-email mode** (`EMAIL_TRANSPORT=disabled` + `ALLOW_EMAIL_DISABLED_IN_PRODUCTION=true`, ARCHITECTURE §5d): it starts without Resend credentials, refuses password reset and verification resends with 503 `EMAIL_UNAVAILABLE`, and the web app says so. Consequences: no password recovery, no email confirmation, so **no organisers and no first administrator** through the normal flows (see the attestation note in IMPLEMENTATION_STATUS) | REQUIRED (choose restricted mode) |
 | 4 | Database | **12 migrations are pending on Supabase** (§3). The API's tables don't exist there yet | **BLOCKER** (awaiting your confirmation) |
 | 5 | Render build | `typescript`, `prisma` and `tsx` are **devDependencies**. If `NODE_ENV=production` is set (it must be), `npm ci` skips them and the build fails. Build command must use `npm ci --include=dev` | **BLOCKER** (configuration only, §6) |
 | 6 | Monorepo builds | `@muzikhub/shared` must be built before web and API (`dist/` is git-ignored). Both build commands must build it first (§6) | **BLOCKER** (configuration only) |
-| 7 | Environment defaults | `CORS_ORIGINS`, `WEB_APP_URL` default to `http://localhost:5173` and nothing refuses that in production. A missing variable gives a running API whose email links point to localhost and which rejects every browser write (`CROSS_ORIGIN_REJECTED`). Recommend a startup check for https, non-localhost values in production | **REQUIRED** |
-| 8 | Real-time | Works only with option A, or B plus a client change (§1) | **REQUIRED** (with B) |
-| 9 | Rate limits behind Vercel | Shared IP bucket with option B (§1) | **REQUIRED** (with B) |
-| 10 | Security headers (web) | The API sends Helmet headers. **The web app sends none** (no CSP, `X-Content-Type-Options`, `Referrer-Policy`, `frame-ancestors`). Add `headers` in `vercel.json`. A CSP must allow Cloudinary (`res.cloudinary.com`, `api.cloudinary.com` for uploads), the API origin and `wss:` for option A | **REQUIRED** |
+| 7 | Environment defaults | `CORS_ORIGINS`, `WEB_APP_URL` default to `http://localhost:5173` and nothing refuses that in production. A missing variable gives a running API whose email links point to localhost and which rejects every browser write (`CROSS_ORIGIN_REJECTED`). ✅ **Fixed (§8)**: production now refuses http:, localhost and non-origin entries | **REQUIRED** |
+| 8 | Real-time | ✅ **Fixed (§8)**: polling first, upgrade when possible | ✅ |
+| 9 | Rate limits behind Vercel | ✅ **Fixed (§8)**: visitor IP from Vercel's `X-Real-IP`, trusted only with the shared secret | ✅ |
+| 10 | Security headers (web) | ✅ **Fixed (§8)**: CSP and headers in `vercel.json`, also served by `vite preview` so e2e runs under them. Was: The API sends Helmet headers. **The web app sends none** (no CSP, `X-Content-Type-Options`, `Referrer-Policy`, `frame-ancestors`). Add `headers` in `vercel.json`. A CSP must allow Cloudinary (`res.cloudinary.com`, `api.cloudinary.com` for uploads), the API origin and `wss:` for option A | **REQUIRED** |
 | 11 | Media | Cloudinary is optional at startup; without credentials every upload returns 503 (an honest failure). For launch, set `CLOUDINARY_*`. Production assets go under `muzikhub/production/…`, separate from dev | **REQUIRED** for media; the app runs without it |
 | 12 | First admin | No admin exists in production. Run `admin:grant-initial` against Supabase once an account is registered (§6.5) | **REQUIRED** |
 | 13 | Render free plan | Sleeps after 15 min idle: about a 1-minute cold start, WebSockets drop, background jobs (outbox emails, suspension expiry, sweeps) pause while asleep. Fine for a demo; use a paid instance for launch | **REQUIRED** for launch / OK for demo |
 | 14 | In-memory state | Rate limits (app and Better Auth), Socket.IO rooms and the per-recipient email limit are per process: correct for **one** instance, reset on restart. Keep Render at 1 instance (no autoscaling) until a shared store exists | **REQUIRED**: keep 1 instance |
-| 15 | Graceful shutdown | `SIGTERM` handler calls `server.close()` but not `closeRealtime()`. Open WebSockets keep it pending, so every deploy ends with the 10 s forced `exit(1)`. Harmless (DB pool is dropped by exit) but noisy | OPTIONAL |
+| 15 | Graceful shutdown | `SIGTERM` handler calls `server.close()` but not `closeRealtime()`. Open WebSockets keep it pending, so every deploy ends with the 10 s forced `exit(1)`. Harmless (DB pool is dropped by exit) but noisy. ✅ **Fixed (§8)** | OPTIONAL |
 | 16 | Dependencies | `npm audit --omit=dev`: **no critical**. 3 high findings, all `effect` (ReDoS) through the Prisma CLI's config loader. It runs only on our own trusted config, not on requests. The fix needs a Prisma downgrade, so leave it as is and watch for a Prisma patch | OPTIONAL (documented) |
 | 17 | Payments | Safe as-is. Production defaults to `PAYMENTS_MODE=off` and `PAYMENTS_PROVIDER=notchpay`; live is refused in code (`LIVE_PAYMENTS_APPROVED=false`); sandbox in production is refused unless explicitly allowed; the TEST PROVIDER is refused in production; the webhook route returns 404 when payments are off. Leave all `NOTCHPAY_*` unset | ✅ nothing to do |
 | 18 | Catalogue | `/pricing` reads the service catalogue. Supabase is empty, so plans show as unavailable. `catalogue:seed` would insert inactive rows, which is seeding production data. Your decision; not needed for launch | OPTIONAL (owner) |
@@ -149,6 +149,7 @@ connection but doesn't verify the certificate (documented limitation). Step 1 pr
 | `ALLOW_EMAIL_DISABLED_IN_PRODUCTION` | `true` (restricted mode only; remove when switching to Resend) |
 | `RESEND_API_KEY`, `EMAIL_FROM` | Only with `EMAIL_TRANSPORT=resend`: the key from Resend and `MuzikHub <no-reply@mail.<verified-domain>>`. No value is invented here |
 | `PAYMENTS_MODE` | `off` |
+| `PROXY_SHARED_SECRET` | Setup B: `openssl rand -hex 32`. **The same value in Vercel.** Without it any client can call Render directly with a forged IP |
 
 Optional on Render: `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`
 (needed for uploads), `CLOUDINARY_FOLDER=muzikhub`, `REQUIRE_EMAIL_VERIFICATION=false` (keep it false
@@ -158,10 +159,11 @@ until the domain is verified). **Leave unset:** `NOTCHPAY_*`, `PAYMENTS_PROVIDER
 
 | Variable | Value |
 |---|---|
-| `VITE_API_URL` | A: `https://api.<domain>` · B: **unset** |
+| `VITE_API_URL` | A: `https://api.<domain>` · B: **unset** (the build refuses it) |
+| `PROXY_SHARED_SECRET` | Setup B: the same value as on Render. Not a `VITE_` variable, so it never reaches the browser; Vercel adds it to forwarded `/api` requests |
 | `VITE_SITE_URL` | Optional: the production origin (enables canonical URL + `sitemap.xml`) |
 
-No secrets go in Vercel; `VITE_*` values are public by design.
+Only `PROXY_SHARED_SECRET` is secret, and it's used by Vercel's router, not the build output. `VITE_*` values are public by design.
 
 ---
 
@@ -238,10 +240,56 @@ No secrets go in Vercel; `VITE_*` values are public by design.
 
 ---
 
-## 7. Code and config changes this audit recommends (not made yet)
+## 7. Code and config changes this audit recommended (all made on 2026-11-25; see §8)
 
 1. `vercel.json` with the SPA fallback and security headers (plus the rewrite for option B).
 2. Production startup guards: refuse `localhost`/`http:` in `CORS_ORIGINS`, `WEB_APP_URL` and `BETTER_AUTH_URL` when `NODE_ENV=production`.
 3. Option B only: Socket.IO `transports: ['polling', 'websocket']` (or `tryAllTransports: true`), and Better Auth `advanced.ipAddress` for the two-hop chain, verified on a preview deployment.
 4. Call `closeRealtime()` in the shutdown handler.
 5. Optional: `.node-version` file (`24`) so Vercel and Render agree with CI.
+
+---
+
+## 8. Setup B implementation (2026-11-25)
+
+| Piece | Where | What it does |
+|---|---|---|
+| Build settings | `vercel.json` (`installCommand`, `buildCommand`, `outputDirectory`) | Vercel reads them from the file; nothing to type in the dashboard. The build runs `scripts/check-vercel-config.mjs` first |
+| API forwarding | `vercel.json` route `/api/(.*)` → `https://<render>.onrender.com/api/$1` | A `request.headers` transform **sets** `x-muzikhub-proxy-secret` from Vercel's `PROXY_SHARED_SECRET` (set replaces any visitor-supplied value) |
+| SPA fallback | `{ "handle": "filesystem" }` then `/(.*)` → `/index.html` | Real files (assets, robots.txt) first; every other path loads the app |
+| Security headers | first route in `vercel.json` (not on `/api`, which has Helmet's) | CSP: `'self'` plus Cloudinary (`res.cloudinary.com` media, `api.cloudinary.com` uploads); `frame-ancestors 'none'`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`, COOP. Hashed `/assets/*` cached for a year (immutable) |
+| Build guard | `scripts/check-vercel-config.mjs` | Fails the Vercel build if the Render URL is still the placeholder, `PROXY_SHARED_SECRET` is missing or short, `VITE_API_URL` is set, or a `VITE_` variable looks like a secret. Prints names, never values |
+| Proxy gate | `apps/api/src/lib/proxy-gate.ts` | With `PROXY_SHARED_SECRET` set, requests without the secret get 403 `DIRECT_ACCESS_FORBIDDEN` (health check excepted). Forwarded requests use Vercel's `X-Real-IP` as `req.ip`. Vercel overwrites client-supplied forwarding headers, per its docs |
+| Better Auth IP | `advanced.ipAddress.ipAddressHeaders: ['x-muzikhub-client-ip']` | A single address set by the gate (incoming copies discarded), so sign-in and sign-up limits are per visitor, not one shared bucket |
+| No caching of API responses | `Cache-Control: no-store` on every `/api` response by default (and on Socket.IO polling) | Vercel honours origin cache headers on rewrites; per-user JSON must never be cached |
+| Real-time | web `transports: ['polling', 'websocket']`; Socket.IO `allowRequest` checks the secret | Vercel's rewrite carries HTTP long-polling. The WebSocket upgrade fails quietly there and the connection stays on polling. One Render instance, so no sticky sessions are needed |
+| Production URL guards | `productionUrlProblems` in `config/env.ts` | Refuses `http:`, localhost and non-origin `CORS_ORIGINS` entries in production |
+| Shutdown | `server.ts` calls `closeRealtime()` | No more forced exit after 10 s on every deploy |
+| Node version | `.node-version` = 24 | Same as CI |
+
+**Verified locally:** API tests (gate, IP resolution through Better Auth's session record, spoofed headers
+discarded, polling with and without the secret, `no-store`), the env rules, all 17 migrations on
+PostgreSQL 17.12, both builds from a clean clone with the Render commands, and the full Playwright
+suite under the production CSP (`vite preview` sends the `vercel.json` headers).
+
+**Not verifiable before deployment:** Vercel's handling of long-polling and `X-Real-IP` on a real
+deployment. The final checks after deployment cover both: two-browser messaging, and the audit log
+recording your real IP.
+
+### 8.1 Supabase migration procedure (owner runs it; never automated)
+
+From the repo root, on your own machine, with `apps/api/.env.supabase` holding the session-pooler URL:
+
+```bash
+npm ci && npm run build -w @muzikhub/shared
+npm run db:check -w @muzikhub/api          # read-only: certificate verified, lists applied/pending
+cd apps/api
+set -a; . ./.env.supabase; set +a           # this shell only
+npx prisma migrate status                    # must show the *.pooler.supabase.com host and 12 pending
+npx prisma migrate deploy                    # applies the 12, in order, each in a transaction
+npx prisma migrate status                    # expect: Database schema is up to date!
+```
+
+Rehearsed on 2026-11-25 on a throwaway PostgreSQL 17.12 container: all 17 applied, "up to date".
+Never use `db push`, `migrate dev` or `migrate reset` against Supabase. Don't paste migration SQL into
+the Supabase SQL editor: Prisma's `_prisma_migrations` table would not record it.

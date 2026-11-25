@@ -7,6 +7,7 @@ import { env } from './config/env.js';
 import { auth } from './lib/auth.js';
 import { prisma } from './lib/prisma.js';
 import { errorHandler, notFound } from './middleware/error-handler.js';
+import { proxyGate } from './lib/proxy-gate.js';
 import type { DatabaseCheck } from './modules/health/health.service.js';
 import { capabilitiesRouter } from './modules/capabilities/capabilities.routes.js';
 import { healthRouter } from './modules/health/health.routes.js';
@@ -49,6 +50,8 @@ export interface AppDependencies {
   checkDatabase: DatabaseCheck;
   /** Media provider. Defaults to Cloudinary; tests pass an in-memory fake. */
   media?: MediaStorage;
+  /** Setup B shared secret (see lib/proxy-gate.ts). Defaults to PROXY_SHARED_SECRET. */
+  proxySecret?: string;
 }
 
 const defaultDependencies: AppDependencies = {
@@ -67,6 +70,14 @@ export function createApp(overrides: Partial<AppDependencies> = {}): Express {
   app.set('trust proxy', 1); // correct client IPs/secure cookies behind one reverse proxy
   app.use(helmet());
   app.use(cors({ origin: env.CORS_ORIGINS, credentials: true }));
+  // API responses are per-user: no browser, CDN or proxy (Vercel in setup B) may store them.
+  // Routes with public, cacheable data set their own Cache-Control.
+  app.use('/api', (_req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store');
+    next();
+  });
+  // Setup B: refuse requests that bypass Vercel, and resolve the visitor IP for both rate limiters.
+  app.use(proxyGate('proxySecret' in overrides ? overrides.proxySecret : env.PROXY_SHARED_SECRET));
 
   // Better Auth must be mounted BEFORE express.json(): it parses its own bodies.
   app.all('/api/auth/{*any}', toNodeHandler(auth));

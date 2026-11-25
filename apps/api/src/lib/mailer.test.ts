@@ -138,6 +138,9 @@ describe('email configuration rules', () => {
     DATABASE_URL: 'postgresql://u:p@localhost:5432/db',
     BETTER_AUTH_SECRET: 'x'.repeat(40),
     BETTER_AUTH_URL: 'https://api.muzikhub.test',
+    // Production also requires public https URLs (config/deploy-env.test.ts).
+    CORS_ORIGINS: 'https://muzikhub.test',
+    WEB_APP_URL: 'https://muzikhub.test',
   };
   const problems = (source: Record<string, string>) => {
     const r = parseEnvironment(source);

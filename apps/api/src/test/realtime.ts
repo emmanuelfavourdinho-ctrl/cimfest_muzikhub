@@ -7,9 +7,12 @@ import { attachRealtime, closeRealtime } from '../lib/realtime.js';
 import { newUserInput, ORIGIN } from './helpers.js';
 
 /** A real HTTP server with Socket.IO attached, for realtime integration tests. */
-export async function startRealtimeServer(app: Express): Promise<{ server: Server; url: string; close: () => Promise<void> }> {
+export async function startRealtimeServer(
+  app: Express,
+  { proxySecret }: { proxySecret?: string } = {},
+): Promise<{ server: Server; url: string; close: () => Promise<void> }> {
   const server = createServer(app);
-  attachRealtime(server, [ORIGIN]);
+  attachRealtime(server, [ORIGIN], proxySecret);
   await new Promise<void>((resolve) => server.listen(0, resolve));
   const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   return {
@@ -32,12 +35,16 @@ export async function signUpWithCookie(app: Express) {
   return { agent, cookie, input, userId: res.body.user.id as string };
 }
 
-export function connect(url: string, cookie?: string): Promise<Socket> {
+export function connect(
+  url: string,
+  cookie?: string,
+  { headers = {}, transports = ['websocket'] }: { headers?: Record<string, string>; transports?: ('websocket' | 'polling')[] } = {},
+): Promise<Socket> {
   return new Promise((resolve, reject) => {
     const socket = ioClient(url, {
       path: '/api/realtime',
-      transports: ['websocket'],
-      extraHeaders: { ...(cookie && { Cookie: cookie }), Origin: ORIGIN },
+      transports,
+      extraHeaders: { ...(cookie && { Cookie: cookie }), Origin: ORIGIN, ...headers },
       reconnection: false,
     });
     socket.on('connect', () => resolve(socket));

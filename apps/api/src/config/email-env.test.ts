@@ -6,7 +6,13 @@ const base = {
   BETTER_AUTH_SECRET: 'x'.repeat(40),
   BETTER_AUTH_URL: 'https://api.muzikhub.test',
 };
-const prod = { ...base, NODE_ENV: 'production' };
+// Production also requires public https URLs (productionUrlProblems, tested in deploy-env.test.ts).
+const prod = {
+  ...base,
+  NODE_ENV: 'production',
+  CORS_ORIGINS: 'https://muzikhub.test',
+  WEB_APP_URL: 'https://muzikhub.test',
+};
 const problems = (source: Record<string, string>) => {
   const r = parseEnvironment(source);
   return r.success ? [] : r.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`);
