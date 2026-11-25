@@ -62,3 +62,6 @@ brand-originals/
 
 # Lighthouse CI reports
 .lighthouseci/
+
+# Presentation demo credentials written by demo:seed (local only)
+demo-credentials.local.md

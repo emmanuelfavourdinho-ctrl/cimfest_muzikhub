@@ -40,7 +40,33 @@ The server reads them; nothing in the browser ever does. **Nothing uses them yet
 
 **Pricing catalogue:** `npm run catalogue:seed -w @muzikhub/api` adds the owner-confirmed catalogue rows (all off sale). It's idempotent and never changes an existing price; edit prices in the Admin Console → Pricing.
 
-**Demo data (local only):** `npm run demo:seed -w @muzikhub/api` creates five labelled demo accounts (`amara.demo`, `kofi.demo`, `lena.demo`, `joel.demo` (an approved organiser) and `nadia.demo`, all `@demo.muzikhub.test`, password `muzikhub-demo-2026`). It also creates follows, posts, a community with discussions, a conversation, collaboration requests, an opportunity, an open competition and one with published results. Everything is created through the real API. It refuses to run unless `NODE_ENV=development` and the database is local, and it does nothing if demo accounts already exist. Never run it against production.
+**Presentation demo data (local only):**
+
+```bash
+DEMO_SEED_PASSWORD='<choose 12+ characters>' npm run demo:seed -w @muzikhub/api
+```
+
+This creates eight fictional accounts on the reserved `@demo.muzikhub.test` domain, each named "… (demo)":
+an administrator, an artist, a producer, an organiser, an ordinary user, and three supporting accounts.
+They come with releases (generated artwork and playable synthesized loops uploaded to the development
+Cloudinary folder), follows, connections, posts, likes, comments, two communities with discussions,
+messages, collaboration requests, opportunities with an application, an open competition, a judged
+competition with results, and a reported spam post for the moderation demo. Notifications come from
+these real actions.
+
+- **Safety:** it refuses unless `NODE_ENV=development`, the database is local and Cloudinary is
+  configured. It only touches demo-domain accounts and creates no payments, subscriptions or promotions.
+  Everything except three operator steps goes through the real API. Those steps are: marking demo
+  addresses confirmed, granting the demo ADMIN role and organiser access (both audited as
+  `cli:demo:seed`), and backdating the finished competition.
+- **Idempotent:** a re-run creates nothing. A different password only updates the demo accounts'
+  password hashes.
+- **Credential sheet:** written to `demo-credentials.local.md` at the repo root (git-ignored), with the
+  accounts, the password and what to show with each.
+- **Administrator:** staff need two-factor authentication. Sign in once before the presentation and set
+  it up from `/admin` with the presenter's phone.
+
+Never run it against production.
 
 **Calls** are not built: they need a TURN provider (decision D4). See [docs/calling-assessment.md](docs/calling-assessment.md).
 

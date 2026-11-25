@@ -88,6 +88,7 @@ Monorepo, Postgres + Prisma migrations, API conventions, prototype design system
 | Live send through Resend | ✅ | Opt-in test: Resend accepted it and reported **delivered to the `delivered@resend.dev` test sink**. No real person was emailed |
 | Restricted-email mode (`EMAIL_TRANSPORT=disabled`): startup rules, 503 `EMAIL_UNAVAILABLE` before account lookup, silent-free sign-up, `GET /api/v1/capabilities`, honest web screens | ✅ 2026-11-25 | `email-env.test.ts`, `restricted-email.test.ts`, e2e `restricted-email.spec.ts`. ARCHITECTURE §5d |
 | Operator email attestation (`admin:attest-email`) | ⛔ not built | Stopped: the audit log can't record an authenticated operator for a CLI action. Options are in the 2026-11-25 report; needs your decision |
+| Presentation demo seed (`demo:seed`) | ✅ local only | 8 demo-domain accounts (admin, artist, producer, organiser, ordinary user + 3 supporting) with real uploads and connected content; idempotent; refuses non-local databases. It marks only `@demo.muzikhub.test` addresses as confirmed: that is not the attestation feature above |
 | Production sending domain, DNS verification, production `EMAIL_FROM` | ⏳ pending | The Resend account has 0 domains (checked 2026-11-24). Steps in ARCHITECTURE §5d |
 
 ### Database — Supabase PostgreSQL
