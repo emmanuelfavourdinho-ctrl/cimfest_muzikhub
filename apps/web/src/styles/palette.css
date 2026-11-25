@@ -1,0 +1,52 @@
+/*
+ * MuzikHub colour palette — the ONLY file with colour values.
+ * To change the palette, change this file; every component reads these through
+ * the semantic tokens in index.css. (CLAUDE.md §20, approved 2026-11-24.)
+ *
+ * "Studio at night": olive-black surfaces, lime as the signal.
+ * Sampled from the approved reference (median of flat UI patches):
+ *   lime fills #CDF133 / #CAEE34 / #C8EA48 → accent #CBEF34
+ *   screen #1B2201…#16180B → base #141905 (slightly deeper for long reading)
+ *   chip #32361D → chip #32381B · glossy control #454A2D → control #454B2C
+ *   headline #FFFFFA → text #F5F7EB (warmed)
+ * Inferred (not measurable in the reference): secondary/tertiary text, paper,
+ * status colours, footer. Contrast is checked in docs/ARCHITECTURE.md §7c.
+ */
+:root {
+  --p-footer: #0b0e04; /* darkest: footer */
+  --p-base: #141905; /* page background */
+  --p-raised: #1c2309; /* sections, cards */
+  --p-overlay: #262e0f; /* panels, menus, player */
+  --p-chip: #32381b; /* inactive chips, hover — never put text-tertiary on it */
+  --p-control: #454b2c; /* glossy circular controls */
+
+  --p-accent: #cbef34; /* lime: primary actions, active, play, progress */
+  --p-accent-hover: #d7f65c;
+  --p-accent-press: #b4d61e;
+  --p-on-accent: #141905; /* text/icons on lime (13.6:1) */
+
+  --p-text: #f5f7eb; /* 16.6:1 on base */
+  --p-text-2: #bfc6a8; /* 10.1:1 on base */
+  --p-text-3: #979f80; /* 6.5:1 on base, 5.1:1 on overlay; NOT on chip (4.4:1) */
+
+  --p-paper: #f2f1e6; /* the one light editorial surface */
+  --p-paper-raised: #e7e6d8;
+  --p-on-paper: #141905; /* 15.8:1 */
+  --p-on-paper-2: #4c5236; /* 7.2:1 */
+
+  --p-danger: #ff8c7a;
+  --p-warning: #f2c86a;
+  --p-success: #8bd99a;
+  --p-violet: #c090fa;
+  --p-info: #9cc8f5; /* 9.9:1 on base */
+
+  /* Hairlines: lime at low opacity (decorative). Control borders need ≥3:1 → 40%. */
+  --p-line: rgb(203 239 52 / 0.12);
+  --p-line-strong: rgb(203 239 52 / 0.22);
+  --p-control-border: rgb(203 239 52 / 0.4);
+  --p-paper-line: rgb(20 25 5 / 0.14);
+
+  /* Atmosphere: the hero glow and the header surface. */
+  --p-glow: rgb(203 239 52 / 0.16);
+  --p-header: rgb(20 25 5 / 0.82);
+}

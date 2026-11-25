@@ -18,8 +18,7 @@ const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
 const WEAKENING_PARAMS = ['ssl', 'uselibpqcompat', 'sslaccept', 'sslnegotiation'];
 
 export type DatabaseUrlResult =
-  | { ok: true; url: string; local: boolean; caPath: string | null; host: string }
-  | { ok: false; problems: string[] };
+  { ok: true; url: string; local: boolean; caPath: string | null; host: string } | { ok: false; problems: string[] };
 
 /**
  * Checks a PostgreSQL URL and returns the URL the app should actually use.
@@ -33,10 +32,7 @@ export type DatabaseUrlResult =
  *
  * Problems never include the URL, user name or password.
  */
-export function resolveDatabaseUrl(
-  raw: string,
-  options: { requireVerifiedTls?: boolean; root?: string } = {},
-): DatabaseUrlResult {
+export function resolveDatabaseUrl(raw: string, options: { requireVerifiedTls?: boolean; root?: string } = {}): DatabaseUrlResult {
   let url: URL;
   try {
     url = new URL(raw);
@@ -54,7 +50,9 @@ export function resolveDatabaseUrl(
   const problems: string[] = [];
   const mode = url.searchParams.get('sslmode');
   if (mode !== 'verify-full') {
-    problems.push(`must use sslmode=verify-full for a ${local ? 'verified' : 'non-local'} connection (found ${mode ? `sslmode=${mode}` : 'no sslmode'})`);
+    problems.push(
+      `must use sslmode=verify-full for a ${local ? 'verified' : 'non-local'} connection (found ${mode ? `sslmode=${mode}` : 'no sslmode'})`,
+    );
   }
   for (const param of WEAKENING_PARAMS) {
     if (url.searchParams.has(param)) problems.push(`must not set "${param}" (it can weaken certificate verification)`);

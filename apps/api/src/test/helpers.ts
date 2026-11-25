@@ -4,7 +4,8 @@ import { createApp } from '../app.js';
 import { resetRecipientLimits, setEmailTransport, testOutbox } from '../lib/mailer.js';
 import { prisma } from '../lib/prisma.js';
 import { FakeMediaStorage } from './fake-media-storage.js';
-import { adminReadLimit, adminWriteLimit } from '../modules/admin/admin.routes.js';
+import { allRateLimiters } from '../lib/rate-limit.js';
+import '../modules/admin/admin.routes.js';
 import { secretFromUri, totp } from './totp.js';
 
 export const ORIGIN = 'http://localhost:5173';
@@ -40,14 +41,15 @@ export async function resetDatabase() {
   if (!process.env.DATABASE_URL?.includes('muzikhub_test')) {
     throw new Error('resetDatabase called outside the test database');
   }
-  await prisma.$executeRawUnsafe('TRUNCATE TABLE "user", "verification" CASCADE');
+  await prisma.$executeRawUnsafe(
+    'TRUNCATE TABLE "user", "verification", "idempotency_key", "outbox_event", "service_catalogue", "payment_webhook_event", "analytics_seen", "community", "conversation", "competition" CASCADE',
+  );
   // audit_log is append-only; TRUNCATE is permitted only inside a transaction that opts in.
   await prisma.$transaction([
     prisma.$executeRawUnsafe(`SELECT set_config('muzikhub.allow_audit_truncate', 'on', true)`),
     prisma.$executeRawUnsafe('TRUNCATE TABLE "audit_log"'),
   ]);
-  adminReadLimit.reset();
-  adminWriteLimit.reset();
+  for (const limiter of allRateLimiters()) limiter.reset();
   testOutbox.length = 0;
   resetRecipientLimits();
   setEmailTransport(null); // back to the capture transport
@@ -91,7 +93,10 @@ export async function makeStaff(app: Express, role: 'MODERATOR' | 'ADMIN', { two
     const enabled = await user.agent.post('/api/auth/two-factor/enable').set('Origin', ORIGIN).send({ password: user.input.password });
     if (enabled.status !== 200) throw new Error(`2FA enable failed: ${JSON.stringify(enabled.body)}`);
     secret = secretFromUri(enabled.body.totpURI);
-    const verified = await user.agent.post('/api/auth/two-factor/verify-totp').set('Origin', ORIGIN).send({ code: totp(secret) });
+    const verified = await user.agent
+      .post('/api/auth/two-factor/verify-totp')
+      .set('Origin', ORIGIN)
+      .send({ code: totp(secret) });
     if (verified.status !== 200) throw new Error(`2FA verify failed: ${JSON.stringify(verified.body)}`);
   }
   return { ...user, secret };

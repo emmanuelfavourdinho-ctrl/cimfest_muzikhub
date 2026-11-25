@@ -2,11 +2,38 @@
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#061612" />
-    <!-- Landing hero and user media are served from Cloudinary: open the connection early. -->
-    <link rel="preconnect" href="https://res.cloudinary.com" />
-    <title>MuzikHub</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- --p-base in src/styles/palette.css -->
+    <meta name="theme-color" content="#141905" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>MuzikHub — Discover talent. Create together. Grow together.</title>
+    <meta
+      name="description"
+      content="MuzikHub is the music-industry ecosystem for artists, producers, DJs, engineers, fans and industry professionals: one profile for every role, a playable portfolio, discovery and a network built around craft."
+    />
+    <!-- Social previews are read without JavaScript, so they live here. og:url / canonical are
+         added per page once the production domain (VITE_SITE_URL) is known. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="MuzikHub" />
+    <meta property="og:title" content="MuzikHub — Discover talent. Create together. Grow together." />
+    <meta
+      property="og:description"
+      content="One profile for every role you play. Share your music, get found, and build your network in one place."
+    />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="MuzikHub — Discover talent. Create together. Grow together." />
+    <meta
+      name="twitter:description"
+      content="One profile for every role you play. Share your music, get found, and build your network in one place."
+    />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "MuzikHub",
+        "description": "A music-industry ecosystem connecting artists, producers, DJs, engineers, fans and industry professionals."
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

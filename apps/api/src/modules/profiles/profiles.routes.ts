@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { replaceLinksSchema, setProfileImageSchema, updateProfileSchema } from '@muzikhub/shared';
-import { currentUserId, requireAuth, requireFullAccess } from '../../middleware/require-auth.js';
+import { currentUserId, optionalAuth, requireAuth, requireFullAccess, viewerId } from '../../middleware/require-auth.js';
+import { recordProfileView } from '../analytics/analytics.service.js';
 import { validateBody } from '../../middleware/validate.js';
 import * as profiles from './profiles.service.js';
 
@@ -40,8 +41,15 @@ export function meRouter(): Router {
 export function profilesRouter(): Router {
   const router = Router();
 
-  router.get('/:username', async (req, res) => {
-    res.json(await profiles.getPublicProfile(req.params.username));
+  router.get('/:username', optionalAuth, async (req, res) => {
+    const profile = await profiles.getPublicProfile(String(req.params.username));
+    // Analytics: a profile view, counted server-side (owner, bots and repeat views excluded).
+    await recordProfileView(profile.username, {
+      userId: viewerId(res.locals),
+      ip: req.ip ?? null,
+      userAgent: req.get('user-agent') ?? null,
+    }).catch((e: Error) => console.warn('[analytics] profile view not recorded:', e.message));
+    res.json(profile);
   });
 
   return router;

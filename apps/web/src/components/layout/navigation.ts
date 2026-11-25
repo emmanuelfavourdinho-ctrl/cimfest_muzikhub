@@ -1,6 +1,7 @@
 import {
   Briefcase,
   Contact,
+  Gem,
   Home,
   MessageCircle,
   Mic,
@@ -30,11 +31,12 @@ export const primaryNav: NavItem[] = [
   { label: 'Discover', icon: Search, to: '/discover' },
   { label: 'Network', icon: Contact, to: '/network' },
   { label: 'Creator studio', icon: Mic, to: '/studio' },
-  { label: 'Communities', icon: UsersRound },
-  { label: 'Collaborate', icon: Users },
-  { label: 'Opportunities', icon: Briefcase },
-  { label: 'Competitions', icon: Trophy },
-  { label: 'Messages', icon: MessageCircle },
+  { label: 'Communities', icon: UsersRound, to: '/communities' },
+  { label: 'Collaborate', icon: Users, to: '/collaborate' },
+  { label: 'Opportunities', icon: Briefcase, to: '/opportunities' },
+  { label: 'Plans', icon: Gem, to: '/pricing' },
+  { label: 'Competitions', icon: Trophy, to: '/competitions' },
+  { label: 'Messages', icon: MessageCircle, to: '/messages' },
 ];
 
 /** Mobile bottom bar (prototype: Home, Discover, Create, Activity, Profile). */

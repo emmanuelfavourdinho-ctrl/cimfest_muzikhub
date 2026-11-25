@@ -30,32 +30,36 @@ describe.skipIf(!live)('Cloudinary (live)', () => {
     ['IMAGE', 'cover.png', 'image/png', 'medium'],
     ['AUDIO', 'beat.wav', 'audio/wav', 'src'],
     ['VIDEO', 'clip.webm', 'video/webm', 'poster'],
-  ] as const)('%s: sign → direct upload → verify → deliver', async (kind, file, mime, urlKey) => {
-    expect(storage.configured).toBe(true);
-    const { agent } = await signUp(app);
-    const bytes = readFileSync(join(dir, file));
+  ] as const)(
+    '%s: sign → direct upload → verify → deliver',
+    async (kind, file, mime, urlKey) => {
+      expect(storage.configured).toBe(true);
+      const { agent } = await signUp(app);
+      const bytes = readFileSync(join(dir, file));
 
-    const signed = await agent.post('/api/v1/media/uploads').send({ kind, purpose: 'POST', bytes: bytes.length, filename: file });
-    expect(signed.status).toBe(201);
-    created.push(signed.body.assetId);
+      const signed = await agent.post('/api/v1/media/uploads').send({ kind, purpose: 'POST', bytes: bytes.length, filename: file });
+      expect(signed.status).toBe(201);
+      created.push(signed.body.assetId);
 
-    // Exactly what the browser does: multipart POST of the file + signed fields to Cloudinary.
-    const form = new FormData();
-    for (const [k, v] of Object.entries(signed.body.fields as Record<string, string>)) form.append(k, v);
-    form.append('file', new Blob([bytes], { type: mime }), file);
-    const upload = await fetch(signed.body.uploadUrl, { method: 'POST', body: form });
-    expect(upload.status, await upload.clone().text()).toBe(200);
+      // Exactly what the browser does: multipart POST of the file + signed fields to Cloudinary.
+      const form = new FormData();
+      for (const [k, v] of Object.entries(signed.body.fields as Record<string, string>)) form.append(k, v);
+      form.append('file', new Blob([bytes], { type: mime }), file);
+      const upload = await fetch(signed.body.uploadUrl, { method: 'POST', body: form });
+      expect(upload.status, await upload.clone().text()).toBe(200);
 
-    const confirmed = await agent.post(`/api/v1/media/${signed.body.assetId}/confirm`);
-    expect(confirmed.status, JSON.stringify(confirmed.body)).toBe(200);
-    const asset = await prisma.mediaAsset.findUniqueOrThrow({ where: { id: signed.body.assetId } });
-    expect(asset.status).toBe('READY');
+      const confirmed = await agent.post(`/api/v1/media/${signed.body.assetId}/confirm`);
+      expect(confirmed.status, JSON.stringify(confirmed.body)).toBe(200);
+      const asset = await prisma.mediaAsset.findUniqueOrThrow({ where: { id: signed.body.assetId } });
+      expect(asset.status).toBe('READY');
 
-    // The CDN URL really serves (this also proves the transformation syntax is valid).
-    const url = confirmed.body.urls[urlKey] as string;
-    const delivered = await fetch(url);
-    expect(delivered.status, url).toBe(200);
-  }, 60_000);
+      // The CDN URL really serves (this also proves the transformation syntax is valid).
+      const url = confirmed.body.urls[urlKey] as string;
+      const delivered = await fetch(url);
+      expect(delivered.status, url).toBe(200);
+    },
+    60_000,
+  );
 
   it('rejects a replayed signature trying to overwrite a verified file', async () => {
     const { agent } = await signUp(app);
@@ -66,7 +70,9 @@ describe.skipIf(!live)('Cloudinary (live)', () => {
       const form = new FormData();
       for (const [k, v] of Object.entries(signed.body.fields as Record<string, string>)) form.append(k, v);
       form.append('file', new Blob([png], { type: 'image/png' }), 'cover.png');
-      return fetch(signed.body.uploadUrl, { method: 'POST', body: form }).then((r) => r.json() as Promise<{ existing?: boolean; version?: number }>);
+      return fetch(signed.body.uploadUrl, { method: 'POST', body: form }).then(
+        (r) => r.json() as Promise<{ existing?: boolean; version?: number }>,
+      );
     };
     const first = await send();
     await agent.post(`/api/v1/media/${signed.body.assetId}/confirm`);

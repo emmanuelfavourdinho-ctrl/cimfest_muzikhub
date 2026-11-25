@@ -27,10 +27,11 @@ export function EmailVerifiedPage() {
       <Panel className="p-6 text-center sm:p-8">
         {error ? (
           <>
-            <CircleAlert className="mx-auto mb-3 size-10 text-gold" aria-hidden />
+            <CircleAlert className="mx-auto mb-3 size-10 text-warning" aria-hidden />
             <h1 className="text-2xl font-bold">This link didn't work</h1>
-            <p className="mt-2 mb-6 text-sm text-sage">
-              It may have expired (links last 1 hour) or already been used. {me ? 'You can request a new one from the banner on your home page.' : 'Sign in to request a new one.'}
+            <p className="mt-2 mb-6 text-sm text-text-2">
+              It may have expired (links last 1 hour) or already been used.{' '}
+              {me ? 'You can request a new one from the banner on your home page.' : 'Sign in to request a new one.'}
             </p>
             <Button asChild>
               <Link to={me ? '/home' : '/login'}>{me ? 'Go to MuzikHub' : 'Sign in'}</Link>
@@ -38,9 +39,9 @@ export function EmailVerifiedPage() {
           </>
         ) : (
           <>
-            <CircleCheck className="mx-auto mb-3 size-10 text-emerald" aria-hidden />
+            <CircleCheck className="mx-auto mb-3 size-10 text-signal" aria-hidden />
             <h1 className="text-2xl font-bold">Email confirmed</h1>
-            <p className="mt-2 mb-6 text-sm text-sage">Thanks — your email address is verified.</p>
+            <p className="mt-2 mb-6 text-sm text-text-2">Thanks — your email address is verified.</p>
             <Button asChild>
               <Link to={me ? '/home' : '/login'}>{me ? 'Continue to MuzikHub' : 'Sign in'}</Link>
             </Button>

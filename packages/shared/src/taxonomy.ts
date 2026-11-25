@@ -49,7 +49,17 @@ export const CREATIVE_ROLE_KEYS = Object.keys(CREATIVE_ROLES) as [CreativeRole, 
 /** Roles offered first in onboarding, by primary use. Every role stays selectable. */
 export const SUGGESTED_ROLES: Record<PrimaryUse, CreativeRole[]> = {
   CREATOR: ['ARTIST', 'SINGER', 'RAPPER', 'SONGWRITER', 'PRODUCER', 'BEATMAKER', 'DJ', 'INSTRUMENTALIST', 'DANCER', 'COMPOSER'],
-  PROFESSIONAL: ['MANAGER', 'RECORD_LABEL', 'PROMOTER', 'EVENT_ORGANIZER', 'MARKETER', 'TALENT_SCOUT', 'AUDIO_ENGINEER', 'RECORDING_ENGINEER', 'MIXING_MASTERING_ENGINEER'],
+  PROFESSIONAL: [
+    'MANAGER',
+    'RECORD_LABEL',
+    'PROMOTER',
+    'EVENT_ORGANIZER',
+    'MARKETER',
+    'TALENT_SCOUT',
+    'AUDIO_ENGINEER',
+    'RECORDING_ENGINEER',
+    'MIXING_MASTERING_ENGINEER',
+  ],
   FAN: [],
 };
 

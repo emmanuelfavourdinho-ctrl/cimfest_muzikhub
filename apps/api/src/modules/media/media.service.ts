@@ -7,6 +7,7 @@ import {
   UPLOAD_CHUNK_BYTES,
   type CreateUploadInput,
   type MediaKind,
+  type PlanLimits,
   type MediaPurpose,
   type MediaView,
   type SignedUpload,
@@ -17,6 +18,7 @@ import { HttpError } from '../../lib/http-error.js';
 import { mediaStorage } from '../../lib/media.js';
 import { resourceTypeFor, type RemoteResource } from '../../lib/media-storage.js';
 import { prisma } from '../../lib/prisma.js';
+import { limitsFor } from '../billing/entitlements.js';
 
 /** Unfinished uploads a user may have at once — stops signature farming. */
 const MAX_PENDING_PER_USER = 20;
@@ -27,14 +29,19 @@ function requireConfigured() {
   }
 }
 
-export function toMediaView(asset: Pick<MediaAsset, 'id' | 'kind' | 'publicId' | 'version' | 'width' | 'height' | 'durationSec'>): MediaView {
+export function toMediaView(
+  asset: Pick<MediaAsset, 'id' | 'kind' | 'publicId' | 'version' | 'width' | 'height' | 'durationSec'>,
+): MediaView {
   return mediaStorage().view(asset);
 }
+
+const maxBytesFor = (l: PlanLimits, kind: MediaKind) => (kind === 'IMAGE' ? l.imageBytes : kind === 'AUDIO' ? l.audioBytes : l.videoBytes);
 
 /** Step 1 — validate the request and issue a signature for one upload to a server-chosen public_id. */
 export async function createUpload(ownerId: string, input: CreateUploadInput): Promise<SignedUpload> {
   requireConfigured();
-  const problem = checkUpload(input.kind, input.purpose, input.bytes);
+  // The member's plan decides the size limit (entitlements; Free = MEDIA_RULES).
+  const problem = checkUpload(input.kind, input.purpose, input.bytes, maxBytesFor(await limitsFor(ownerId), input.kind));
   if (problem) throw new HttpError(400, 'MEDIA_INVALID', problem);
 
   const pending = await prisma.mediaAsset.count({ where: { ownerId, status: 'PENDING' } });
@@ -70,11 +77,11 @@ export async function createUpload(ownerId: string, input: CreateUploadInput): P
 }
 
 /** Why a stored file doesn't match the rules, or null if it's fine. */
-function rejectReason(kind: MediaKind, remote: RemoteResource): string | null {
+function rejectReason(kind: MediaKind, remote: RemoteResource, maxBytes: number): string | null {
   const rule = MEDIA_RULES[kind];
   if (remote.resourceType !== resourceTypeFor(kind)) return 'The file type does not match.';
   if (!(rule.formats as readonly string[]).includes(remote.format)) return `.${remote.format} files are not supported here.`;
-  if (remote.bytes > rule.maxBytes) return `The file is larger than the ${Math.round(rule.maxBytes / 1048576)} MB limit.`;
+  if (remote.bytes > maxBytes) return `The file is larger than the ${Math.round(maxBytes / 1048576)} MB limit.`;
   if (rule.maxDurationSec && remote.durationSec && remote.durationSec > rule.maxDurationSec) {
     return `The file is longer than ${rule.maxDurationSec / 60} minutes.`;
   }
@@ -101,7 +108,8 @@ export async function confirmUpload(ownerId: string, assetId: string): Promise<M
     throw new HttpError(409, 'UPLOAD_INCOMPLETE', "The upload hasn't finished. Please try again.");
   }
 
-  const reason = rejectReason(asset.kind, remote);
+  // Re-checked against the plan at confirm time: the file Cloudinary holds is what counts.
+  const reason = rejectReason(asset.kind, remote, maxBytesFor(await limitsFor(ownerId), asset.kind));
   if (reason) {
     await releaseAssets([asset.id]);
     throw new HttpError(400, 'MEDIA_REJECTED', reason);

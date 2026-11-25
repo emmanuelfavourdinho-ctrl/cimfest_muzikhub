@@ -1,12 +1,8 @@
 import { useState } from 'react';
+import { Link } from 'react-router';
+import { useEntitlements } from '@/lib/billing';
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
-import {
-  detectLinkPlatform,
-  LINK_PLATFORMS,
-  MAX_PROFILE_LINKS,
-  normaliseHttpsUrl,
-  type ProfileLink,
-} from '@muzikhub/shared';
+import { detectLinkPlatform, LINK_PLATFORMS, MAX_PROFILE_LINKS, normaliseHttpsUrl, type ProfileLink } from '@muzikhub/shared';
 import { Button } from '@/components/ui/button';
 import { FormError, Input } from '@/components/ui/form';
 import { errorMessage } from '@/lib/api';
@@ -28,6 +24,8 @@ export function LinksEditor({
 }) {
   const [urls, setUrls] = useState<string[]>(initial.length > 0 ? initial.map((l) => l.url) : ['']);
   const [error, setError] = useState<string | null>(null);
+  // The member's plan decides how many links they can keep (the server checks it too).
+  const limit = useEntitlements().data?.limits.profileLinks ?? MAX_PROFILE_LINKS;
   const save = useReplaceLinks();
 
   const update = (index: number, value: string) => setUrls((list) => list.map((u, i) => (i === index ? value : u)));
@@ -68,10 +66,10 @@ export function LinksEditor({
           return (
             <li key={index} className="flex items-center gap-2">
               <span
-                className="flex size-11 shrink-0 items-center justify-center rounded-full border border-[#2c6750] bg-[#0f2b22] text-[#bdeed6]"
+                className="flex size-11 shrink-0 items-center justify-center rounded-full border border-control-border bg-surface-overlay text-text-1"
                 title={platform ? LINK_PLATFORMS[platform].label : 'Paste a link'}
               >
-                {platform ? <PlatformIcon platform={platform} /> : <Plus className="size-4 text-sage-dim" />}
+                {platform ? <PlatformIcon platform={platform} /> : <Plus className="size-4 text-text-3" />}
               </span>
               <Input
                 aria-label={`Link ${index + 1}`}
@@ -83,10 +81,24 @@ export function LinksEditor({
                 spellCheck={false}
               />
               <div className="hidden shrink-0 sm:flex">
-                <Button type="button" variant="quiet" size="icon" aria-label="Move up" onClick={() => move(index, -1)} disabled={index === 0}>
+                <Button
+                  type="button"
+                  variant="quiet"
+                  size="icon"
+                  aria-label="Move up"
+                  onClick={() => move(index, -1)}
+                  disabled={index === 0}
+                >
                   <ArrowUp />
                 </Button>
-                <Button type="button" variant="quiet" size="icon" aria-label="Move down" onClick={() => move(index, 1)} disabled={index === urls.length - 1}>
+                <Button
+                  type="button"
+                  variant="quiet"
+                  size="icon"
+                  aria-label="Move down"
+                  onClick={() => move(index, 1)}
+                  disabled={index === urls.length - 1}
+                >
                   <ArrowDown />
                 </Button>
               </div>
@@ -98,16 +110,26 @@ export function LinksEditor({
         })}
       </ol>
       <div className="mt-4 flex flex-wrap items-center gap-3">
-        <Button type="button" variant="outline" size="sm" onClick={() => setUrls((l) => [...l, ''])} disabled={urls.length >= MAX_PROFILE_LINKS}>
+        <Button type="button" variant="outline" size="sm" onClick={() => setUrls((l) => [...l, ''])} disabled={urls.length >= limit}>
           <Plus /> Add link
         </Button>
         <Button type="submit" size="sm" disabled={save.isPending}>
           {save.isPending ? 'Saving…' : submitLabel}
         </Button>
       </div>
-      <p className="mt-3 text-xs text-sage-dim">
-        Spotify, Apple Music, YouTube, SoundCloud, Audiomack, Boomplay, Deezer, Bandcamp, Instagram, TikTok, Facebook, X, LinkedIn or your own website. Up to {MAX_PROFILE_LINKS}.
+      <p className="mt-3 text-xs text-text-3">
+        Spotify, Apple Music, YouTube, SoundCloud, Audiomack, Boomplay, Deezer, Bandcamp, Instagram, TikTok, Facebook, X, LinkedIn or your
+        own website. Your plan allows up to {limit}.
       </p>
+      {urls.filter(Boolean).length > limit && (
+        <p role="alert" className="mt-2 text-small text-warning">
+          You have more links than your current plan shows ({limit}). Visitors see the first {limit}; remove some to save changes, or{' '}
+          <Link to="/pricing" className="underline">
+            see plans
+          </Link>
+          .
+        </p>
+      )}
     </form>
   );
 }

@@ -8,7 +8,11 @@ import { Field, Select, Textarea } from '@/components/ui/form';
 import { api, errorMessage } from '@/lib/api';
 
 /** Stores a real report (reviewed by moderators once Milestone 5 ships — said plainly to the user). */
-export function ReportButton({ targetType, targetId, compact = false }: Pick<CreateReportInput, 'targetType' | 'targetId'> & { compact?: boolean }) {
+export function ReportButton({
+  targetType,
+  targetId,
+  compact = false,
+}: Pick<CreateReportInput, 'targetType' | 'targetId'> & { compact?: boolean }) {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState<ReportReason>('SPAM');
   const [details, setDetails] = useState('');
@@ -37,16 +41,24 @@ export function ReportButton({ targetType, targetId, compact = false }: Pick<Cre
           {(a) => (
             <Select {...a} value={reason} onChange={(e) => setReason(e.target.value as ReportReason)}>
               {Object.entries(REPORT_REASONS).map(([k, label]) => (
-                <option key={k} value={k}>{label}</option>
+                <option key={k} value={k}>
+                  {label}
+                </option>
               ))}
             </Select>
           )}
         </Field>
-        <Field label="Details (optional)">{(a) => <Textarea {...a} value={details} maxLength={1000} onChange={(e) => setDetails(e.target.value)} />}</Field>
-        <p className="mb-4 text-xs text-sage-dim">Reports are private. The person you report isn't told who reported them.</p>
+        <Field label="Details (optional)">
+          {(a) => <Textarea {...a} value={details} maxLength={1000} onChange={(e) => setDetails(e.target.value)} />}
+        </Field>
+        <p className="mb-4 text-xs text-text-3">Reports are private. The person you report isn't told who reported them.</p>
         <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={() => void submit()} disabled={sending}>{sending ? 'Sending…' : 'Send report'}</Button>
+          <Button variant="outline" onClick={() => setOpen(false)}>
+            Cancel
+          </Button>
+          <Button onClick={() => void submit()} disabled={sending}>
+            {sending ? 'Sending…' : 'Send report'}
+          </Button>
         </div>
       </Dialog>
     </>

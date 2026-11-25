@@ -1,0 +1,16 @@
+# Generated, vendored or not ours to format
+node_modules/
+dist/
+coverage/
+apps/api/src/generated/
+apps/api/prisma/migrations/
+package-lock.json
+e2e/.results/
+e2e/.screenshots/
+playwright-report/
+brand-originals/
+# Prose: reflowing could change meaning (CLAUDE.md, docs tables)
+*.md
+
+# Frozen by the owner (2026-11-24): never reformat without explicit go-ahead
+apps/web/src/features/landing/

@@ -1,10 +1,27 @@
 # Implementation status
 
-_Last updated: 2026-11-24 (Resend, Supabase configuration, landing hero; Admin Console phases 1–4). Legend: ✅ implemented & tested · 🟡 implemented, not fully tested · 🟠 partial · ⛔ blocked (external) · ⬜ not started._
+_Last updated: 2026-11-24 (M0 foundation; Admin Console phases 1–4; landing redesign). Legend: ✅ implemented & tested · 🟡 implemented, not fully tested · 🟠 partial · ⛔ blocked (external) · ⬜ not started._
 
 **Test totals:** 26 shared unit · 109 API integration (+5 live Cloudinary, +1 live Resend, both opt-in) · 28 browser journeys (Pixel 7 + desktop, production build). All passing as of 2026-11-24.
 
-## Milestone 0 — Foundation ✅
+## M0 — Foundation (2026-11-24, branch `chore/m0-foundation`)
+
+| Item | Status | Evidence |
+|---|---|---|
+| Formatting commit, Prettier, `.git-blame-ignore-revs` | ✅ | commit `a18e568` |
+| Oxlint + design-token guard (ADR 0002) | ✅ | `npm run lint` passes; 0 raw colours/pixel sizes |
+| Palette tokenisation of 34 app files; legacy aliases removed | ✅ | Before/after screenshots at 360/768/1280 (`e2e/.screenshots/m0/`) |
+| RFC 9457 errors (single commit, client + tests) | ✅ | `e63d1af`, api:problem.test |
+| CSRF origin check; rate limits on feed, report, connection, upload | ✅ | api:security.test |
+| scrypt at OWASP minimum + rehash-on-login (ADR 0001) | ✅ | api:password.test |
+| `REQUIRE_EMAIL_VERIFICATION` flag | ✅ | api:verification.test |
+| Idempotency keys + transactional outbox (ADR 0003) | ✅ | api:idempotency.test, api:outbox.test; migration applied to local dev and test only |
+| OpenAPI 3.1 skeleton + drift test | ✅ | api:openapi.test; Redocly: valid |
+| GitHub Actions CI | 🟡 written; every step run locally, incl. on a fresh clone; **not yet run on GitHub** | `.github/workflows/ci.yml` |
+| Supabase migration for the new tables | ⛔ needs approval | |
+| Auth pages LCP ≤ 2.5 s | ⬜ M1 | measured 3.17–3.44 s; CI ratchet at 3.6 s |
+
+## Milestone 0 (original setup) — Foundation ✅
 
 Monorepo, Postgres + Prisma migrations, API conventions, prototype design system, test setup. Route-level code splitting added in M2 (entry bundle 334 kB / 104 kB gzipped).
 
@@ -69,6 +86,9 @@ Monorepo, Postgres + Prisma migrations, API conventions, prototype design system
 | Per-recipient limit (3 per kind per hour) on top of Better Auth's per-IP limits | ✅ | Unit + API tests. In memory (single instance) |
 | Idempotency key per one-time token | ✅ | Unit test |
 | Live send through Resend | ✅ | Opt-in test: Resend accepted it and reported **delivered to the `delivered@resend.dev` test sink**. No real person was emailed |
+| Restricted-email mode (`EMAIL_TRANSPORT=disabled`): startup rules, 503 `EMAIL_UNAVAILABLE` before account lookup, silent-free sign-up, `GET /api/v1/capabilities`, honest web screens | ✅ 2026-11-25 | `email-env.test.ts`, `restricted-email.test.ts`, e2e `restricted-email.spec.ts`. ARCHITECTURE §5d |
+| Operator email attestation (`admin:attest-email`) | ⛔ not built | Stopped: the audit log can't record an authenticated operator for a CLI action. Options are in the 2026-11-25 report; needs your decision |
+| Presentation demo seed (`demo:seed`) | ✅ local only | 8 demo-domain accounts (admin, artist, producer, organiser, ordinary user + 3 supporting) with real uploads and connected content; idempotent; refuses non-local databases. It marks only `@demo.muzikhub.test` addresses as confirmed: that is not the attestation feature above |
 | Production sending domain, DNS verification, production `EMAIL_FROM` | ⏳ pending | The Resend account has 0 domains (checked 2026-11-24). Steps in ARCHITECTURE §5d |
 
 ### Database — Supabase PostgreSQL
@@ -83,18 +103,24 @@ Monorepo, Postgres + Prisma migrations, API conventions, prototype design system
 | Same URL for `prisma migrate deploy` | ✅ verified locally | Limitation: the Prisma 7.10.1 CLI does not verify the certificate (the runtime does) |
 | Supabase CA certificate `apps/api/certs/prod-supabase.crt` | ✅ in place | Supabase Root 2021 CA, valid to 2031-04-26 (fingerprint in ARCHITECTURE §7b) |
 | Free-plan limits and backup practice documented | ✅ | ARCHITECTURE §7b (official pages; unconfirmed items marked) |
-| Production database created / migrated / deployed | ⬜ **not done; needs approval** | |
+| Supabase database migrated (all 5 migrations, `prisma migrate deploy`) | ✅ 2026-11-24, approved by the owner | Rehearsed first on PostgreSQL 17.12. Verified afterwards: 0 pending, 18 tables + `_prisma_migrations`, audit triggers present, every table empty (not seeded) |
+| Application deployed (API / web) | ⬜ **not done; needs approval** | |
 
-### Landing hero — approved photographs
+### Landing page — olive-and-lime redesign (2026-11-24)
 | Item | Status | Evidence |
 |---|---|---|
-| All five supplied photographs uploaded to Cloudinary `muzikhub/brand/landing/` and delivery-verified | ✅ | `npm run brand:upload`; every variant checked |
-| Crossfade, subtle zoom, Deep Forest overlay, stable headline + CTA | ✅ | E2E (headline/CTA positions unchanged across all slides) |
-| Per-photo composition; 333×500 photo never shown above natural size on desktop | ✅ | E2E measurement + visual review |
-| Only the first photo high-priority; one-ahead loading; pause when tab hidden | ✅ | E2E (request tracking) |
-| `prefers-reduced-motion`: single still photo, no zoom | ✅ | E2E |
-| No overflow 320–1920 px | ✅ | Existing sweep |
-| Local originals | ✅ preserved | Still in `apps/web/public/assets/landing/`. Remove by hand after production verification (they are currently copied into the build output but not referenced) |
+| Palette B (olive-black + lime) as one-file tokens; CLAUDE.md §20 updated | ✅ | `styles/palette.css`; contrast table in ARCHITECTURE §7c |
+| Full page: header, hero with illustrative preview, problem (paper), value, who it's for (tabs), how it works, features, trust, roadmap, FAQ, lime CTA, footer | ✅ | `e2e/landing.spec.ts` |
+| Every header, section and footer link works; mobile menu traps focus and closes on Escape and navigation; tabs and FAQ by keyboard; signed-in "Open app"; skip link first | ✅ | `e2e/landing.spec.ts` (mobile + desktop) |
+| No horizontal scroll at 360, 390, 768, 1024, 1280, 1536 and 844×390 (landscape) | ✅ | E2E sweep |
+| axe WCAG 2.2 A/AA: 0 violations (landing, menu sheet, draft pages) | ✅ | E2E |
+| Lighthouse (production build, simulated mobile): perf 91–94, a11y/best/SEO 100, LCP 2.0–2.5 s, TBT 190–230 ms, CLS 0. Desktop: 100/100/100/100 | ✅ measured | 3 mobile runs + 1 desktop; wide run-to-run variance (earlier rounds measured 510–850 ms TBT) |
+| Landing JavaScript before → after | ✅ | 182.0 → 146.5 kB gzip at first render (+3.6 kB deferred). CSS 10.9 → 13.1 kB |
+| Draft /terms, /privacy, /contact, /safety (DRAFT, noindex); register form links Terms and Privacy | ✅ | E2E |
+| Original photos removed from the deployed folder | ✅ moved | `brand-originals/landing/` (7 files, untouched, git-ignored). Cloudinary copies still exist |
+| Pre-rendering, Lighthouse CI budget gate, visual-regression baselines | ⬜ | Recommended approach in ARCHITECTURE |
+| Real contact email, social links, event line, production domain (`VITE_SITE_URL`), photo permissions | ⏳ owner | Pages say "will be published before launch" |
+| App screens still use 237 hard-coded legacy colours (31 files) | ⬜ | Platform redesign |
 
 ## Admin Console (CLAUDE.md §19.3–19.4) — approved and implemented 2026-11-24
 
@@ -109,26 +135,31 @@ Monorepo, Postgres + Prisma migrations, API conventions, prototype design system
 | 3. Reports queue and lifecycle (assign, notes, escalate, resolve/dismiss, related reports), content moderation (soft remove/restore; avatar/cover permanent removal) | ✅ `admin.moderation.test.ts` + Playwright report journey |
 | 4. Overview built from real data (users, content, moderation, staff 2FA coverage, weekly signups) | ✅ |
 | Responsive admin pages (320/375/430 px, no horizontal scroll) | ✅ Playwright |
-| 5. Community / competition / opportunity oversight | ⬜ added with those pillars; listed as pending in the overview |
+| 5. Community and competition oversight (Content tabs: list, remove, restore with reason; reports; competition disputes decided by an ADMIN) | ✅ `communities.test.ts`, `competitions.test.ts` |
+| 5. Opportunity oversight | ⬜ listed as pending in the overview and nav |
 | Announcements | ⬜ deferred (disabled "Pending" nav entry) |
 | 6. FINANCE_ADMIN and finance views | ⬜ deferred until payments |
-| Migration `admin_console_foundation` | ✅ dev + test DBs · ⛔ production not migrated (needs approval) |
+| Migration `admin_console_foundation` | ✅ dev + test DBs · ✅ Supabase (2026-11-24) |
 
 ### Known limitations (Admin Console)
 
 - Admin rate limits are kept in memory per API instance.
 - The audit triggers do not stop the database owner (who can drop them). In production, use a non-owner role for the API.
-- Moderators who belong to a community are not yet scoped to it, because communities don't exist yet.
+- Community roles (owner, admin, moderator) are scoped to their community and are separate from platform roles; a community moderator gets no Admin Console access.
 - No email is sent to members when their account status changes; they see the reason in an in-app banner, or a sign-in error if suspended or banned.
 
 ## Later milestones
 
 | Area | Status |
 |---|---|
-| Communities, collaboration requests, opportunities, competitions | ⬜ |
-| Messaging (Socket.IO), notifications, offline queue | ⬜ |
-| Audio/video calls (WebRTC) | ⬜ (TURN provider needed) |
-| Promotions, Notch Pay payments, service catalogue | ⬜ (test keys available; prices pending approval) |
+| Shared foundations: realtime channel (Socket.IO), blocking, notification preferences, message privacy | ✅ commit `2e4422a` |
+| Communities: discovery, membership policies, roles, discussions, mentions, accepted answers, scoped moderation | ✅ commit `4e19cf3` |
+| Messaging: one-to-one conversations, real-time delivery, read/delivered receipts, drafts, anti-spam, reports | ✅ commit `bac7ae6` (no offline send queue) |
+| Collaboration: structured requests, clarification in messages, shared projects with updates | ✅ commit `14489fb` |
+| Opportunities | ✅ commit `5ebed50` |
+| Competitions: versioned rules, entries, judges, scoring, results, disputes | ✅ commit `3bd6c2a` |
+| Audio/video calls (WebRTC) | ⛔ blocked: no TURN provider (D4). Not built, no UI. See `calling-assessment.md` |
+| Notch Pay payments, catalogue, subscriptions, promotions, analytics | ✅ against the sandbox/test provider; live payments blocked (`LIVE_PAYMENTS_APPROVED=false`, prices pending approval) |
 | PWA / offline shell | ⬜ |
 | Deployment (Vercel + Render + Supabase) | ⬜ needs approval; DB connection documented, not tested against Supabase |
 
@@ -136,7 +167,8 @@ Monorepo, Postgres + Prisma migrations, API conventions, prototype design system
 
 | Needed | Blocks |
 |---|---|
-| Verified Resend sending domain + production `EMAIL_FROM` | Real-recipient email |
+| Verified Resend sending domain + production `EMAIL_FROM` (needs a custom domain) | Real-recipient email; until then restricted-email mode: no password reset, no email confirmation, no organisers, no first admin |
+| Decision on operator identity for email attestation | `admin:attest-email` |
 | TURN service | Reliable calls |
 | Supabase project, CA certificate, approval to deploy | Production database |
 | Approval of proposed prices | Real billing |

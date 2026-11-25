@@ -3,6 +3,7 @@ import { fromNodeHeaders } from 'better-auth/node';
 import { hasFullAccess, isVisibleStatus } from '../lib/account-status.js';
 import { auth, type AuthSession } from '../lib/auth.js';
 import { HttpError } from '../lib/http-error.js';
+import { env } from '../config/env.js';
 
 declare module 'express-serve-static-core' {
   interface Locals {
@@ -58,3 +59,18 @@ export const optionalAuth: RequestHandler = async (req, res, next) => {
 export function viewerId(locals: { session?: AuthSession }): string | null {
   return locals.session?.user.id ?? null;
 }
+
+/**
+ * Publishing, messaging and calling need a verified email once REQUIRE_EMAIL_VERIFICATION is on
+ * (decision C2). Mount after requireAuth. A no-op while the flag is off.
+ */
+export const requireVerifiedEmail: RequestHandler = (_req, res, next) => {
+  if (env.REQUIRE_EMAIL_VERIFICATION && !res.locals.session?.user.emailVerified) {
+    throw new HttpError(
+      403,
+      'EMAIL_NOT_VERIFIED',
+      'Please confirm your email address first. We can send you a new link from your home page.',
+    );
+  }
+  next();
+};

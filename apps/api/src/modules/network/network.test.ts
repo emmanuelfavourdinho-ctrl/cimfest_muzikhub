@@ -89,9 +89,9 @@ describe('connection requests', () => {
     const { alice, bob } = await pair();
     await alice.agent.post('/api/v1/connections').send({ username: bob.input.username });
     const again = await alice.agent.post('/api/v1/connections').send({ username: bob.input.username });
-    expect(again.body.error.code).toBe('REQUEST_PENDING');
+    expect(again.body.code).toBe('REQUEST_PENDING');
     const crossed = await bob.agent.post('/api/v1/connections').send({ username: alice.input.username });
-    expect(crossed.body.error.code).toBe('REQUEST_RECEIVED');
+    expect(crossed.body.code).toBe('REQUEST_RECEIVED');
     expect(await prisma.connection.count()).toBe(1);
   });
 
@@ -124,7 +124,7 @@ describe('connection requests', () => {
     expect((await alice.agent.post(`/api/v1/connections/${id}/cancel`)).body.status).toBe('CANCELLED');
     const late = await bob.agent.post(`/api/v1/connections/${id}/accept`);
     expect(late.status).toBe(409);
-    expect(late.body.error.code).toBe('INVALID_TRANSITION');
+    expect(late.body.code).toBe('INVALID_TRANSITION');
   });
 
   it('after a decline, the requester must wait 30 days; withdrawing has no cooldown', async () => {
@@ -137,7 +137,7 @@ describe('connection requests', () => {
     await bob.agent.post(`/api/v1/connections/${pending.id}/decline`);
     const blocked = await alice.agent.post('/api/v1/connections').send({ username: bob.input.username });
     expect(blocked.status).toBe(429);
-    expect(blocked.body.error.code).toBe('CONNECTION_COOLDOWN');
+    expect(blocked.body.code).toBe('CONNECTION_COOLDOWN');
     const rel = await alice.agent.get(`/api/v1/users/${bob.input.username}/relationship`);
     expect(rel.body.canRequestAfter).toBeTruthy();
 

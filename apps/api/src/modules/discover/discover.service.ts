@@ -1,10 +1,4 @@
-import {
-  discoverPeopleQuerySchema,
-  discoverWorkQuerySchema,
-  type Page,
-  type PersonCard,
-  type PortfolioItemView,
-} from '@muzikhub/shared';
+import { discoverPeopleQuerySchema, discoverWorkQuerySchema, type Page, type PersonCard, type PortfolioItemView } from '@muzikhub/shared';
 import type { z } from 'zod';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { mapPage, paginate } from '../../lib/pagination.js';
@@ -61,10 +55,12 @@ export async function discoverPeople(viewer: string | null, query: PeopleQuery):
 
   const followed = viewer
     ? new Set(
-        (await prisma.follow.findMany({
-          where: { followerId: viewer, followingId: { in: result.items.map((u) => u.id) } },
-          select: { followingId: true },
-        })).map((f) => f.followingId),
+        (
+          await prisma.follow.findMany({
+            where: { followerId: viewer, followingId: { in: result.items.map((u) => u.id) } },
+            select: { followingId: true },
+          })
+        ).map((f) => f.followingId),
       )
     : new Set<string>();
 

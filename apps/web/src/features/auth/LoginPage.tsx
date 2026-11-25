@@ -72,7 +72,7 @@ export function LoginPage() {
                 {(a) => <Input {...a} type="password" autoComplete="current-password" {...register('password')} />}
               </Field>
               <div className="-mt-2 mb-5 text-right">
-                <Link to="/forgot-password" className="text-xs font-semibold text-mint-soft hover:underline">
+                <Link to="/forgot-password" className="text-xs font-semibold text-signal hover:underline">
                   Forgot your password?
                 </Link>
               </div>
@@ -80,9 +80,9 @@ export function LoginPage() {
                 {formState.isSubmitting ? 'Signing in…' : 'Sign in'}
               </Button>
             </form>
-            <p className="mt-6 text-center text-sm text-sage">
+            <p className="mt-6 text-center text-sm text-text-2">
               New here?{' '}
-              <Link to="/register" className="font-semibold text-mint-soft hover:underline">
+              <Link to="/register" className="font-semibold text-signal hover:underline">
                 Create an account
               </Link>
             </p>
@@ -106,7 +106,11 @@ function TwoFactorStep({ onDone, onBack }: { onDone: () => Promise<void>; onBack
     setBusy(true);
     try {
       const clean = code.trim();
-      await unwrap(mode === 'totp' ? authClient.twoFactor.verifyTotp({ code: clean.replace(/\s/g, '') }) : authClient.twoFactor.verifyBackupCode({ code: clean }));
+      await unwrap(
+        mode === 'totp'
+          ? authClient.twoFactor.verifyTotp({ code: clean.replace(/\s/g, '') })
+          : authClient.twoFactor.verifyBackupCode({ code: clean }),
+      );
       await onDone();
     } catch (err) {
       setError(errorMessage(err, "That code didn't work. Try again."));
@@ -118,8 +122,10 @@ function TwoFactorStep({ onDone, onBack }: { onDone: () => Promise<void>; onBack
     <form onSubmit={submit} noValidate>
       <Eyebrow>Two-step verification</Eyebrow>
       <h1 className="mt-2 mb-2 text-2xl font-bold">{mode === 'totp' ? 'Enter your authenticator code' : 'Use a backup code'}</h1>
-      <p className="mb-5 text-sm text-sage">
-        {mode === 'totp' ? 'Open your authenticator app and enter the 6-digit code for MuzikHub.' : 'Each backup code works once. You received them when you set up two-step verification.'}
+      <p className="mb-5 text-sm text-text-2">
+        {mode === 'totp'
+          ? 'Open your authenticator app and enter the 6-digit code for MuzikHub.'
+          : 'Each backup code works once. You received them when you set up two-step verification.'}
       </p>
       <FormError message={error} />
       <Field label={mode === 'totp' ? 'Authentication code' : 'Backup code'}>
@@ -140,10 +146,20 @@ function TwoFactorStep({ onDone, onBack }: { onDone: () => Promise<void>; onBack
         {busy ? 'Verifying…' : 'Verify and sign in'}
       </Button>
       <div className="mt-4 flex justify-between text-xs">
-        <button type="button" className="font-semibold text-mint-soft hover:underline" onClick={() => { setMode(mode === 'totp' ? 'backup' : 'totp'); setCode(''); setError(null); }}>
+        <button
+          type="button"
+          className="font-semibold text-signal hover:underline"
+          onClick={() => {
+            setMode(mode === 'totp' ? 'backup' : 'totp');
+            setCode('');
+            setError(null);
+          }}
+        >
           {mode === 'totp' ? 'Lost your device? Use a backup code' : 'Use your authenticator app'}
         </button>
-        <button type="button" className="text-sage hover:text-foreground" onClick={onBack}>Back</button>
+        <button type="button" className="text-text-2 hover:text-foreground" onClick={onBack}>
+          Back
+        </button>
       </div>
     </form>
   );

@@ -28,7 +28,11 @@ describe('report lifecycle', () => {
 
     const queue = await mod.agent.get('/api/v1/admin/reports?open=true');
     expect(queue.body.items).toHaveLength(2);
-    expect(queue.body.items[0]).toMatchObject({ status: 'PENDING', openReportsOnTarget: 2, target: { exists: true, text: 'buy followers cheap' } });
+    expect(queue.body.items[0]).toMatchObject({
+      status: 'PENDING',
+      openReportsOnTarget: 2,
+      target: { exists: true, text: 'buy followers cheap' },
+    });
 
     expect((await mod.agent.post(`/api/v1/admin/reports/${id}/assign`).send({ assignee: 'me' })).body.status).toBe('UNDER_REVIEW');
     expect((await mod.agent.get('/api/v1/admin/reports?assigned=me')).body.items.map((r: { id: string }) => r.id)).toEqual([id]);
@@ -49,7 +53,9 @@ describe('report lifecycle', () => {
     expect(detail.body.history.map((h: { action: string }) => h.action)).toEqual(['report.assign', 'report.note', 'report.resolve']);
 
     // Closed reports can't be reopened or re-decided.
-    expect((await mod.agent.post(`/api/v1/admin/reports/${id}/dismiss`).send({ resolution: 'Changed my mind' })).body.error.code).toBe('REPORT_CLOSED');
+    expect((await mod.agent.post(`/api/v1/admin/reports/${id}/dismiss`).send({ resolution: 'Changed my mind' })).body.code).toBe(
+      'REPORT_CLOSED',
+    );
   });
 
   it('escalated reports can only be decided by an administrator', async () => {
@@ -58,9 +64,13 @@ describe('report lifecycle', () => {
     const { reports } = await reportedPost();
     const id = reports[0]!.id;
     await mod.agent.post(`/api/v1/admin/reports/${id}/escalate`).send({ reason: 'Possible legal issue' });
-    expect((await mod.agent.post(`/api/v1/admin/reports/${id}/resolve`).send({ resolution: 'Handled by mod' })).body.error.code).toBe('ESCALATED');
+    expect((await mod.agent.post(`/api/v1/admin/reports/${id}/resolve`).send({ resolution: 'Handled by mod' })).body.code).toBe(
+      'ESCALATED',
+    );
     expect((await mod.agent.get(`/api/v1/admin/reports/${id}`)).body.canDecide).toBe(false);
-    expect((await admin.agent.post(`/api/v1/admin/reports/${id}/dismiss`).send({ resolution: 'No violation found' })).body.status).toBe('DISMISSED');
+    expect((await admin.agent.post(`/api/v1/admin/reports/${id}/dismiss`).send({ resolution: 'No violation found' })).body.status).toBe(
+      'DISMISSED',
+    );
   });
 
   it('reports are never visible to the reporter or the reported user through admin endpoints', async () => {
@@ -74,10 +84,14 @@ describe('content moderation', () => {
   it('removal needs a reason, hides content everywhere, keeps ownership, and can be restored', async () => {
     const mod = await makeStaff(app, 'MODERATOR');
     const owner = await signUp(app);
-    const item = await owner.agent.post('/api/v1/portfolio').send({ type: 'PROJECT', title: 'Offensive work', description: 'd', publish: true, shareToFeed: true });
+    const item = await owner.agent
+      .post('/api/v1/portfolio')
+      .send({ type: 'PROJECT', title: 'Offensive work', description: 'd', publish: true, shareToFeed: true });
 
     expect((await mod.agent.post(`/api/v1/admin/content/portfolio-item/${item.body.id}/remove`).send({})).status).toBe(400);
-    expect((await mod.agent.post(`/api/v1/admin/content/portfolio-item/${item.body.id}/remove`).send({ reason: 'Hate speech in title' })).status).toBe(200);
+    expect(
+      (await mod.agent.post(`/api/v1/admin/content/portfolio-item/${item.body.id}/remove`).send({ reason: 'Hate speech in title' })).status,
+    ).toBe(200);
 
     expect((await request(app).get(`/api/v1/portfolio/${item.body.id}`)).status).toBe(404);
     expect((await request(app).get('/api/v1/discover/work')).body.items).toHaveLength(0);
@@ -90,7 +104,9 @@ describe('content moderation', () => {
     const removedList = await mod.agent.get('/api/v1/admin/content?type=portfolio-item&state=removed');
     expect(removedList.body.items.map((i: { id: string }) => i.id)).toEqual([item.body.id]);
 
-    expect((await mod.agent.post(`/api/v1/admin/content/portfolio-item/${item.body.id}/restore`).send({ reason: 'Reviewed on appeal' })).status).toBe(200);
+    expect(
+      (await mod.agent.post(`/api/v1/admin/content/portfolio-item/${item.body.id}/restore`).send({ reason: 'Reviewed on appeal' })).status,
+    ).toBe(200);
     expect((await request(app).get(`/api/v1/portfolio/${item.body.id}`)).status).toBe(200);
   });
 
@@ -106,9 +122,13 @@ describe('content moderation', () => {
 
     const avatar = await uploadMedia(b.agent, { purpose: 'AVATAR' });
     await b.agent.put('/api/v1/me/profile/avatar').send({ mediaId: avatar });
-    expect((await mod.agent.post(`/api/v1/admin/content/profile-avatar/${b.userId}/remove`).send({ reason: 'Explicit image' })).body.restorable).toBe(false);
+    expect(
+      (await mod.agent.post(`/api/v1/admin/content/profile-avatar/${b.userId}/remove`).send({ reason: 'Explicit image' })).body.restorable,
+    ).toBe(false);
     expect((await request(app).get(`/api/v1/profiles/${b.input.username}`)).body.image).toBeNull();
-    expect((await mod.agent.post(`/api/v1/admin/content/profile-avatar/${b.userId}/restore`).send({ reason: 'Try restore' })).body.error.code).toBe('NOT_RESTORABLE');
+    expect(
+      (await mod.agent.post(`/api/v1/admin/content/profile-avatar/${b.userId}/restore`).send({ reason: 'Try restore' })).body.code,
+    ).toBe('NOT_RESTORABLE');
   });
 
   it("moderators can't moderate their own content or staff content", async () => {
@@ -116,8 +136,12 @@ describe('content moderation', () => {
     const admin = await makeStaff(app, 'ADMIN');
     const own = await mod.agent.post('/api/v1/posts').send({ body: 'mod post' });
     const adminPost = await admin.agent.post('/api/v1/posts').send({ body: 'admin post' });
-    expect((await mod.agent.post(`/api/v1/admin/content/post/${own.body.id}/remove`).send({ reason: 'Testing rules' })).body.error.code).toBe('CANNOT_ACT_ON_SELF');
-    expect((await mod.agent.post(`/api/v1/admin/content/post/${adminPost.body.id}/remove`).send({ reason: 'Testing rules' })).body.error.code).toBe('FORBIDDEN_TARGET');
+    expect((await mod.agent.post(`/api/v1/admin/content/post/${own.body.id}/remove`).send({ reason: 'Testing rules' })).body.code).toBe(
+      'CANNOT_ACT_ON_SELF',
+    );
+    expect(
+      (await mod.agent.post(`/api/v1/admin/content/post/${adminPost.body.id}/remove`).send({ reason: 'Testing rules' })).body.code,
+    ).toBe('FORBIDDEN_TARGET');
   });
 });
 
@@ -176,7 +200,7 @@ describe('overview uses real data only', () => {
     expect(res.body.staff).toMatchObject({ admins: 1, moderators: 0, withoutTwoFactor: 0 });
     expect(res.body.users.weeklySignups).toHaveLength(12);
     expect(res.body.users.weeklySignups.at(-1).signups).toBe(3);
-    expect(res.body.pending).toEqual(expect.arrayContaining(['communities', 'competitions', 'opportunities', 'payments', 'announcements']));
+    expect(res.body.pending).toEqual(['opportunities', 'announcements']);
     expect(res.body).not.toHaveProperty('revenue');
   });
 });

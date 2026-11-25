@@ -1,0 +1,145 @@
+# MuzikHub CI: every push to main and every pull request must pass these jobs.
+# Least privilege: read-only token; no deploy credentials live here.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '24'
+  TEST_DATABASE_URL: postgresql://muzikhub:muzikhub_ci_password@localhost:5432/muzikhub_test?schema=public
+  PRISMA_HIDE_UPDATE_MESSAGE: '1'
+
+jobs:
+  quality:
+    name: Format, lint, types, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+
+  test:
+    name: Unit and integration (real PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env: { POSTGRES_USER: muzikhub, POSTGRES_PASSWORD: muzikhub_ci_password, POSTGRES_DB: muzikhub_test }
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U muzikhub" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
+      - run: npm ci
+      - run: npm test
+
+  e2e:
+    name: End-to-end (production build, phone + desktop)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env: { POSTGRES_USER: muzikhub, POSTGRES_PASSWORD: muzikhub_ci_password, POSTGRES_DB: muzikhub_test }
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U muzikhub" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      # Optional: real-upload journeys skip (with a reason) when these repository secrets are unset.
+      CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+      CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+      CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
+      - run: npm ci
+      - run: npm run build -w @muzikhub/shared
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with: { name: playwright-results, path: e2e/.results, retention-days: 7 }
+
+  performance:
+    name: Lighthouse CI and JavaScript budgets
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env: { POSTGRES_USER: muzikhub, POSTGRES_PASSWORD: muzikhub_ci_password, POSTGRES_DB: muzikhub_test }
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U muzikhub" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
+      - run: npm ci
+      - run: npm run build -w @muzikhub/shared && npm run build -w @muzikhub/web
+      - run: npx playwright install --with-deps chromium
+      # A real API, so pages behave as in production (signed-out /me answers 401 immediately).
+      - name: Start API (test mode)
+        working-directory: apps/api
+        env:
+          NODE_ENV: test
+          PORT: '4100'
+          DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
+          BETTER_AUTH_SECRET: ci-only-secret-not-used-anywhere-real-000000000
+          BETTER_AUTH_URL: http://localhost:4100
+          CORS_ORIGINS: http://localhost:4173
+          WEB_APP_URL: http://localhost:4173
+        run: |
+          npx prisma migrate deploy
+          nohup npx tsx src/server.ts > api.log 2>&1 &
+          npx --yes wait-on@8 http://localhost:4100/api/v1/health
+      - name: JavaScript budget per route (scripts/js-budget.mjs)
+        run: |
+          API_PROXY_TARGET=http://localhost:4100 npm run preview -w @muzikhub/web -- --port 4173 --strictPort &
+          npx --yes wait-on@8 http://localhost:4173
+          node scripts/js-budget.mjs http://localhost:4173
+          kill %1
+      - name: Lighthouse CI (lighthouserc.json)
+        run: npx --yes @lhci/cli@0.15 autorun
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with: { name: lighthouse, path: .lighthouseci, retention-days: 7 }
+
+  security:
+    name: Dependency and secret scanning
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
+      - name: Dependency audit (production deps; high/critical fail; reviewed allow-list in audit-ci.jsonc)
+        run: npx --yes audit-ci@7 --config audit-ci.jsonc
+      - name: Secret scan (gitleaks; reviewed false positives in .gitleaksignore)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - if: github.event_name == 'pull_request'
+        uses: actions/dependency-review-action@v4
+        with: { fail-on-severity: high }

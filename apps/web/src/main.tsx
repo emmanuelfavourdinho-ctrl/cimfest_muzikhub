@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from 'react-router';
 import { Toaster } from 'sonner';
-import { ApiRequestError } from '@/lib/api';
+import { ApiRequestError } from '@/lib/api-error';
 import { router } from './router';
 import './index.css';
 
@@ -11,8 +11,7 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       // Retry network blips, but never retry client errors (4xx) — they won't fix themselves.
-      retry: (count, error) =>
-        !(error instanceof ApiRequestError && error.status >= 400 && error.status < 500) && count < 2,
+      retry: (count, error) => !(error instanceof ApiRequestError && error.status >= 400 && error.status < 500) && count < 2,
       refetchOnWindowFocus: false,
     },
     mutations: { retry: false }, // mutations are never auto-retried (avoids duplicate writes)

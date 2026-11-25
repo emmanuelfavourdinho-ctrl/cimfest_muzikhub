@@ -1,6 +1,5 @@
 import {
   API_V1_PREFIX,
-  apiErrorSchema,
   commentPageSchema,
   commentSchema,
   connectionPageSchema,
@@ -16,6 +15,7 @@ import {
   portfolioPageSchema,
   postPageSchema,
   postSchema,
+  problemSchema,
   publicProfileSchema,
   relationshipSchema,
   signedUploadSchema,
@@ -27,28 +27,21 @@ import {
   type ReplaceLinksInput,
   type UpdatePortfolioInput,
   type UpdateProfileInput,
+  applicationPageSchema,
+  applicationSchema,
+  opportunityPageSchema,
+  opportunitySchema,
+  organiserStatusSchema,
+  type CreateOpportunityInput,
+  type UpdateOpportunityInput,
 } from '@muzikhub/shared';
 import { z } from 'zod';
+import { ApiRequestError } from './api-error';
+
+export { ApiRequestError };
 
 // Empty in development (Vite proxies /api). In production on Vercel, /api is rewritten to the API.
 export const API_BASE = import.meta.env.VITE_API_URL ?? '';
-
-/** Every failed API call becomes one of these, so UI code handles errors in one way. */
-export class ApiRequestError extends Error {
-  constructor(
-    readonly status: number,
-    readonly code: string,
-    message: string,
-    readonly details?: { path: string; message: string }[],
-  ) {
-    super(message);
-    this.name = 'ApiRequestError';
-  }
-
-  get isUnauthenticated() {
-    return this.status === 401;
-  }
-}
 
 type Query = Record<string, string | number | string[] | undefined | null>;
 
@@ -68,14 +61,24 @@ function toQueryString(query?: Query): string {
 export async function request<T>(
   path: string,
   schema: z.ZodType<T> | null,
-  init: { method?: string; body?: unknown; query?: Query; signal?: AbortSignal } = {},
+  init: {
+    method?: string;
+    body?: unknown;
+    query?: Query;
+    signal?: AbortSignal;
+    /** Makes a create safe to retry: the server replays the first result (ADR 0003). */
+    idempotencyKey?: string;
+  } = {},
 ): Promise<T> {
   let res: Response;
   try {
     res = await fetch(`${API_BASE}${API_V1_PREFIX}${path}${toQueryString(init.query)}`, {
       method: init.method ?? 'GET',
       credentials: 'include', // send the session cookie
-      headers: init.body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
+      headers: {
+        ...(init.body !== undefined && { 'Content-Type': 'application/json' }),
+        ...(init.idempotencyKey && { 'Idempotency-Key': init.idempotencyKey }),
+      },
       body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
       signal: init.signal,
     });
@@ -87,10 +90,11 @@ export async function request<T>(
   if (res.status === 204) return undefined as T;
   const body: unknown = await res.json().catch(() => null);
   if (!res.ok) {
-    const parsed = apiErrorSchema.safeParse(body);
+    // RFC 9457 problem details: `code` is stable, `detail` is safe to show, `errors` are field issues.
+    const parsed = problemSchema.safeParse(body);
     if (parsed.success) {
-      const { code, message, details } = parsed.data.error;
-      throw new ApiRequestError(res.status, code, message, details);
+      const { code, detail, errors } = parsed.data;
+      throw new ApiRequestError(res.status, code, detail, errors);
     }
     throw new ApiRequestError(res.status, 'UNEXPECTED_RESPONSE', 'Something went wrong. Please try again.');
   }
@@ -101,6 +105,26 @@ export async function request<T>(
 const path = encodeURIComponent;
 
 export const api = {
+  // Opportunities (FR-34..37)
+  opportunities: (q: { type?: string; location?: string; open?: string; cursor?: string }) =>
+    request('/opportunities', opportunityPageSchema, { query: q }),
+  myOpportunities: (cursor?: string) => request('/opportunities/mine', opportunityPageSchema, { query: { cursor } }),
+  organiserStatus: () => request('/opportunities/organiser-status', organiserStatusSchema),
+  opportunity: (id: string) => request(`/opportunities/${path(id)}`, opportunitySchema),
+  createOpportunity: (input: CreateOpportunityInput, idempotencyKey: string) =>
+    request('/opportunities', opportunitySchema, { method: 'POST', body: input, idempotencyKey }),
+  updateOpportunity: (id: string, input: UpdateOpportunityInput) =>
+    request(`/opportunities/${path(id)}`, opportunitySchema, { method: 'PATCH', body: input }),
+  publishOpportunity: (id: string) => request(`/opportunities/${path(id)}/publish`, opportunitySchema, { method: 'POST' }),
+  closeOpportunity: (id: string) => request(`/opportunities/${path(id)}/close`, opportunitySchema, { method: 'POST' }),
+  applyToOpportunity: (id: string, message: string, idempotencyKey: string) =>
+    request(`/opportunities/${path(id)}/apply`, opportunitySchema, { method: 'POST', body: { message }, idempotencyKey }),
+  withdrawApplication: (id: string) => request(`/opportunities/${path(id)}/withdraw`, opportunitySchema, { method: 'POST' }),
+  applications: (id: string, cursor?: string) =>
+    request(`/opportunities/${path(id)}/applications`, applicationPageSchema, { query: { cursor } }),
+  decideApplication: (applicationId: string, status: 'SHORTLISTED' | 'ACCEPTED' | 'REJECTED') =>
+    request(`/applications/${path(applicationId)}/status`, applicationSchema, { method: 'POST', body: { status } }),
+
   health: (signal?: AbortSignal) => request('/health', healthResponseSchema, { signal }),
 
   // Me & profiles
@@ -133,16 +157,14 @@ export const api = {
 
   // Feed
   feed: (tab: FeedTab, cursor?: string) => request('/feed', postPageSchema, { query: { tab, cursor } }),
-  profilePosts: (username: string, cursor?: string) =>
-    request(`/profiles/${path(username)}/posts`, postPageSchema, { query: { cursor } }),
+  profilePosts: (username: string, cursor?: string) => request(`/profiles/${path(username)}/posts`, postPageSchema, { query: { cursor } }),
   post: (id: string) => request(`/posts/${path(id)}`, postSchema),
-  createPost: (input: CreatePostInput) => request('/posts', postSchema, { method: 'POST', body: input }),
+  createPost: (input: CreatePostInput, idempotencyKey?: string) =>
+    request('/posts', postSchema, { method: 'POST', body: input, idempotencyKey }),
   updatePost: (id: string, body: string) => request(`/posts/${path(id)}`, postSchema, { method: 'PATCH', body: { body } }),
   deletePost: (id: string) => request(`/posts/${path(id)}`, null, { method: 'DELETE' }),
-  setLike: (id: string, liked: boolean) =>
-    request(`/posts/${path(id)}/like`, likeStateSchema, { method: liked ? 'PUT' : 'DELETE' }),
-  comments: (postId: string, cursor?: string) =>
-    request(`/posts/${path(postId)}/comments`, commentPageSchema, { query: { cursor } }),
+  setLike: (id: string, liked: boolean) => request(`/posts/${path(id)}/like`, likeStateSchema, { method: liked ? 'PUT' : 'DELETE' }),
+  comments: (postId: string, cursor?: string) => request(`/posts/${path(postId)}/comments`, commentPageSchema, { query: { cursor } }),
   addComment: (postId: string, body: string) =>
     request(`/posts/${path(postId)}/comments`, commentSchema, { method: 'POST', body: { body } }),
   deleteComment: (id: string) => request(`/comments/${path(id)}`, null, { method: 'DELETE' }),

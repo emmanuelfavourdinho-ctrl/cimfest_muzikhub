@@ -89,7 +89,9 @@ describe('the feed', () => {
   it('showcase posts link to the portfolio item and disappear when the work is archived', async () => {
     const { agent } = await signUp(app);
     const audio = await uploadMedia(agent, { kind: 'AUDIO' });
-    const item = await agent.post('/api/v1/portfolio').send({ type: 'BEAT', title: 'Showcase me', mediaId: audio, publish: true, shareToFeed: true });
+    const item = await agent
+      .post('/api/v1/portfolio')
+      .send({ type: 'BEAT', title: 'Showcase me', mediaId: audio, publish: true, shareToFeed: true });
 
     const feed = await request(app).get('/api/v1/feed');
     expect(feed.body.items[0]).toMatchObject({ type: 'SHOWCASE', portfolioItem: { id: item.body.id, title: 'Showcase me' } });
@@ -180,6 +182,9 @@ describe('reports', () => {
     expect((await alice.agent.post('/api/v1/reports').send(body)).status).toBe(400);
     expect((await bob.agent.post('/api/v1/reports').send({ ...body, targetId: 'missing' })).status).toBe(404);
 
-    expect((await bob.agent.post('/api/v1/reports').send({ targetType: 'PROFILE', targetId: alice.input.username, reason: 'IMPERSONATION' })).status).toBe(201);
+    expect(
+      (await bob.agent.post('/api/v1/reports').send({ targetType: 'PROFILE', targetId: alice.input.username, reason: 'IMPERSONATION' }))
+        .status,
+    ).toBe(201);
   });
 });

@@ -8,11 +8,7 @@ import { API_BASE } from './api';
  */
 export const authClient = createAuthClient({
   baseURL: API_BASE || window.location.origin,
-  plugins: [
-    usernameClient(),
-    twoFactorClient(),
-    inferAdditionalFields({ user: { primaryUse: { type: 'string', required: true } } }),
-  ],
+  plugins: [usernameClient(), twoFactorClient(), inferAdditionalFields({ user: { primaryUse: { type: 'string', required: true } } })],
 });
 
 /** Better Auth returns `{ data, error }` instead of throwing; this turns errors into exceptions. */

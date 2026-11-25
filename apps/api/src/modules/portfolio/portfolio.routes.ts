@@ -7,9 +7,17 @@ import {
   publishPortfolioSchema,
   updatePortfolioSchema,
 } from '@muzikhub/shared';
-import { currentUserId, optionalAuth, requireAuth, requireFullAccess, viewerId } from '../../middleware/require-auth.js';
+import {
+  currentUserId,
+  optionalAuth,
+  requireAuth,
+  requireFullAccess,
+  requireVerifiedEmail,
+  viewerId,
+} from '../../middleware/require-auth.js';
 import { parseQuery, validateBody } from '../../middleware/validate.js';
 import * as portfolio from './portfolio.service.js';
+import { limits } from '../../lib/rate-limit.js';
 
 const ownListQuery = pageQuerySchema.extend({ status: z.enum(PORTFOLIO_STATUSES).optional() });
 
@@ -21,17 +29,25 @@ export function portfolioRouter(): Router {
     res.json(await portfolio.getItem(String(req.params.id), viewerId(res.locals)));
   });
 
-  router.post('/', requireAuth, requireFullAccess, validateBody(createPortfolioSchema), async (req, res) => {
+  router.post('/', requireAuth, limits.contentWrite, requireFullAccess, validateBody(createPortfolioSchema), async (req, res) => {
     res.status(201).json(await portfolio.createItem(currentUserId(res.locals), req.body));
   });
 
-  router.patch('/:id', requireAuth, requireFullAccess, validateBody(updatePortfolioSchema), async (req, res) => {
+  router.patch('/:id', requireAuth, limits.contentWrite, requireFullAccess, validateBody(updatePortfolioSchema), async (req, res) => {
     res.json(await portfolio.updateItem(currentUserId(res.locals), String(req.params.id), req.body));
   });
 
-  router.post('/:id/publish', requireAuth, requireFullAccess, validateBody(publishPortfolioSchema), async (req, res) => {
-    res.json(await portfolio.publishItem(currentUserId(res.locals), String(req.params.id), req.body.shareToFeed));
-  });
+  router.post(
+    '/:id/publish',
+    requireAuth,
+    limits.contentWrite,
+    requireFullAccess,
+    requireVerifiedEmail,
+    validateBody(publishPortfolioSchema),
+    async (req, res) => {
+      res.json(await portfolio.publishItem(currentUserId(res.locals), String(req.params.id), req.body.shareToFeed));
+    },
+  );
 
   router.post('/:id/archive', requireAuth, async (req, res) => {
     res.json(await portfolio.archiveItem(currentUserId(res.locals), String(req.params.id)));

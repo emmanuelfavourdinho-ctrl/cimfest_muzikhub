@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { cn } from 'cn';
+import { track, type TrackSubject } from '@/lib/analytics';
+import { useRef, useState } from 'react';
+import { cn } from '@/lib/cn';
 import { ImageOff, Music2, Play } from 'lucide-react';
 import type { MediaView } from '@muzikhub/shared';
 
@@ -36,7 +37,12 @@ export function ResponsiveImage({
 
   if (failed || !medium) {
     return (
-      <div role="img" aria-label={alt || 'Image unavailable'} style={{ aspectRatio: ratio }} className={cn('flex items-center justify-center bg-forest-800 text-sage-dim', className)}>
+      <div
+        role="img"
+        aria-label={alt || 'Image unavailable'}
+        style={{ aspectRatio: ratio }}
+        className={cn('flex items-center justify-center bg-surface-overlay text-text-3', className)}
+      >
         <ImageOff className="size-6" aria-hidden />
       </div>
     );
@@ -44,7 +50,9 @@ export function ResponsiveImage({
   return (
     <img
       src={medium}
-      srcSet={[`${small} 320w`, `${medium} 640w`, wide && `${wide} 960w`, maxVariant === 'large' && large && `${large} 1280w`].filter(Boolean).join(', ')}
+      srcSet={[`${small} 320w`, `${medium} 640w`, wide && `${wide} 960w`, maxVariant === 'large' && large && `${large} 1280w`]
+        .filter(Boolean)
+        .join(', ')}
       sizes={sizes}
       alt={alt}
       loading={priority ? 'eager' : 'lazy'}
@@ -52,28 +60,44 @@ export function ResponsiveImage({
       fetchPriority={priority ? 'high' : 'auto'}
       onError={() => setFailed(true)}
       style={{ aspectRatio: ratio }}
-      className={cn('w-full bg-forest-800 object-cover', className)}
+      className={cn('w-full bg-surface-overlay object-cover', className)}
     />
   );
 }
 
 /** Native audio element (accessible, keyboard-friendly). preload="none": nothing downloads until play. */
-export function AudioPlayer({ media, title }: { media: MediaView; title: string }) {
+export function AudioPlayer({ media, title, track: subject }: { media: MediaView; title: string; track?: TrackSubject }) {
   const [failed, setFailed] = useState(false);
+  const counted = useRef(false);
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-[#2b5e49] bg-[#0b261d] p-3">
-      <span aria-hidden className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#134130] text-mint">
+    <div className="flex items-center gap-3 rounded-xl border border-control-border bg-surface-overlay p-3">
+      <span aria-hidden className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-surface-chip text-signal">
         <Music2 className="size-5" />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="mb-1.5 truncate text-xs font-semibold text-[#c2dacc]">
+        <p className="mb-1.5 truncate text-xs font-semibold text-text-1">
           {title}
-          {media.durationSec ? <span className="ml-2 font-normal text-sage-dim">{formatDuration(media.durationSec)}</span> : null}
+          {media.durationSec ? <span className="ml-2 font-normal text-text-3">{formatDuration(media.durationSec)}</span> : null}
         </p>
         {failed ? (
           <p className="text-xs text-destructive">This audio couldn't be loaded.</p>
         ) : (
-          <audio controls preload="none" src={media.urls.src} onError={() => setFailed(true)} className="h-9 w-full" aria-label={`Play ${title}`} />
+          // User uploads carry no caption files yet (captions: tracked gap in docs/traceability.md).
+          // oxlint-disable-next-line jsx-a11y/media-has-caption
+          <audio
+            controls
+            preload="none"
+            src={media.urls.src}
+            onError={() => setFailed(true)}
+            onPlay={() => {
+              if (subject && !counted.current) {
+                counted.current = true;
+                track('PLAY', subject);
+              }
+            }}
+            className="h-9 w-full"
+            aria-label={`Play ${title}`}
+          />
         )}
       </div>
     </div>
@@ -84,33 +108,58 @@ export function AudioPlayer({ media, title }: { media: MediaView; title: string 
  * Shows only the poster until the user presses play; the video itself is never
  * fetched or autoplayed before that (CLAUDE.md low-bandwidth rules).
  */
-export function VideoPlayer({ media, title }: { media: MediaView; title: string }) {
+export function VideoPlayer({ media, title, track: subject }: { media: MediaView; title: string; track?: TrackSubject }) {
   const [playing, setPlaying] = useState(false);
   const ratio = media.width && media.height ? `${media.width} / ${media.height}` : '16 / 9';
   if (playing) {
     return (
       // autoPlay is fine here: the user explicitly pressed play a moment ago.
-      <video controls autoPlay playsInline src={media.urls.src} poster={media.urls.poster} style={{ aspectRatio: ratio }} className="w-full rounded-xl bg-black" aria-label={title} />
+      // User uploads carry no caption files yet (captions: tracked gap in docs/traceability.md).
+      // oxlint-disable-next-line jsx-a11y/media-has-caption
+      <video
+        controls
+        autoPlay
+        playsInline
+        src={media.urls.src}
+        poster={media.urls.poster}
+        style={{ aspectRatio: ratio }}
+        className="w-full rounded-xl bg-black"
+        aria-label={title}
+      />
     );
   }
   return (
-    <button type="button" onClick={() => setPlaying(true)} className="group relative block w-full overflow-hidden rounded-xl bg-black" style={{ aspectRatio: ratio }} aria-label={`Play video: ${title}`}>
-      {media.urls.poster && <img src={media.urls.poster} alt="" loading="lazy" decoding="async" className="size-full object-cover opacity-90" />}
+    <button
+      type="button"
+      onClick={() => {
+        setPlaying(true);
+        if (subject) track('PLAY', subject);
+      }}
+      className="group relative block w-full overflow-hidden rounded-xl bg-black"
+      style={{ aspectRatio: ratio }}
+      aria-label={`Play video: ${title}`}
+    >
+      {media.urls.poster && (
+        <img src={media.urls.poster} alt="" loading="lazy" decoding="async" className="size-full object-cover opacity-90" />
+      )}
       <span className="absolute inset-0 flex items-center justify-center">
-        <span className="flex size-14 items-center justify-center rounded-full bg-[#20d99b] text-[#05241a] shadow-[0_6px_28px_#12dba16e] transition group-hover:scale-105">
+        <span className="flex size-14 items-center justify-center rounded-full bg-signal text-on-signal shadow-glow transition group-hover:scale-105">
           <Play className="ml-0.5 size-6 fill-current" />
         </span>
       </span>
       {media.durationSec ? (
-        <span className="absolute right-2 bottom-2 rounded bg-black/70 px-1.5 py-0.5 text-[11px] text-white">{formatDuration(media.durationSec)}</span>
+        <span className="absolute right-2 bottom-2 rounded bg-black/70 px-1.5 py-0.5 text-xs text-white">
+          {formatDuration(media.durationSec)}
+        </span>
       ) : null}
     </button>
   );
 }
 
-export function MediaBlock({ media, title }: { media: MediaView; title: string }) {
-  if (media.kind === 'AUDIO') return <AudioPlayer media={media} title={title} />;
-  if (media.kind === 'VIDEO') return <VideoPlayer media={media} title={title} />;
+/** `track`: count plays for the owner's analytics (the server validates and de-duplicates). */
+export function MediaBlock({ media, title, track: subject }: { media: MediaView; title: string; track?: TrackSubject }) {
+  if (media.kind === 'AUDIO') return <AudioPlayer media={media} title={title} track={subject} />;
+  if (media.kind === 'VIDEO') return <VideoPlayer media={media} title={title} track={subject} />;
   return <ResponsiveImage media={media} alt={title} className="rounded-xl" maxVariant="large" sizes="(min-width: 1024px) 560px, 100vw" />;
 }
 

@@ -42,44 +42,75 @@ enum AccountStatus {
 }
 
 model User {
-  id                  String          @id
-  name                String
-  email               String          @unique
-  emailVerified       Boolean         @default(false)
-  image               String?
+  id                      String                     @id
+  name                    String
+  email                   String                     @unique
+  emailVerified           Boolean                    @default(false)
+  image                   String?
   /// Lower-case, unique handle used in profile URLs (Better Auth username plugin).
-  username            String?         @unique
+  username                String?                    @unique
   /// Username as the user typed it (original capitalisation).
-  displayUsername     String?
-  primaryUse          PrimaryUse?
+  displayUsername         String?
+  primaryUse              PrimaryUse?
   /// Server-controlled. Never accepted from client input.
-  platformRole        PlatformRole    @default(USER)
+  platformRole            PlatformRole               @default(USER)
   /// Server-controlled. See AccountStatus.
-  status              AccountStatus   @default(ACTIVE)
+  status                  AccountStatus              @default(ACTIVE)
   /// Reason shown to the user for RESTRICTED / SUSPENDED / BANNED.
-  statusReason        String?
+  statusReason            String?
   /// When a SUSPENDED account is automatically reinstated.
-  statusUntil         DateTime?
-  statusChangedAt     DateTime?
+  statusUntil             DateTime?
+  statusChangedAt         DateTime?
   /// Better Auth two-factor plugin. Required for MODERATOR and ADMIN.
-  twoFactorEnabled    Boolean         @default(false)
-  twoFactors          TwoFactor[]
-  createdAt           DateTime        @default(now())
-  updatedAt           DateTime        @updatedAt
-  sessions            Session[]
-  accounts            Account[]
-  profile             Profile?
-  mediaAssets         MediaAsset[]
-  portfolioItems      PortfolioItem[]
-  posts               Post[]
-  postLikes           PostLike[]
-  comments            Comment[]
-  reports             Report[]
+  twoFactorEnabled        Boolean                    @default(false)
+  twoFactors              TwoFactor[]
+  createdAt               DateTime                   @default(now())
+  updatedAt               DateTime                   @updatedAt
+  sessions                Session[]
+  accounts                Account[]
+  profile                 Profile?
+  mediaAssets             MediaAsset[]
+  portfolioItems          PortfolioItem[]
+  posts                   Post[]
+  postLikes               PostLike[]
+  comments                Comment[]
+  reports                 Report[]
   /// People this user follows / people following this user.
-  following           Follow[]        @relation("Follower")
-  followers           Follow[]        @relation("Following")
-  sentConnections     Connection[]    @relation("ConnectionRequester")
-  receivedConnections Connection[]    @relation("ConnectionAddressee")
+  following               Follow[]                   @relation("Follower")
+  followers               Follow[]                   @relation("Following")
+  sentConnections         Connection[]               @relation("ConnectionRequester")
+  receivedConnections     Connection[]               @relation("ConnectionAddressee")
+  /// Organiser capability (D7): granted only by an ADMIN; also needs a verified email and
+  /// the PROFESSIONAL primary use. Server-controlled.
+  isOrganiser             Boolean                    @default(false)
+  organiserSince          DateTime?
+  opportunities           Opportunity[]              @relation("OpportunityOrganiser")
+  opportunityApplications OpportunityApplication[]
+  subscriptions           Subscription[]
+  promotions              Promotion[]
+  orders                  Order[]
+  notifications           Notification[]
+  blocksMade              UserBlock[]                @relation("BlocksMade")
+  blocksReceived          UserBlock[]                @relation("BlocksReceived")
+  notificationSettings    NotificationSetting[]
+  communitiesCreated      Community[]
+  communityMemberships    CommunityMember[]
+  discussions             Discussion[]
+  discussionComments      DiscussionComment[]
+  discussionReactions     DiscussionReaction[]
+  discussionFollows       DiscussionFollow[]
+  conversations           ConversationParticipant[]
+  messagesSent            Message[]
+  collabRequestsSent      CollaborationRequest[]     @relation("CollabSender")
+  collabRequestsReceived  CollaborationRequest[]     @relation("CollabRecipient")
+  collaborations          CollaborationParticipant[]
+  collaborationUpdates    CollaborationUpdate[]
+  competitionsOrganised   Competition[]
+  competitionEntries      CompetitionEntry[]
+  competitionJudging      CompetitionJudge[]
+  judgements              Judgement[]
+  competitionDisputes     CompetitionDispute[]
+  analyticsDaily          AnalyticsDaily[]
 
   @@map("user")
 }
@@ -222,6 +253,10 @@ model Profile {
   links                 ProfileLink[]
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
+  /// Paid benefit (Creator Plus / Pro). Shown only while the owner is entitled (checked at read time).
+  accent                ProfileAccent?
+  /// Who may start a new conversation with this member (MSG-001 privacy).
+  messagePolicy         MessagePolicy  @default(EVERYONE)
 
   // GIN indexes make "has any of these roles/genres" filters fast for discovery.
   @@index([roles], type: Gin)
@@ -259,6 +294,8 @@ enum MediaPurpose {
   COVER
   PORTFOLIO
   POST
+  COMMUNITY
+  COMPETITION
 }
 
 enum MediaStatus {
@@ -290,11 +327,14 @@ model MediaAsset {
   createdAt        DateTime     @default(now())
   readyAt          DateTime?
 
-  profileAvatar  Profile?       @relation("ProfileAvatar")
-  profileCover   Profile?       @relation("ProfileCover")
-  portfolioMedia PortfolioItem? @relation("PortfolioMedia")
-  portfolioCover PortfolioItem? @relation("PortfolioCover")
-  postMedia      PostMedia?
+  profileAvatar      Profile?           @relation("ProfileAvatar")
+  profileCover       Profile?           @relation("ProfileCover")
+  portfolioMedia     PortfolioItem?     @relation("PortfolioMedia")
+  portfolioCover     PortfolioItem?     @relation("PortfolioCover")
+  postMedia          PostMedia?
+  communityCovers    Community[]
+  competitionCovers  Competition[]
+  competitionEntries CompetitionEntry[]
 
   @@index([ownerId, status])
   @@index([status, createdAt])
@@ -451,6 +491,12 @@ enum ReportTargetType {
   COMMENT
   PORTFOLIO_ITEM
   PROFILE
+  COMMUNITY
+  DISCUSSION
+  DISCUSSION_COMMENT
+  COMPETITION
+  COMPETITION_ENTRY
+  MESSAGE
 }
 
 enum ReportReason {
@@ -580,4 +626,997 @@ model Connection {
   @@index([addresseeId, status])
   @@index([requesterId, status])
   @@map("connection")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Reliability infrastructure (M0, ADR 0003)
+// ─────────────────────────────────────────────────────────────
+
+enum IdempotencyStatus {
+  IN_PROGRESS
+  COMPLETED
+}
+
+/// One row per (user, Idempotency-Key) for unsafe-to-retry writes. A repeat with the same
+/// request replays the stored response; a different request with the same key is refused.
+/// Rows expire after 24 h and are swept.
+model IdempotencyKey {
+  id             String            @id @default(cuid(2))
+  userId         String
+  key            String
+  method         String
+  path           String
+  requestHash    String
+  status         IdempotencyStatus @default(IN_PROGRESS)
+  responseStatus Int?
+  responseBody   Json?
+  createdAt      DateTime          @default(now())
+  expiresAt      DateTime
+
+  @@unique([userId, key])
+  @@index([expiresAt])
+  @@map("idempotency_key")
+}
+
+enum OutboxStatus {
+  PENDING
+  PROCESSING
+  DONE
+  FAILED
+}
+
+/// Transactional outbox: written in the same transaction as the change it describes, then
+/// delivered by a worker with retries (notifications, emails, realtime fan-out).
+model OutboxEvent {
+  id          String       @id @default(cuid(2))
+  topic       String
+  payload     Json
+  status      OutboxStatus @default(PENDING)
+  attempts    Int          @default(0)
+  availableAt DateTime     @default(now())
+  lockedAt    DateTime?
+  lastError   String?
+  createdAt   DateTime     @default(now())
+  processedAt DateTime?
+
+  @@index([status, availableAt])
+  @@map("outbox_event")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Opportunities (FR-34..37)
+// ─────────────────────────────────────────────────────────────
+
+enum OpportunityType {
+  GIG
+  AUDITION
+  EVENT
+  JOB
+  COLLABORATION
+}
+
+enum OpportunityStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+}
+
+enum ApplicationStatus {
+  SUBMITTED
+  SHORTLISTED
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+model Opportunity {
+  id           String                   @id @default(cuid(2))
+  organiserId  String
+  organiser    User                     @relation("OpportunityOrganiser", fields: [organiserId], references: [id], onDelete: Cascade)
+  type         OpportunityType
+  title        String
+  description  String
+  requirements String?
+  location     String?
+  remote       Boolean                  @default(false)
+  deadline     DateTime
+  status       OpportunityStatus        @default(DRAFT)
+  publishedAt  DateTime?
+  closedAt     DateTime?
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+  applications OpportunityApplication[]
+
+  @@index([status, deadline])
+  @@index([organiserId])
+  @@map("opportunity")
+}
+
+/// One per (opportunity, applicant). Withdrawing keeps the row; re-applying before the deadline reopens it.
+model OpportunityApplication {
+  id            String            @id @default(cuid(2))
+  opportunityId String
+  opportunity   Opportunity       @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  applicantId   String
+  applicant     User              @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  message       String
+  status        ApplicationStatus @default(SUBMITTED)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@unique([opportunityId, applicantId])
+  @@index([applicantId])
+  @@map("opportunity_application")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Billing: catalogue and entitlements (Phase 2, ADR 0004). Orders/payments come in Phase 3.
+// ─────────────────────────────────────────────────────────────
+
+enum BillingProduct {
+  CREATOR_PLUS
+  PRO
+  POST_BOOST
+  PROFILE_SPOTLIGHT
+  /// Automated tests only (Phase 3). Allowed only on testOnly catalogue rows (CHECK), never in
+  /// the shared product list, so the admin API, seed and public catalogue can't reach it.
+  TEST_ITEM
+}
+
+enum CatalogueOption {
+  MONTHLY
+  ANNUAL
+  DAYS_3
+  DAYS_7
+  DAYS_14
+}
+
+/// Versioned price list: a change inserts a new row (never updates one). The row in force for a
+/// (product, option) is the latest with effectiveFrom <= now. Whole XAF only.
+model ServiceCatalogue {
+  id            String          @id @default(cuid(2))
+  product       BillingProduct
+  option        CatalogueOption
+  durationDays  Int
+  priceXaf      Int
+  /// Can be bought. Only products in SELLABLE_PRODUCTS (code) may be activated.
+  active        Boolean         @default(false)
+  effectiveFrom DateTime        @default(now())
+  updatedById   String?
+  reason        String?
+  /// Created only by test code (refused when NODE_ENV=production). CHECK: testOnly <=> TEST_ITEM.
+  testOnly      Boolean         @default(false)
+  createdAt     DateTime        @default(now())
+  orders        Order[]
+
+  @@unique([product, option, effectiveFrom])
+  @@index([product, option, effectiveFrom])
+  @@map("service_catalogue")
+}
+
+enum ProfileAccent {
+  LIME
+  GOLD
+  VIOLET
+  SKY
+  MINT
+}
+
+enum SubscriptionPlan {
+  CREATOR_PLUS
+  PRO
+}
+
+enum EntitlementStatus {
+  ACTIVE
+  CANCELLED
+  REFUNDED
+}
+
+/// One paid period. Entitlement = ACTIVE and periodStart <= now < periodEnd (computed at request time).
+model Subscription {
+  id          String            @id @default(cuid(2))
+  userId      String
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan        SubscriptionPlan
+  periodStart DateTime
+  periodEnd   DateTime
+  status      EntitlementStatus @default(ACTIVE)
+  /// The member cancelled: no renewal reminders. Benefits continue until periodEnd (prepaid).
+  cancelledAt DateTime?
+  createdAt   DateTime          @default(now())
+
+  @@index([userId, periodEnd])
+  @@map("subscription")
+}
+
+enum PromotionTarget {
+  POST
+  PROFILE
+}
+
+/// A paid placement period for one post (Post Boost) or one profile (Spotlight). Never overlaps:
+/// buying again extends from the current end.
+model Promotion {
+  id          String            @id @default(cuid(2))
+  userId      String
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product     BillingProduct
+  targetType  PromotionTarget
+  targetId    String
+  periodStart DateTime
+  periodEnd   DateTime
+  status      EntitlementStatus @default(ACTIVE)
+  /// Ended early by moderation or an admin (status CANCELLED), with the reason shown to the owner.
+  endedAt     DateTime?
+  endedReason String?
+  endedById   String?
+  createdAt   DateTime          @default(now())
+
+  @@index([targetType, targetId, periodEnd])
+  @@index([userId])
+  @@map("promotion")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Payments lifecycle (Phase 3, ADR 0004, docs/payments-state-machine.md)
+// ─────────────────────────────────────────────────────────────
+
+enum PaymentMode {
+  SANDBOX
+  LIVE
+}
+
+/// See docs/payments-state-machine.md for every allowed transition.
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  /// Payment verified with the provider; the benefit hasn't been granted yet (retried by the outbox).
+  FULFILMENT_PENDING
+  FULFILLED
+  FAILED
+  CANCELLED
+  EXPIRED
+  /// A payment we can't safely act on (late success, amount/currency mismatch, partial payment,
+  /// refund made outside MuzikHub). Never fulfilled automatically; an admin decides.
+  NEEDS_REVIEW
+  REFUNDED
+}
+
+/// One purchase attempt. Price, product and duration are snapshots taken at creation.
+model Order {
+  id                    String           @id @default(cuid(2))
+  /// Ours, sent to the provider: "mh_" + 128 random bits. No personal data.
+  reference             String           @unique
+  userId                String
+  user                  User             @relation(fields: [userId], references: [id], onDelete: Restrict)
+  mode                  PaymentMode
+  provider              String
+  catalogueId           String
+  catalogue             ServiceCatalogue @relation(fields: [catalogueId], references: [id], onDelete: Restrict)
+  product               BillingProduct
+  option                CatalogueOption
+  durationDays          Int
+  /// Promotions only: the post (Post Boost) or the buyer's own user id (Profile Spotlight).
+  targetId              String?
+  amountXaf             Int
+  currency              String           @default("XAF")
+  status                OrderStatus      @default(PENDING)
+  statusReason          String?
+  idempotencyKey        String
+  requestHash           String
+  checkoutUrl           String?
+  providerTransactionId String?
+  /// Database time at creation + our TTL (authoritative, independent of the provider's).
+  expiresAt             DateTime
+  paidAt                DateTime?
+  fulfilledAt           DateTime?
+  refundRequestedAt     DateTime?
+  refundedAt            DateTime?
+  refundReason          String?
+  refundedById          String?
+  /// Notch Pay keeps the original collection fee on refunds (Refunds → Limitations).
+  providerFeeRefunded   Boolean          @default(false)
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  events                OrderEvent[]
+  fulfilments           Fulfilment[]
+
+  @@unique([userId, idempotencyKey])
+  @@index([status, createdAt])
+  @@index([userId, status])
+  @@map("payment_order")
+}
+
+/// Append-only history of every status change (who/what caused it).
+model OrderEvent {
+  id         String       @id @default(cuid(2))
+  orderId    String
+  order      Order        @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  fromStatus OrderStatus?
+  toStatus   OrderStatus
+  trigger    String
+  actorId    String?
+  detail     String?
+  createdAt  DateTime     @default(now())
+
+  @@index([orderId, createdAt])
+  @@map("payment_order_event")
+}
+
+/// The benefit granted for an order. Unique per (order, fulfiller): a repeat does nothing.
+model Fulfilment {
+  id              String   @id @default(cuid(2))
+  orderId         String
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  fulfiller       String
+  /// "SUBSCRIPTION" | "PROMOTION" | null — the entitlement row a refund must mark REFUNDED.
+  entitlementType String?
+  entitlementId   String?
+  createdAt       DateTime @default(now())
+
+  @@unique([orderId, fulfiller])
+  @@map("payment_fulfilment")
+}
+
+/// Authenticated provider webhooks, kept for de-duplication and audit (no customer personal
+/// data, no raw body: only its SHA-256). Retention: 90 days (sweep in server.ts).
+model WebhookEvent {
+  id               String   @id @default(cuid(2))
+  provider         String
+  providerEventId  String
+  type             String
+  orderReference   String?
+  matchedOrder     Boolean
+  bodySha256       String
+  signatureVariant String?
+  receivedAt       DateTime @default(now())
+
+  @@unique([provider, providerEventId])
+  @@index([receivedAt])
+  @@map("payment_webhook_event")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Notifications (in-app). Created only from real events, server-side (CLAUDE.md §15).
+// ─────────────────────────────────────────────────────────────
+
+model Notification {
+  id        String    @id @default(cuid(2))
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// e.g. payment.succeeded, subscription.expiring, promotion.ended
+  type      String
+  title     String
+  body      String
+  /// In-app path to open (never an external URL).
+  link      String?
+  /// Makes "notify once" safe under retries (e.g. one expiry reminder per period).
+  dedupeKey String?   @unique
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+  @@map("notification")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Analytics: aggregated daily counters only (owner decision). No per-event rows are kept.
+// ─────────────────────────────────────────────────────────────
+
+enum AnalyticsEvent {
+  PROFILE_VIEW
+  PLAY
+  LINK_CLICK
+}
+
+enum AnalyticsSubject {
+  PROFILE
+  PORTFOLIO_ITEM
+  POST
+  PROFILE_LINK
+}
+
+/// One counter per owner, UTC day, event and subject. This is the only analytics data kept long-term.
+model AnalyticsDaily {
+  ownerId     String
+  owner       User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  day         DateTime         @db.Date
+  event       AnalyticsEvent
+  subjectType AnalyticsSubject
+  subjectId   String
+  count       Int              @default(0)
+
+  @@id([ownerId, day, event, subjectType, subjectId])
+  @@index([ownerId, day])
+  @@map("analytics_daily")
+}
+
+/// De-duplication only: "this viewer already counted for this subject today". viewerHash is an
+/// HMAC with a key that changes every day, so it can't be linked across days or reversed to a
+/// person. Rows older than 2 days are deleted (server.ts sweep).
+model AnalyticsSeen {
+  day        DateTime       @db.Date
+  event      AnalyticsEvent
+  subjectId  String
+  viewerHash String
+
+  @@id([day, event, subjectId, viewerHash])
+  @@map("analytics_seen")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Safety and preferences (platform milestone 1)
+// ─────────────────────────────────────────────────────────────
+
+/// A blocks B: B can't message, request collaboration, connect, follow or invite A (and vice versa
+/// for messaging). Enforced server-side in every interaction service (PROF-006, MSG-003).
+model UserBlock {
+  blockerId String
+  blocker   User     @relation("BlocksMade", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedId String
+  blocked   User     @relation("BlocksReceived", fields: [blockedId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([blockerId, blockedId])
+  @@index([blockedId])
+  @@map("user_block")
+}
+
+/// Per-category in-app notification preference (MSG-006). Missing row = on. Payment, plan and
+/// account-safety notices are not configurable.
+enum NotificationCategory {
+  MESSAGES
+  COMMUNITIES
+  COLLABORATION
+  COMPETITIONS
+  NETWORK
+  PROMOTIONS
+}
+
+model NotificationSetting {
+  userId   String
+  user     User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category NotificationCategory
+  inApp    Boolean              @default(true)
+
+  @@id([userId, category])
+  @@map("notification_setting")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Communities (FR-24–29): ongoing discussion, knowledge-sharing and mentorship around shared
+// interests. Scoped roles: community roles never grant platform powers (CLAUDE.md §11).
+// ─────────────────────────────────────────────────────────────
+
+enum CommunityCategory {
+  PRODUCTION
+  SONGWRITING
+  PERFORMANCE
+  ENGINEERING
+  BUSINESS
+  MARKETING
+  GENRE
+  LOCAL_SCENE
+  MENTORSHIP
+  OTHER
+}
+
+/// OPEN: anyone can read and join. REQUEST: listed; members approve joins; content members-only.
+/// INVITE: listed; join by invitation only; content members-only.
+enum CommunityPolicy {
+  OPEN
+  REQUEST
+  INVITE
+}
+
+enum CommunityRole {
+  OWNER
+  ADMIN
+  MODERATOR
+  MEMBER
+}
+
+enum MembershipStatus {
+  ACTIVE
+  PENDING
+  INVITED
+  BANNED
+}
+
+model Community {
+  id            String            @id @default(cuid(2))
+  slug          String            @unique
+  name          String
+  description   String
+  category      CommunityCategory
+  rules         String
+  policy        CommunityPolicy   @default(OPEN)
+  /// Genre keys (packages/shared GENRES) the community is about.
+  interests     String[]
+  coverAssetId  String?
+  coverAsset    MediaAsset?       @relation(fields: [coverAssetId], references: [id], onDelete: SetNull)
+  createdById   String
+  createdBy     User              @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  /// Set by platform staff only (no invented "featured" rankings).
+  featuredAt    DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  removedAt     DateTime?
+  removedById   String?
+  removalReason String?
+  members       CommunityMember[]
+  discussions   Discussion[]
+
+  @@index([category])
+  @@index([removedAt, createdAt])
+  @@map("community")
+}
+
+model CommunityMember {
+  communityId String
+  community   Community        @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        CommunityRole    @default(MEMBER)
+  status      MembershipStatus
+  /// Join-request note (REQUEST policy), shown to moderators.
+  requestNote String?
+  invitedById String?
+  joinedAt    DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@id([communityId, userId])
+  @@index([userId, status])
+  @@index([communityId, status, role])
+  @@map("community_member")
+}
+
+enum DiscussionKind {
+  DISCUSSION
+  QUESTION
+  GUIDE
+  MENTORSHIP
+  ANNOUNCEMENT
+}
+
+model Discussion {
+  id                String               @id @default(cuid(2))
+  communityId       String
+  community         Community            @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  authorId          String
+  author            User                 @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  kind              DiscussionKind       @default(DISCUSSION)
+  title             String
+  body              String
+  pinnedAt          DateTime?
+  lockedAt          DateTime?
+  /// QUESTION only: the reply the asker (or a moderator) marked as the answer.
+  acceptedCommentId String?
+  lastActivityAt    DateTime             @default(now())
+  createdAt         DateTime             @default(now())
+  editedAt          DateTime?
+  removedAt         DateTime?
+  removedById       String?
+  removalReason     String?
+  comments          DiscussionComment[]
+  reactions         DiscussionReaction[]
+  follows           DiscussionFollow[]
+
+  @@index([communityId, pinnedAt, lastActivityAt])
+  @@index([authorId])
+  @@map("discussion")
+}
+
+model DiscussionComment {
+  id            String              @id @default(cuid(2))
+  discussionId  String
+  discussion    Discussion          @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+  authorId      String
+  author        User                @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  /// One level of replies.
+  parentId      String?
+  parent        DiscussionComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies       DiscussionComment[] @relation("CommentReplies")
+  body          String
+  createdAt     DateTime            @default(now())
+  editedAt      DateTime?
+  removedAt     DateTime?
+  removedById   String?
+  removalReason String?
+
+  @@index([discussionId, createdAt])
+  @@map("discussion_comment")
+}
+
+/// "Helpful" — one per member per discussion.
+model DiscussionReaction {
+  discussionId String
+  discussion   Discussion @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@id([discussionId, userId])
+  @@map("discussion_reaction")
+}
+
+/// Members following a discussion get reply notifications (author and repliers follow automatically).
+model DiscussionFollow {
+  discussionId String
+  discussion   Discussion @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@id([discussionId, userId])
+  @@map("discussion_follow")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Direct messaging (FR-47–54, MSG-001–007). The database is the source of truth; Socket.IO only
+// pushes. Sends are idempotent on (sender, clientId), so retries never duplicate a message.
+// ─────────────────────────────────────────────────────────────
+
+enum MessagePolicy {
+  EVERYONE
+  /// Only accepted connections and people you follow can start a new conversation.
+  CONNECTIONS
+}
+
+model Conversation {
+  id            String                    @id @default(cuid(2))
+  /// One direct conversation per pair: "<smaller user id>:<larger user id>".
+  directKey     String                    @unique
+  createdAt     DateTime                  @default(now())
+  lastMessageAt DateTime                  @default(now())
+  participants  ConversationParticipant[]
+  messages      Message[]
+
+  @@index([lastMessageAt])
+  @@map("conversation")
+}
+
+model ConversationParticipant {
+  conversationId  String
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Everything up to this time has been read (read receipts).
+  lastReadAt      DateTime?
+  /// Everything up to this time reached one of this user's devices (delivery receipts).
+  lastDeliveredAt DateTime?
+  joinedAt        DateTime     @default(now())
+
+  @@id([conversationId, userId])
+  @@index([userId])
+  @@map("conversation_participant")
+}
+
+enum MessageKind {
+  TEXT
+  /// A system card about a collaboration request (links back to it).
+  COLLABORATION
+}
+
+model Message {
+  id                     String       @id @default(cuid(2))
+  conversationId         String
+  conversation           Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId               String
+  sender                 User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  /// Chosen by the sender's device; makes a retried send return the same message.
+  clientId               String
+  kind                   MessageKind  @default(TEXT)
+  body                   String
+  collaborationRequestId String?
+  createdAt              DateTime     @default(now())
+  removedAt              DateTime?
+  removedById            String?
+  removalReason          String?
+
+  @@unique([senderId, clientId])
+  @@index([conversationId, createdAt])
+  @@map("message")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Collaboration (FR-23, COL-001–008, UJ-06): structured requests → a lightweight shared record.
+// Not a DAW, file store, contract or payment split (COL-008).
+// ─────────────────────────────────────────────────────────────
+
+enum CollaborationType {
+  FEATURE
+  PRODUCTION
+  SONGWRITING
+  MIXING_MASTERING
+  PERFORMANCE
+  VIDEO
+  REMIX
+  OTHER
+}
+
+enum CollabRequestStatus {
+  PENDING
+  CLARIFICATION_REQUESTED
+  ACCEPTED
+  DECLINED
+  CANCELLED
+}
+
+model CollaborationRequest {
+  id                    String              @id @default(cuid(2))
+  senderId              String
+  sender                User                @relation("CollabSender", fields: [senderId], references: [id], onDelete: Cascade)
+  recipientId           String
+  recipient             User                @relation("CollabRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  type                  CollaborationType
+  title                 String
+  description           String
+  /// The contribution asked of the recipient, e.g. "Hook vocals".
+  role                  String
+  /// Up to 5 https links (references, demos).
+  references            String[]
+  deadline              DateTime?
+  status                CollabRequestStatus @default(PENDING)
+  clarificationQuestion String?
+  clarificationAnswer   String?
+  responseNote          String?
+  conversationId        String?
+  respondedAt           DateTime?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  collaboration         Collaboration?
+
+  @@index([recipientId, status])
+  @@index([senderId, status])
+  @@map("collaboration_request")
+}
+
+enum CollaborationStatus {
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+model Collaboration {
+  id             String                     @id @default(cuid(2))
+  requestId      String                     @unique
+  request        CollaborationRequest       @relation(fields: [requestId], references: [id], onDelete: Restrict)
+  title          String
+  summary        String
+  type           CollaborationType
+  status         CollaborationStatus        @default(ACTIVE)
+  dueAt          DateTime?
+  conversationId String?
+  startedAt      DateTime                   @default(now())
+  closedAt       DateTime?
+  updatedAt      DateTime                   @updatedAt
+  participants   CollaborationParticipant[]
+  updates        CollaborationUpdate[]
+
+  @@map("collaboration")
+}
+
+model CollaborationParticipant {
+  collaborationId String
+  collaboration   Collaboration @relation(fields: [collaborationId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// What this person contributes.
+  role            String
+
+  @@id([collaborationId, userId])
+  @@index([userId])
+  @@map("collaboration_participant")
+}
+
+enum CollaborationUpdateKind {
+  STATUS
+  NOTE
+}
+
+model CollaborationUpdate {
+  id              String                  @id @default(cuid(2))
+  collaborationId String
+  collaboration   Collaboration           @relation(fields: [collaborationId], references: [id], onDelete: Cascade)
+  authorId        String
+  author          User                    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  kind            CollaborationUpdateKind
+  status          CollaborationStatus?
+  body            String
+  createdAt       DateTime                @default(now())
+
+  @@index([collaborationId, createdAt])
+  @@map("collaboration_update")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Competitions (FR-30–33, COMP-001–009, UJ-07). Run by admin-approved organisers (D7).
+// Dates are compared with database time. Rules are versioned; entries record the version accepted.
+// ─────────────────────────────────────────────────────────────
+
+enum CompetitionCategory {
+  SONGWRITING
+  PRODUCTION
+  VOCALS
+  PERFORMANCE
+  DJ
+  REMIX
+  VIDEO
+  OTHER
+}
+
+enum CompetitionStatus {
+  DRAFT
+  PUBLISHED
+  RESULTS_PUBLISHED
+  CANCELLED
+}
+
+enum EntryFormat {
+  AUDIO
+  VIDEO
+  IMAGE
+  LINK
+}
+
+model Competition {
+  id                 String               @id @default(cuid(2))
+  slug               String               @unique
+  organiserId        String
+  organiser          User                 @relation(fields: [organiserId], references: [id], onDelete: Restrict)
+  title              String
+  description        String
+  category           CompetitionCategory
+  coverAssetId       String?
+  coverAsset         MediaAsset?          @relation(fields: [coverAssetId], references: [id], onDelete: SetNull)
+  eligibility        String
+  prize              String
+  /// How many places are awarded (1–10).
+  prizePlaces        Int                  @default(3)
+  judgingMethod      String
+  disqualification   String
+  disputeProcess     String
+  formats            EntryFormat[]
+  /// [{ "name": "Originality", "weight": 40 }, …] — weights add up to 100.
+  criteria           Json
+  opensAt            DateTime
+  closesAt           DateTime
+  /// COMP-006: a recorded, authorised extension replaces closesAt for entries.
+  extendedUntil      DateTime?
+  extensionReason    String?
+  status             CompetitionStatus    @default(DRAFT)
+  rulesVersion       Int                  @default(1)
+  publishedAt        DateTime?
+  resultsPublishedAt DateTime?
+  cancelledAt        DateTime?
+  cancelReason       String?
+  featuredAt         DateTime?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  removedAt          DateTime?
+  removedById        String?
+  removalReason      String?
+  rules              CompetitionRules[]
+  entries            CompetitionEntry[]
+  judges             CompetitionJudge[]
+  results            CompetitionResult[]
+  disputes           CompetitionDispute[]
+
+  @@index([status, closesAt])
+  @@map("competition")
+}
+
+model CompetitionRules {
+  competitionId String
+  competition   Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  version       Int
+  rules         String
+  createdAt     DateTime    @default(now())
+
+  @@id([competitionId, version])
+  @@map("competition_rules")
+}
+
+enum EntryStatus {
+  SUBMITTED
+  WITHDRAWN
+  DISQUALIFIED
+}
+
+model CompetitionEntry {
+  id                 String             @id @default(cuid(2))
+  competitionId      String
+  competition        Competition        @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  participantId      String
+  participant        User               @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  title              String
+  description        String?
+  mediaAssetId       String?
+  mediaAsset         MediaAsset?        @relation(fields: [mediaAssetId], references: [id], onDelete: SetNull)
+  externalUrl        String?
+  /// COMP-004: the rules version the participant accepted.
+  rulesVersion       Int
+  status             EntryStatus        @default(SUBMITTED)
+  disqualifiedReason String?
+  submittedAt        DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  removedAt          DateTime?
+  removedById        String?
+  removalReason      String?
+  judgements         Judgement[]
+  result             CompetitionResult?
+
+  @@unique([competitionId, participantId])
+  @@map("competition_entry")
+}
+
+model CompetitionJudge {
+  competitionId String
+  competition   Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignedAt    DateTime    @default(now())
+
+  @@id([competitionId, userId])
+  @@index([userId])
+  @@map("competition_judge")
+}
+
+model Judgement {
+  id        String           @id @default(cuid(2))
+  entryId   String
+  entry     CompetitionEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  judgeId   String
+  judge     User             @relation(fields: [judgeId], references: [id], onDelete: Cascade)
+  /// { "<criterion name>": 0–10 }
+  scores    Json
+  /// Weighted total, 0–100.
+  total     Float
+  feedback  String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@unique([entryId, judgeId])
+  @@map("judgement")
+}
+
+model CompetitionResult {
+  competitionId String
+  competition   Competition      @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  entryId       String           @unique
+  entry         CompetitionEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  placement     Int
+  averageScore  Float
+
+  @@id([competitionId, placement])
+  @@map("competition_result")
+}
+
+enum DisputeStatus {
+  OPEN
+  UPHELD
+  REJECTED
+}
+
+model CompetitionDispute {
+  id            String        @id @default(cuid(2))
+  competitionId String
+  competition   Competition   @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reason        String
+  status        DisputeStatus @default(OPEN)
+  resolution    String?
+  resolvedById  String?
+  createdAt     DateTime      @default(now())
+  resolvedAt    DateTime?
+
+  @@unique([competitionId, userId])
+  @@index([status, createdAt])
+  @@map("competition_dispute")
 }

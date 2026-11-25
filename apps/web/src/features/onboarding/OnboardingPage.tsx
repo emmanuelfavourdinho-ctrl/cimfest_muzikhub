@@ -93,9 +93,9 @@ function OnboardingFlow({ me }: { me: Me }) {
 
   return (
     <div className="flex min-h-svh flex-col">
-      <header className="flex h-[59px] items-center justify-between border-b border-[#214639] px-4 sm:h-[66px] sm:px-8">
+      <header className="flex h-14.75 items-center justify-between border-b border-hairline-strong px-4 sm:h-16.5 sm:px-8">
         <BrandMark to="/home" />
-        <Link to="/home" className="rounded-lg px-2 py-2 text-xs font-semibold text-sage hover:text-foreground">
+        <Link to="/home" className="rounded-lg px-2 py-2 text-xs font-semibold text-text-2 hover:text-foreground">
           Finish later
         </Link>
       </header>
@@ -105,24 +105,59 @@ function OnboardingFlow({ me }: { me: Me }) {
         <Panel className="mt-5 p-5 sm:p-7">
           <FormError message={error} />
           {step === 'roles' && (
-            <StepIntro eyebrow="Your professional identity" title="What do you do in music?" description="Pick everything that fits — many people are, say, both a producer and an engineer.">
-              <RolePicker label="Professional roles" value={roles} onChange={setRoles} max={6} suggested={SUGGESTED_ROLES[me.profile.primaryUse ?? 'CREATOR']} />
+            <StepIntro
+              eyebrow="Your professional identity"
+              title="What do you do in music?"
+              description="Pick everything that fits — many people are, say, both a producer and an engineer."
+            >
+              <RolePicker
+                label="Professional roles"
+                value={roles}
+                onChange={setRoles}
+                max={6}
+                suggested={SUGGESTED_ROLES[me.profile.primaryUse ?? 'CREATOR']}
+              />
             </StepIntro>
           )}
           {step === 'genres' && (
-            <StepIntro eyebrow="Your sound" title="Which genres are you into?" description="This shapes what you discover and who discovers you.">
+            <StepIntro
+              eyebrow="Your sound"
+              title="Which genres are you into?"
+              description="This shapes what you discover and who discovers you."
+            >
               <GenrePicker label="Genres" value={genres} onChange={setGenres} max={8} />
               <h3 className="mt-7 mb-3 text-sm font-bold">What brings you to MuzikHub?</h3>
               <GoalPicker label="Goals" value={goals} onChange={setGoals} max={7} />
             </StepIntro>
           )}
           {step === 'about' && (
-            <StepIntro eyebrow="About you" title="Introduce yourself" description="A few lines help people understand your work and what you're looking for.">
+            <StepIntro
+              eyebrow="About you"
+              title="Introduce yourself"
+              description="A few lines help people understand your work and what you're looking for."
+            >
               <Field label="Short bio" hint={`${bio.length}/${BIO_MAX}`}>
-                {(a) => <Textarea {...a} value={bio} maxLength={BIO_MAX} onChange={(e) => setBio(e.target.value)} placeholder="e.g. Afro-fusion artist from Douala. Looking for producers for my next EP." />}
+                {(a) => (
+                  <Textarea
+                    {...a}
+                    value={bio}
+                    maxLength={BIO_MAX}
+                    onChange={(e) => setBio(e.target.value)}
+                    placeholder="e.g. Afro-fusion artist from Douala. Looking for producers for my next EP."
+                  />
+                )}
               </Field>
               <Field label="Location">
-                {(a) => <Input {...a} value={location} maxLength={80} onChange={(e) => setLocation(e.target.value)} placeholder="City, Country" autoComplete="address-level2" />}
+                {(a) => (
+                  <Input
+                    {...a}
+                    value={location}
+                    maxLength={80}
+                    onChange={(e) => setLocation(e.target.value)}
+                    placeholder="City, Country"
+                    autoComplete="address-level2"
+                  />
+                )}
               </Field>
               {me.profile.primaryUse !== 'FAN' && (
                 <Field label="Career stage">
@@ -130,7 +165,9 @@ function OnboardingFlow({ me }: { me: Me }) {
                     <Select {...a} value={careerStage} onChange={(e) => setCareerStage(e.target.value as CareerStage | '')}>
                       <option value="">Prefer not to say</option>
                       {CAREER_STAGE_KEYS.map((k) => (
-                        <option key={k} value={k}>{CAREER_STAGES[k]}</option>
+                        <option key={k} value={k}>
+                          {CAREER_STAGES[k]}
+                        </option>
                       ))}
                     </Select>
                   )}
@@ -139,12 +176,16 @@ function OnboardingFlow({ me }: { me: Me }) {
             </StepIntro>
           )}
           {step === 'links' && (
-            <StepIntro eyebrow="Your music elsewhere" title="Where can people hear your work?" description="Add your Spotify, YouTube, SoundCloud, Instagram or website. They appear as recognisable icons on your profile.">
+            <StepIntro
+              eyebrow="Your music elsewhere"
+              title="Where can people hear your work?"
+              description="Add your Spotify, YouTube, SoundCloud, Instagram or website. They appear as recognisable icons on your profile."
+            >
               <LinksEditor initial={me.profile.links} submitLabel="Save & finish" onSaved={() => void advance({})} />
             </StepIntro>
           )}
 
-          <div className="mt-7 flex items-center justify-between gap-3 border-t border-line pt-5">
+          <div className="mt-7 flex items-center justify-between gap-3 border-t border-hairline-strong pt-5">
             <Button variant="quiet" size="sm" onClick={() => setIndex(index - 1)} disabled={index === 0 || busy}>
               <ArrowLeft /> Back
             </Button>
@@ -169,27 +210,44 @@ function OnboardingFlow({ me }: { me: Me }) {
 function Progress({ current, total }: { current: number; total: number }) {
   return (
     <div>
-      <div className="mb-2 flex justify-between text-xs font-semibold text-sage">
+      <div className="mb-2 flex justify-between text-xs font-semibold text-text-2">
         <span>Set up your profile</span>
         <span>
           Step {current + 1} of {total}
         </span>
       </div>
-      <div className="flex gap-1.5" role="progressbar" aria-valuemin={1} aria-valuemax={total} aria-valuenow={current + 1} aria-label="Profile setup progress">
+      <div
+        className="flex gap-1.5"
+        role="progressbar"
+        aria-valuemin={1}
+        aria-valuemax={total}
+        aria-valuenow={current + 1}
+        aria-label="Profile setup progress"
+      >
         {Array.from({ length: total }, (_, i) => (
-          <span key={i} className={`h-1.5 flex-1 rounded-full ${i <= current ? 'bg-emerald' : 'bg-forest-700'}`} />
+          <span key={i} className={`h-1.5 flex-1 rounded-full ${i <= current ? 'bg-signal' : 'bg-surface-chip'}`} />
         ))}
       </div>
     </div>
   );
 }
 
-function StepIntro({ eyebrow, title, description, children }: { eyebrow: string; title: string; description: string; children: ReactNode }) {
+function StepIntro({
+  eyebrow,
+  title,
+  description,
+  children,
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+  children: ReactNode;
+}) {
   return (
     <div>
       <Eyebrow>{eyebrow}</Eyebrow>
-      <h1 className="mt-2 text-2xl font-bold sm:text-[27px]">{title}</h1>
-      <p className="mt-1 mb-6 text-sm text-sage">{description}</p>
+      <h1 className="mt-2 text-2xl font-bold sm:text-2xl">{title}</h1>
+      <p className="mt-1 mb-6 text-sm text-text-2">{description}</p>
       {children}
     </div>
   );

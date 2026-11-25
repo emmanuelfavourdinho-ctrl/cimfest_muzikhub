@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { adminContentQuerySchema, ROLE_RANK, type ModerationTarget, type PlatformRole } from '@muzikhub/shared';
+import { endPromotionsForTarget } from '../promotions/promotions.service.js';
+import { moderationHandler, type Removable as RegisteredRemovable } from './moderation-registry.js';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { writeAudit } from '../../lib/audit.js';
 import { HttpError } from '../../lib/http-error.js';
@@ -22,39 +24,62 @@ async function assertOwnerBelow(staff: StaffContext, ownerId: string) {
   }
 }
 
-interface Removable {
-  ownerId: string;
-  removedAt: Date | null;
-  removalReason: string | null;
-  summary: Record<string, unknown>;
-}
+type Removable = RegisteredRemovable;
 
 async function loadRemovable(type: ModerationTarget, id: string): Promise<Removable | null> {
   switch (type) {
     case 'post': {
-      const p = await prisma.post.findUnique({ where: { id }, select: { authorId: true, removedAt: true, removalReason: true, body: true, type: true } });
-      return p && { ownerId: p.authorId, removedAt: p.removedAt, removalReason: p.removalReason, summary: { postType: p.type, excerpt: excerpt(p.body) } };
+      const p = await prisma.post.findUnique({
+        where: { id },
+        select: { authorId: true, removedAt: true, removalReason: true, body: true, type: true },
+      });
+      return (
+        p && {
+          ownerId: p.authorId,
+          removedAt: p.removedAt,
+          removalReason: p.removalReason,
+          summary: { postType: p.type, excerpt: excerpt(p.body) },
+        }
+      );
     }
     case 'comment': {
-      const c = await prisma.comment.findUnique({ where: { id }, select: { authorId: true, removedAt: true, removalReason: true, body: true, postId: true } });
-      return c && { ownerId: c.authorId, removedAt: c.removedAt, removalReason: c.removalReason, summary: { postId: c.postId, excerpt: excerpt(c.body) } };
+      const c = await prisma.comment.findUnique({
+        where: { id },
+        select: { authorId: true, removedAt: true, removalReason: true, body: true, postId: true },
+      });
+      return (
+        c && {
+          ownerId: c.authorId,
+          removedAt: c.removedAt,
+          removalReason: c.removalReason,
+          summary: { postId: c.postId, excerpt: excerpt(c.body) },
+        }
+      );
     }
     case 'portfolio-item': {
-      const i = await prisma.portfolioItem.findUnique({ where: { id }, select: { ownerId: true, removedAt: true, removalReason: true, title: true, type: true } });
-      return i && { ownerId: i.ownerId, removedAt: i.removedAt, removalReason: i.removalReason, summary: { title: i.title, workType: i.type } };
+      const i = await prisma.portfolioItem.findUnique({
+        where: { id },
+        select: { ownerId: true, removedAt: true, removalReason: true, title: true, type: true },
+      });
+      return (
+        i && { ownerId: i.ownerId, removedAt: i.removedAt, removalReason: i.removalReason, summary: { title: i.title, workType: i.type } }
+      );
     }
     default:
-      return null;
+      return (await moderationHandler(type)?.load(id)) ?? null;
   }
 }
 
 const removalData = (staff: StaffContext, reason: string | null, removed: boolean) =>
-  removed ? { removedAt: new Date(), removedById: staff.id, removalReason: reason } : { removedAt: null, removedById: null, removalReason: null };
+  removed
+    ? { removedAt: new Date(), removedById: staff.id, removalReason: reason }
+    : { removedAt: null, removedById: null, removalReason: null };
 
 async function applyRemoval(tx: Prisma.TransactionClient, type: ModerationTarget, id: string, data: ReturnType<typeof removalData>) {
   if (type === 'post') await tx.post.update({ where: { id }, data });
   else if (type === 'comment') await tx.comment.update({ where: { id }, data });
   else if (type === 'portfolio-item') await tx.portfolioItem.update({ where: { id }, data });
+  else await moderationHandler(type)?.apply(tx, id, data);
 }
 
 /**
@@ -67,7 +92,10 @@ export async function removeContent(staff: StaffContext, type: ModerationTarget,
 
   if (type === 'profile-avatar' || type === 'profile-cover') {
     const field = type === 'profile-avatar' ? 'avatarAssetId' : 'coverAssetId';
-    const profile = await prisma.profile.findUnique({ where: { userId: id }, select: { avatarAssetId: true, coverAssetId: true, avatarAsset: true, coverAsset: true } });
+    const profile = await prisma.profile.findUnique({
+      where: { userId: id },
+      select: { avatarAssetId: true, coverAssetId: true, avatarAsset: true, coverAsset: true },
+    });
     const assetId = profile?.[field];
     if (!profile || !assetId) throw new HttpError(404, 'CONTENT_NOT_FOUND', 'There is no image to remove');
     await assertOwnerBelow(staff, id);
@@ -93,6 +121,8 @@ export async function removeContent(staff: StaffContext, type: ModerationTarget,
   await assertOwnerBelow(staff, item.ownerId);
   await prisma.$transaction(async (tx) => {
     await applyRemoval(tx, type, id, removalData(staff, reason, true));
+    // A removed post loses any paid promotion immediately (the owner is told why).
+    if (type === 'post') await endPromotionsForTarget(tx, 'POST', id, 'The post was removed by moderation', staff.id);
     await writeAudit(tx, {
       actor: actorOf(staff),
       action: 'content.remove',
@@ -139,7 +169,11 @@ export async function listContent(staff: StaffContext, query: ContentQuery) {
     const page = await paginate(query, (args) =>
       prisma.post.findMany({
         where: { ...removed, ...(q && { body: q }) },
-        include: { author: { select: personSelect }, media: { include: { asset: true }, orderBy: { position: 'asc' }, take: 1 }, portfolioItem: { select: { title: true } } },
+        include: {
+          author: { select: personSelect },
+          media: { include: { asset: true }, orderBy: { position: 'asc' }, take: 1 },
+          portfolioItem: { select: { title: true } },
+        },
         orderBy: order,
         ...args,
       }),
@@ -159,7 +193,12 @@ export async function listContent(staff: StaffContext, query: ContentQuery) {
   }
   if (query.type === 'comment') {
     const page = await paginate(query, (args) =>
-      prisma.comment.findMany({ where: { ...removed, ...(q && { body: q }) }, include: { author: { select: personSelect } }, orderBy: order, ...args }),
+      prisma.comment.findMany({
+        where: { ...removed, ...(q && { body: q }) },
+        include: { author: { select: personSelect } },
+        orderBy: order,
+        ...args,
+      }),
     );
     return withReportCounts('COMMENT', page, (c) => ({
       id: c.id,
@@ -172,6 +211,55 @@ export async function listContent(staff: StaffContext, query: ContentQuery) {
       removedAt: c.removedAt?.toISOString() ?? null,
       removalReason: c.removalReason,
       link: `/p/${c.postId}`,
+    }));
+  }
+  if (query.type === 'community') {
+    const page = await paginate(query, (args) =>
+      prisma.community.findMany({
+        where: { ...removed, ...(q && { OR: [{ name: q }, { description: q }] }) },
+        include: {
+          coverAsset: true,
+          members: { where: { role: 'OWNER' }, take: 1, include: { user: { select: personSelect } } },
+          createdBy: { select: personSelect },
+        },
+        orderBy: order,
+        ...args,
+      }),
+    );
+    return withReportCounts('COMMUNITY', page, (c) => ({
+      id: c.id,
+      kind: 'community' as const,
+      title: c.name,
+      excerpt: excerpt(c.description),
+      author: toPerson(c.members[0]?.user ?? c.createdBy),
+      thumbnail: c.coverAsset ? (toMediaView(c.coverAsset).urls.small ?? null) : null,
+      createdAt: c.createdAt.toISOString(),
+      removedAt: c.removedAt?.toISOString() ?? null,
+      removalReason: c.removalReason,
+      link: `/communities/${c.slug}`,
+    }));
+  }
+  if (query.type === 'competition') {
+    const page = await paginate(query, (args) =>
+      prisma.competition.findMany({
+        // Drafts are private to their organiser; oversight covers what members can see.
+        where: { ...removed, status: { not: 'DRAFT' }, ...(q && { OR: [{ title: q }, { description: q }] }) },
+        include: { coverAsset: true, organiser: { select: personSelect } },
+        orderBy: order,
+        ...args,
+      }),
+    );
+    return withReportCounts('COMPETITION', page, (c) => ({
+      id: c.id,
+      kind: 'competition' as const,
+      title: c.title,
+      excerpt: excerpt(c.description),
+      author: toPerson(c.organiser),
+      thumbnail: c.coverAsset ? (toMediaView(c.coverAsset).urls.small ?? null) : null,
+      createdAt: c.createdAt.toISOString(),
+      removedAt: c.removedAt?.toISOString() ?? null,
+      removalReason: c.removalReason,
+      link: `/competitions/${c.slug}`,
     }));
   }
   const page = await paginate(query, (args) =>
@@ -200,7 +288,7 @@ export async function listContent(staff: StaffContext, query: ContentQuery) {
 }
 
 async function withReportCounts<T extends { id: string }, U extends { id: string }>(
-  targetType: 'POST' | 'COMMENT' | 'PORTFOLIO_ITEM',
+  targetType: 'POST' | 'COMMENT' | 'PORTFOLIO_ITEM' | 'COMMUNITY' | 'COMPETITION',
   page: { items: T[]; nextCursor: string | null },
   map: (row: T) => U,
 ) {

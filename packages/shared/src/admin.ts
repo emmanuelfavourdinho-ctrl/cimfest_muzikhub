@@ -34,6 +34,16 @@ export const PERMISSIONS = {
   'roles.assign': ['ADMIN'],
   'staff.resetTwoFactor': ['ADMIN'],
   'audit.view': ['ADMIN'],
+  /** Grant or revoke the organiser capability (D7: opportunities, competitions). */
+  'organisers.grant': ['ADMIN'],
+  /** Edit catalogue prices and availability (audited; new orders only). */
+  'pricing.manage': ['ADMIN'],
+  /** Read any member's subscriptions, promotions (and later orders). FINANCE_ADMIN later. */
+  'billing.view': ['ADMIN'],
+  'payments.refund': ['ADMIN'],
+  'payments.repair': ['ADMIN'],
+  /** D9: competition disputes are decided by an admin. */
+  'competitions.disputes': ['ADMIN'],
 } as const satisfies Record<string, readonly PlatformRole[]>;
 export type Permission = keyof typeof PERMISSIONS;
 
@@ -64,7 +74,8 @@ export const setAccountStatusSchema = z
   .superRefine((v, ctx) => {
     if (v.status === 'SUSPENDED') {
       if (!v.until) ctx.addIssue({ code: 'custom', path: ['until'], message: 'A suspension needs an end date' });
-      else if (new Date(v.until) <= new Date()) ctx.addIssue({ code: 'custom', path: ['until'], message: 'The end date must be in the future' });
+      else if (new Date(v.until) <= new Date())
+        ctx.addIssue({ code: 'custom', path: ['until'], message: 'The end date must be in the future' });
     } else if (v.until) {
       ctx.addIssue({ code: 'custom', path: ['until'], message: 'Only suspensions have an end date' });
     }
@@ -74,11 +85,21 @@ export type SetAccountStatusInput = z.infer<typeof setAccountStatusSchema>;
 export const setRoleSchema = z.object({ role: z.enum(PLATFORM_ROLES), reason: reasonSchema }).strict();
 export const reasonOnlySchema = z.object({ reason: reasonSchema }).strict();
 
-export const MODERATION_TARGETS = ['post', 'comment', 'portfolio-item', 'profile-avatar', 'profile-cover'] as const;
+export const MODERATION_TARGETS = [
+  'post',
+  'comment',
+  'portfolio-item',
+  'profile-avatar',
+  'profile-cover',
+  'community',
+  'discussion',
+  'discussion-comment',
+  'competition',
+  'competition-entry',
+  'message',
+] as const;
 export type ModerationTarget = (typeof MODERATION_TARGETS)[number];
-export const moderationActionSchema = z
-  .object({ reason: reasonSchema, reportId: z.string().min(1).optional() })
-  .strict();
+export const moderationActionSchema = z.object({ reason: reasonSchema, reportId: z.string().min(1).optional() }).strict();
 
 export const reportNoteSchema = z.object({ body: z.string().trim().min(1, 'Write a note').max(2000) }).strict();
 export const resolveReportSchema = z
@@ -106,7 +127,7 @@ export const adminReportsQuerySchema = pageQuerySchema.extend({
   escalated: z.enum(['true', 'false']).optional(),
 });
 export const adminContentQuerySchema = pageQuerySchema.extend({
-  type: z.enum(['post', 'comment', 'portfolio-item']).default('post'),
+  type: z.enum(['post', 'comment', 'portfolio-item', 'community', 'competition']).default('post'),
   state: z.enum(['visible', 'removed']).default('visible'),
   q: z.string().trim().max(80).optional(),
 });

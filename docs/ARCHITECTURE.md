@@ -95,7 +95,7 @@ server.ts             Starts listening; graceful shutdown
 Better Auth hook (sendResetPassword / sendVerificationEmail)
   → email-templates.ts   (escaped HTML + plain text)
   → mailer.sendEmail     (per-recipient limit: 3 per kind per hour)
-  → transport            capture (tests) | console (dev) | resend (production)
+  → transport            capture (tests) | console (dev) | resend (production) | disabled (restricted-email mode)
 ```
 
 - **One mailer**, three transports chosen by `EMAIL_TRANSPORT` (defaults: test → capture, development → console, production → resend). In development you can opt in with `EMAIL_TRANSPORT=resend`, which requires `RESEND_API_KEY` and `EMAIL_FROM`.
@@ -106,6 +106,19 @@ Better Auth hook (sendResetPassword / sendVerificationEmail)
 - **Tokens (Better Auth, unchanged):** reset tokens are single-use (atomically consumed) and expire after 1 hour; reset revokes other sessions. Verification tokens are signed JWTs that expire after 1 hour; reuse within that hour is harmless.
 - **Verification return flow:** the server rewrites the link's `callbackURL` to `WEB_APP_URL/email-verified`, so it always lands in the web app (`?error=…` for invalid or expired links). The web app shows a banner with a **Resend** action (60-second cooldown) to unverified users.
 - **Limits:** the per-recipient limit is in memory, which is fine for one API instance; move it to the database or Redis if the API scales out. Better Auth's per-IP limits also apply.
+
+### Restricted-email mode (2026-11-25)
+
+There's no custom domain yet, so Resend can't send to real users. The API can run in an explicitly enabled **restricted-email mode** instead of pretending.
+
+- **Enable:** `EMAIL_TRANSPORT=disabled`. In production this also needs `ALLOW_EMAIL_DISABLED_IN_PRODUCTION=true`; without it the API refuses to start. `RESEND_API_KEY` and `EMAIL_FROM` aren't needed in this mode. Startup also refuses `REQUIRE_EMAIL_VERIFICATION=true` with `disabled` (nobody could ever verify), and the opt-in flag set while email *isn't* disabled (contradictory). Production still defaults to `resend`; `disabled` is never a default. The API logs `email: DISABLED (restricted-email mode)` at startup.
+- **Transport:** `disabledTransport` throws `EmailUnavailableError` (`code: 'EMAIL_UNAVAILABLE'`) on every send; nothing is dropped silently. `emailAvailable()` is the single switch the rest of the code reads.
+- **Better Auth:** sign-up sends nothing (`sendOnSignUp` is off, and the callback is guarded). `POST /api/auth/request-password-reset` and `POST /api/auth/send-verification-email` return **503 `{ code: "EMAIL_UNAVAILABLE" }`** from a before-hook, i.e. before any account lookup, so the response is identical for every address. No reset tokens are created. Links that were really delivered earlier still work (`/reset-password`, `/verify-email`); they can't be created now. Sign-in, sessions, two-factor (TOTP), CSRF checks and permissions are untouched. Other email flows (change email, delete account, two-factor codes by email) aren't enabled in this app.
+- **Capabilities:** `GET /api/v1/capabilities` → `{ email: { available, unavailableFeatures } }` (shared `capabilitiesSchema`; public; no values or provider names). The web app reads it through `useEmailCapability()`; while it's loading or if it fails, the state is `unknown` and is **never** treated as available.
+- **Web app in this mode:** forgot-password and reset pages explain that reset is unavailable (no form, no "we sent a link", no "request a new link"); registration tells people to keep their password safe; the unconfirmed-email banner says confirmation isn't available and has no Resend button; organiser and admin screens say why a confirmed email can't be met.
+- **Unavailable until a verified sender exists:** password reset; email confirmation; everything gated on a confirmed email: organiser access (posting opportunities, running competitions), staff roles and the first-administrator bootstrap (`admin:grant-initial` requires a verified email). No route grants these another way.
+- **Switching Resend back on:** verify a sending domain in Resend, set `EMAIL_TRANSPORT=resend` (or remove it: production defaults to `resend`), `RESEND_API_KEY`, `EMAIL_FROM`, remove `ALLOW_EMAIL_DISABLED_IN_PRODUCTION`, restart. The capability flips to available and every screen returns to the normal flow; no code changes.
+- **Another provider later:** implement `EmailTransport` (`send(message)`), add its name to `EMAIL_TRANSPORT` and `defaultTransport()`, and add its startup checks to `emailConfigProblems`.
 
 **Current state of the Resend account (checked 2026-11-24):** the API key is valid, and **0 sending domains** are configured. Until a domain is verified, production email cannot go to real recipients. The opt-in live test uses Resend's documented test sender with the `delivered@resend.dev` sink.
 
@@ -143,6 +156,49 @@ Free plan (resend.com/pricing, checked 2026-11-24): 100 emails per day, 3,000 pe
 
 **Deferred.** `FINANCE_ADMIN` and finance views (with payments); announcements (a disabled "Pending" nav entry); community, competition and opportunity oversight (with those pillars). The overview lists these as pending rather than showing placeholder numbers.
 
+## 5f. Foundation (M0, 2026-11-24)
+
+**Request pipeline for `/api/v1`:**
+1. Helmet, CORS (allow-list).
+2. `express.json` (1 MB).
+3. **`originCheck`** (CSRF): for unsafe methods, an `Origin` must be in `CORS_ORIGINS`, else `Sec-Fetch-Site` must be same-origin or none; otherwise `403 CROSS_ORIGIN_REJECTED`. This layers on top of SameSite=Lax cookies.
+4. Per route: `requireAuth` → **rate limit** → `requireFullAccess` → `requireVerifiedEmail` (when the flag is on) → `validateBody` → **`idempotent()`** → handler.
+
+**Errors:** RFC 9457 problem details (`application/problem+json`): `type` (stable URN), `title`, `status`, `detail`, `code`, `instance`, `errors`. See `lib/problem.ts`, `problemSchema` in shared, and `docs/migrations/2026-11-rfc9457-errors.md`.
+
+**Rate limits** (`lib/rate-limit.ts`; per user, in memory, 429 + `Retry-After`):
+
+| Class | Limit | Routes |
+|---|---|---|
+| content-write | 20/min and 200/h | create/edit post, comment, create/edit/publish portfolio |
+| reaction | 60/min | like/unlike, follow/unfollow |
+| connection-request | 30/h | send connection request |
+| report | 20/h | report content |
+| upload | 60/h | start upload |
+| admin-read / admin-write | 240/min / 60/min | Admin Console |
+
+Better Auth limits sign-in, sign-up and reset separately.
+
+**Passwords:** scrypt N=2^17, r=8, p=1 in `$scrypt$…` format, with rehash-on-sign-in of Better Auth's older hashes and at most 2 concurrent hashes. See `lib/password.ts` and ADR 0001.
+
+**Email verification flag:** `REQUIRE_EMAIL_VERIFICATION` (default false). When true, posting, commenting and publishing work need a verified email.
+
+**Idempotency and outbox** (ADR 0003):
+- `idempotency_key` replays the first response for a repeated key and refuses reuse with a different request.
+- `outbox_event` is written in the caller's transaction; a worker in `server.ts` delivers it every 2 s with `SKIP LOCKED`, backoff and give-up.
+- Migration `20261124063925_reliability_idempotency_outbox` is applied to local dev and test only. **Supabase not migrated** (needs approval).
+
+**OpenAPI 3.1:** `openapi/operations.ts` lists every operation and `document.ts` builds the spec, served at `GET /api/v1/openapi.json`. A drift test reads the real route table, so an undocumented or invented operation fails CI.
+
+**Tooling** (ADR 0002): Prettier (`npm run format`), Oxlint plus the token guard (`npm run lint`), Lighthouse CI (`lighthouserc.json`) and `scripts/js-budget.mjs`.
+
+**CI** (`.github/workflows/ci.yml`) has five jobs:
+- quality;
+- test, against PostgreSQL 18;
+- e2e: the Cloudinary journeys skip with a reason without repository secrets;
+- performance: API + preview, JS budget, Lighthouse;
+- security: audit-ci with a reviewed allow-list, gitleaks over history with a reviewed `.gitleaksignore`, and dependency review on PRs.
+
 ## 6. Payments: Notch Pay (not implemented)
 
 Only environment variables exist (`NOTCHPAY_*`, server-side, optional). When the payments module is built it must:
@@ -162,14 +218,38 @@ Only environment variables exist (`NOTCHPAY_*`, server-side, optional). When the
 - Queries retry network blips but never 4xx; **mutations are never auto-retried** (avoids duplicate writes). Sign-out clears the whole query cache so no data from one account leaks to the next.
 - Secrets never go in the frontend: only `VITE_*` variables are exposed to the browser, and none are secrets.
 
-### Landing hero (approved photography, 2026-11-24)
+### Design system: olive-black and lime (approved 2026-11-24)
 
-- `components/landing/HeroBackdrop.tsx` with the manifest `features/home/hero-photos.json`. The manifest is generated by `npm run brand:upload -w @muzikhub/api`, which uploads the five approved originals to Cloudinary `muzikhub/brand/landing/<slug>` (re-runnable, never overwrites, never deletes the originals) and checks every delivered URL.
-- Variants use `f_auto,q_auto` at 480/768/1080/1280w, **capped at each original's width**, so nothing is upscaled. Cloudinary serves WebP where it's smaller (JPEG for two sizes of one photo).
-- Per-photo composition: cover with focal points for landscape and studio shots. On desktop, the 333×500 concert photo and the portrait are shown on the right at **no more than natural size**, feathered over a 64px blurred copy. Bright-background photos get an extra overlay.
-- Loading: the first photo is `fetchpriority="high"` and eager (the landing LCP). Each next photo is mounted, and so downloaded, one slide ahead. Plus a `preconnect` to `res.cloudinary.com`.
-- Motion: a 1.8 s crossfade every 7 s and a 1.0 → 1.06 zoom over 14 s. It pauses while the tab is hidden, and only advances once the next photo has loaded. `prefers-reduced-motion`: one still photo, no zoom or timers.
-- Images are decorative (`alt=""`), with no captions or names (CLAUDE.md §20.6).
+- **One-file palette:** `src/styles/palette.css` holds every colour value. `src/index.css` maps them to roles (`surface-footer/base/raised/overlay/chip/control`, `signal` (+hover/press), `on-signal`, `text-1/2/3`, `paper`, `on-paper(-2)`, `hairline(-strong)`, `control-border`, `danger/warning/success`) and defines the type scale (`text-display`, `h1`–`h3`, `lead`, `body`, `small`, `caption`, `label`, fluid via `clamp()`), spacing (`section`, `gutter`, `hero-top`), containers (`content` 1200 px, `wide` 1440 px, `measure` 40 rem), radii (`s` 8, `m` 16, `media` 30, pills `rounded-full`), elevation (`shadow-e1..e3`) and motion (`--motion-micro/standard/reveal`, `ease-enter/exit`). `src/design/tokens.ts` names them for TypeScript.
+- **No legacy aliases:** M0 converted every colour in the app (323 values in 34 files) and removed the `forest-*`/`emerald`/`mint`/`sage` aliases. `npm run lint` runs `scripts/check-tokens.mjs`, which fails on any raw colour or one-off pixel size in web components (ADR 0002). Exceptions: the 2FA QR code sits on `bg-white` (scanners need maximum contrast). Profile-link icons are the platforms' real logo shapes (`simple-icons`, CLAUDE.md §6.2) drawn in the current text colour; they carry no brand colours, so no exception is needed.
+- **`cn()`** is `src/lib/cn.ts`, configured with the type-scale names. The stock merger treated `text-h2` as a colour and silently dropped it when a colour class was present.
+- **Font:** Inter Variable (already self-hosted; latin subset 47 kB woff2) for body and display, with a metric-matched Arial fallback (`size-adjust`, ascent/descent overrides) so the swap doesn't shift layout.
+
+### 7c. Contrast (WCAG 2.2, measured on the token values)
+
+| Text / UI | On | Ratio |
+|---|---|---|
+| text-1 `#F5F7EB` | base / raised / overlay / chip | 16.6 / 15.0 / 13.1 / 11.3 : 1 |
+| text-2 `#BFC6A8` | base / raised / overlay / chip / footer | 10.1 / 9.2 / 8.0 / 6.9 / 11.0 : 1 |
+| text-3 `#979F80` | base / raised / overlay / footer | 6.5 / 5.9 / 5.1 / 7.0 : 1 — **never on chip (4.4:1)** |
+| signal `#CBEF34` as text | base / raised / overlay | 13.6 / 12.3 / 10.8 : 1 |
+| on-signal `#141905` | signal / hover / press | 13.6 / 14.7 / 10.7 : 1 |
+| on-paper / on-paper-2 | paper `#F2F1E6` | 15.8 / 7.2 : 1 |
+| signal as text | paper | **1.16:1 — not allowed** (lime is only a fill on paper) |
+| info `#9CC8F5` | base | 9.9 : 1 |
+| control border (lime 40%) | base | 3.2 : 1 (UI component ≥ 3:1) |
+| hairlines (lime 12–22%) | base | 1.4–1.8 : 1 (decorative only) |
+
+Sampled from the reference image (median of flat UI patches): lime fills `#CDF133` / `#CAEE34` / `#C8EA48`, screen `#1B2201`–`#16180B`, chip `#32361D`, glossy control `#454A2D`, headline `#FFFFFA`. Inferred, because they can't be measured from the image: secondary and tertiary text, paper, status colours, footer. axe (WCAG 2.2 AA) reports no violations on the landing page, the menu sheet or the draft pages.
+
+### Landing page (2026-11-24)
+
+- `src/features/landing/`: `content.ts` (all copy), `LandingPage`, `LandingHeader` (fixed header that becomes solid after 16 px; scroll-spy pill nav; native `<dialog>` menu sheet with a focus wrap, Escape, scroll lock and focus return), `Hero`, `BelowFold` + `sections.tsx` (paper problem section, sticky value list, WAI-ARIA tabs, timeline, bento, trust, roadmap, accordion FAQ, lime CTA band), `previews.tsx` (illustrative UI fragments: one `role="img"` each, fictional names, labelled), `LandingFooter`, `hooks.ts`.
+- **No photographs** (CLAUDE.md §20.6). The originals moved to `brand-originals/landing/` (git-ignored, outside `public/`). The LCP element is hero text.
+- **Light first load:** the landing page never loads Zod, the schemas, the API client or the auth client. The signed-in check is a plain `get-session` fetch (200 + null when signed out, so no 401 in the console), and `/me` is asked only when someone is signed in. The app shell and auth guards are lazy, and `ApiRequestError` lives in `lib/api-error.ts`. Everything below the hero is a 3.6 kB chunk rendered in a transition after the hero paints.
+- **Signed-in visitors** stay on the landing page and see "Open app" (`/home`, or `/onboarding` if onboarding isn't finished). Previously they were redirected.
+- **SEO:** title and description (React 19 hoists them into `<head>`), static Open Graph, Twitter and Organization JSON-LD in `index.html`, `robots.txt` at build, `sitemap.xml` and canonical only when `VITE_SITE_URL` is set. Draft pages are `noindex`.
+- **Pre-rendering** is not set up: this is a client-rendered SPA. The cheapest way is a ~60-line post-build script with `react-dom/server` (`prerender` of `<LandingPage>` inside a static router) that writes the HTML into `dist/index.html`, plus switching `createRoot` to `hydrateRoot` for `/`. No new dependency is needed. Moving to React Router framework mode with `prerender: ['/']` would also work, but it restructures routing.
 
 ## 7a. Testing
 
@@ -187,7 +267,7 @@ The test database URL must contain `muzikhub_test`; the setup refuses to run oth
 
 ## 7b. Deployment plan (not done yet)
 
-- **Frontend → Vercel**, **API → Render**. Recommended: a Vercel rewrite `/api/* → https://<render-app>/api/*` so the browser sees one origin; session cookies then stay first-party (`SameSite=Lax`) with no cross-site cookie configuration. `BETTER_AUTH_URL` and `WEB_APP_URL` become the Vercel URL.
+- **Frontend → Vercel**, **API → Render**. Recommended: a Vercel rewrite `/api/* → https://<render-app>/api/*` so the browser sees one origin; session cookies then stay first-party (`SameSite=Lax`) with no cross-site cookie configuration. `BETTER_AUTH_URL` and `WEB_APP_URL` become the Vercel URL. **Implemented 2026-11-25 (setup B):** `vercel.json` forwards `/api/*` with a shared-secret header that Render requires (`lib/proxy-gate.ts`); both rate limiters use Vercel's `X-Real-IP`; real-time starts on long-polling, because the rewrite doesn't carry WebSockets. Details: `docs/deployment-readiness.md` §8.
 - `PORT` is read from the environment (Render provides it). Health check: `GET /api/v1/health`.
 - **Database → Supabase PostgreSQL** (confirmed 2026-11-24). Nothing has been deployed or created yet; that needs the project owner's approval.
 
@@ -205,8 +285,8 @@ The test database URL must contain `muzikhub_test`; the setup refuses to run oth
 | **`npm run db:check -w @muzikhub/api`**: reads `DATABASE_URL` only from `apps/api/.env.supabase` (or `--env <file>`), and refuses if that file isn't git-ignored. It then (1) connects with a wrong CA and requires a TLS refusal, and (2) connects with the configured CA, confirms the certificate was verified, and runs fixed SELECTs in a `READ ONLY` transaction that is rolled back. It reports the PostgreSQL version, table count and migration state (applied/pending/failed) and prints no user name, password, project reference or full host. | ✅ tested on the local test DB (statement allow-list; PostgreSQL rejects writes and DDL with 25006) and against a throwaway TLS server (data checksum unchanged) |
 | The same URL for `prisma migrate deploy`. **Limitation:** the Prisma 7.10.1 CLI encrypts but does **not verify** the server certificate. The app's runtime connection does. Run `db:check` first; it proves the endpoint's certificate. | ✅ verified locally (earlier) |
 | Dedicated `prisma` database user (Supabase's Prisma guide) | ⏳ optional, at project setup |
-| First real connection to Supabase (`db:check`) | ⏳ waiting for the owner's approval |
-| Migrating Supabase | ⬜ not done; separate approval |
+| First real connection to Supabase (`db:check`) | ✅ 2026-11-24: PostgreSQL 17.12, TLS 1.3, certificate verified (Supabase Intermediate 2021 CA), wrong CA refused |
+| Migrating Supabase | ✅ 2026-11-24 (owner-approved): `prisma migrate deploy`, all 5 migrations, after a rehearsal on PostgreSQL 17.12. The schema matches the rehearsal object for object (tables, triggers, enums). Not seeded |
 
 **Entering the connection string.** Create `apps/api/.env.supabase` (git-ignored by the `.env.*` rule) containing one line, `DATABASE_URL=…` as in `.env.example`, with the password percent-encoded. `apps/api/.env` keeps the local Docker database. The API itself never reads `.env.supabase`; only `db:check` does, and only when asked.
 

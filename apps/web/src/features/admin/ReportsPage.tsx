@@ -35,35 +35,78 @@ export function ReportsPage() {
 
   return (
     <div>
-      <AdminHeader title="Reports" description="Reports from members. Open the report to review the content, take action and record your decision." />
-      <FilterTabs label="Report views" value={view} onChange={(v) => setParams(v === 'open' ? {} : { view: v }, { replace: true })} options={(Object.keys(VIEWS) as View[]).map((v) => ({ value: v, label: VIEWS[v].label }))} />
+      <AdminHeader
+        title="Reports"
+        description="Reports from members. Open the report to review the content, take action and record your decision."
+      />
+      <FilterTabs
+        label="Report views"
+        value={view}
+        onChange={(v) => setParams(v === 'open' ? {} : { view: v }, { replace: true })}
+        options={(Object.keys(VIEWS) as View[]).map((v) => ({ value: v, label: VIEWS[v].label }))}
+      />
       {query.isPending ? (
         <PageLoading />
       ) : query.isError && rows.length === 0 ? (
         <LoadFailed message={errorMessage(query.error)} onRetry={() => void query.refetch()} />
       ) : (
-        <InfiniteList hasNextPage={query.hasNextPage} isFetchingNextPage={query.isFetchingNextPage} fetchNextPage={() => void query.fetchNextPage()} isError={query.isError}>
-          <DataTable>
-            <thead><tr><th>Reported</th><th>Reason</th><th>Content</th><th>Owner</th><th>Status</th><th>Assignee</th></tr></thead>
+        <InfiniteList
+          hasNextPage={query.hasNextPage}
+          isFetchingNextPage={query.isFetchingNextPage}
+          fetchNextPage={() => void query.fetchNextPage()}
+          isError={query.isError}
+        >
+          <DataTable label="Reports">
+            <thead>
+              <tr>
+                <th>Reported</th>
+                <th>Reason</th>
+                <th>Content</th>
+                <th>Owner</th>
+                <th>Status</th>
+                <th>Assignee</th>
+              </tr>
+            </thead>
             <tbody>
               {rows.length === 0 ? (
                 <EmptyRow cols={6}>{view === 'open' ? 'No open reports. Nice.' : 'Nothing here.'}</EmptyRow>
               ) : (
                 rows.map((r) => (
                   <tr key={r.id}>
-                    <td className="whitespace-nowrap text-sage"><Ago iso={r.createdAt} /></td>
-                    <td>
-                      <Link to={`/admin/reports/${r.id}`} className="font-semibold text-foreground hover:text-mint">{REPORT_REASONS[r.reason as keyof typeof REPORT_REASONS] ?? r.reason}</Link>
-                      {(r.openReportsOnTarget ?? 0) > 1 && <Tag color="gold" className="ml-1.5">{r.openReportsOnTarget} reports</Tag>}
+                    <td className="whitespace-nowrap text-text-2">
+                      <Ago iso={r.createdAt} />
                     </td>
-                    <td className="max-w-[280px]">
-                      <span className="text-[11px] text-sage uppercase">{TARGET_LABEL[r.targetType]}</span>
-                      <p className="line-clamp-2">{r.target.exists ? (r.target.text ?? r.target.title) : <span className="text-sage italic">no longer exists</span>}</p>
+                    <td>
+                      <Link to={`/admin/reports/${r.id}`} className="font-semibold text-foreground hover:text-signal">
+                        {REPORT_REASONS[r.reason as keyof typeof REPORT_REASONS] ?? r.reason}
+                      </Link>
+                      {(r.openReportsOnTarget ?? 0) > 1 && (
+                        <Tag color="gold" className="ml-1.5">
+                          {r.openReportsOnTarget} reports
+                        </Tag>
+                      )}
+                    </td>
+                    <td className="max-w-70">
+                      <span className="text-xs text-text-2 uppercase">{TARGET_LABEL[r.targetType]}</span>
+                      <p className="line-clamp-2">
+                        {r.target.exists ? (r.target.text ?? r.target.title) : <span className="text-text-2 italic">no longer exists</span>}
+                      </p>
                       {r.target.removed && <Tag color="red">Removed</Tag>}
                     </td>
-                    <td>{r.target.owner ? <span className="flex items-center gap-2"><Avatar name={r.target.owner.name} image={r.target.owner.image} className="size-6 text-[9px]" />{r.target.owner.name}</span> : '—'}</td>
-                    <td><ReportStatusTag status={r.status} escalated={r.escalated} /></td>
-                    <td className="text-sage">{r.assignee?.name ?? '—'}</td>
+                    <td>
+                      {r.target.owner ? (
+                        <span className="flex items-center gap-2">
+                          <Avatar name={r.target.owner.name} image={r.target.owner.image} className="size-6 text-xs" />
+                          {r.target.owner.name}
+                        </span>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                    <td>
+                      <ReportStatusTag status={r.status} escalated={r.escalated} />
+                    </td>
+                    <td className="text-text-2">{r.assignee?.name ?? '—'}</td>
                   </tr>
                 ))
               )}

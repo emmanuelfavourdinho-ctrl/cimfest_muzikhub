@@ -3,16 +3,18 @@ import { Link, useNavigate } from 'react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueryClient } from '@tanstack/react-query';
-import { cn } from 'cn';
+import { cn } from '@/lib/cn';
 import { ArrowLeft, ArrowRight, Briefcase, Headphones, Mic } from 'lucide-react';
 import { PRIMARY_USES, registerSchema, usernameSchema, type PrimaryUse, type RegisterInput } from '@muzikhub/shared';
 import { Button } from '@/components/ui/button';
 import { Field, FormError, Input } from '@/components/ui/form';
-import { Eyebrow, Panel } from '@/components/ui/primitives';
+import { Eyebrow, Hint, Panel } from '@/components/ui/primitives';
 import { authClient, unwrap } from '@/lib/auth-client';
 import { errorMessage } from '@/lib/api';
 import { queryKeys } from '@/lib/queries';
+import { useEmailCapability } from '@/lib/capabilities';
 import { AuthLayout } from './AuthLayout';
+import { EMAIL_UNAVAILABLE_TEXT } from './EmailUnavailable';
 
 const useIcons: Record<PrimaryUse, typeof Mic> = { CREATOR: Mic, FAN: Headphones, PROFESSIONAL: Briefcase };
 
@@ -33,9 +35,9 @@ export function RegisterPage() {
         ) : (
           <AccountForm primaryUse={primaryUse} onBack={() => setPrimaryUse(null)} />
         )}
-        <p className="mt-6 text-center text-sm text-sage">
+        <p className="mt-6 text-center text-sm text-text-2">
           Already on MuzikHub?{' '}
-          <Link to="/login" className="font-semibold text-mint-soft hover:underline">
+          <Link to="/login" className="font-semibold text-signal hover:underline">
             Sign in
           </Link>
         </p>
@@ -49,7 +51,7 @@ function ChooseUse({ onChoose }: { onChoose: (use: PrimaryUse) => void }) {
     <div>
       <Eyebrow>Join MuzikHub · Step 1 of 2</Eyebrow>
       <h1 className="mt-2 mb-1 text-2xl font-bold">How do you want to use MuzikHub?</h1>
-      <p className="mb-5 text-sm text-sage">You can add more professional roles to your profile at any time.</p>
+      <p className="mb-5 text-sm text-text-2">You can add more professional roles to your profile at any time.</p>
       <div className="grid gap-3">
         {(Object.keys(PRIMARY_USES) as PrimaryUse[]).map((key) => {
           const Icon = useIcons[key];
@@ -58,16 +60,16 @@ function ChooseUse({ onChoose }: { onChoose: (use: PrimaryUse) => void }) {
               key={key}
               type="button"
               onClick={() => onChoose(key)}
-              className="group flex min-h-20 items-center gap-4 rounded-[14px] border border-[#2b604b] bg-[#0f2f25] p-4 text-left transition hover:border-mint hover:bg-[#123a2d]"
+              className="group flex min-h-20 items-center gap-4 rounded-m border border-control-border bg-surface-overlay p-4 text-left transition hover:border-signal hover:bg-surface-chip"
             >
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#134130] text-mint">
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-surface-chip text-signal">
                 <Icon className="size-5" />
               </span>
               <span className="flex-1">
                 <span className="block font-bold">{PRIMARY_USES[key].label}</span>
-                <span className="block text-xs leading-relaxed text-sage">{PRIMARY_USES[key].description}</span>
+                <span className="block text-xs leading-relaxed text-text-2">{PRIMARY_USES[key].description}</span>
               </span>
-              <ArrowRight className="size-4 text-sage transition group-hover:translate-x-0.5 group-hover:text-mint" />
+              <ArrowRight className="size-4 text-text-2 transition group-hover:translate-x-0.5 group-hover:text-signal" />
             </button>
           );
         })}
@@ -83,6 +85,7 @@ function AccountForm({ primaryUse, onBack }: { primaryUse: PrimaryUse; onBack: (
   const queryClient = useQueryClient();
   const [formError, setFormError] = useState<string | null>(null);
   const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>('idle');
+  const capability = useEmailCapability();
 
   const { register, handleSubmit, watch, formState } = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
@@ -110,7 +113,9 @@ function AccountForm({ primaryUse, onBack }: { primaryUse: PrimaryUse; onBack: (
   const onSubmit = handleSubmit(async (values) => {
     setFormError(null);
     try {
-      await unwrap(authClient.signUp.email({ ...values, displayUsername: values.username, callbackURL: `${window.location.origin}/email-verified` }));
+      await unwrap(
+        authClient.signUp.email({ ...values, displayUsername: values.username, callbackURL: `${window.location.origin}/email-verified` }),
+      );
       await queryClient.invalidateQueries({ queryKey: queryKeys.me });
       void navigate('/onboarding', { replace: true });
     } catch (error) {
@@ -128,7 +133,11 @@ function AccountForm({ primaryUse, onBack }: { primaryUse: PrimaryUse; onBack: (
 
   return (
     <form onSubmit={onSubmit} noValidate>
-      <button type="button" onClick={onBack} className="mb-3 -ml-1 inline-flex min-h-9 items-center gap-1.5 rounded-lg px-1 text-xs font-semibold text-sage hover:text-foreground">
+      <button
+        type="button"
+        onClick={onBack}
+        className="mb-3 -ml-1 inline-flex min-h-9 items-center gap-1.5 rounded-lg px-1 text-xs font-semibold text-text-2 hover:text-foreground"
+      >
         <ArrowLeft className="size-3.5" /> {PRIMARY_USES[primaryUse].label}
       </button>
       <Eyebrow>Join MuzikHub · Step 2 of 2</Eyebrow>
@@ -142,9 +151,18 @@ function AccountForm({ primaryUse, onBack }: { primaryUse: PrimaryUse; onBack: (
       <Field
         label="Username"
         error={errors.username?.message ?? (usernameStatus === 'taken' ? 'That username is taken' : undefined)}
-        hint={<span className={cn(usernameStatus === 'available' && 'text-mint')}>{usernameHint}</span>}
+        hint={<span className={cn(usernameStatus === 'available' && 'text-signal')}>{usernameHint}</span>}
       >
-        {(a) => <Input {...a} autoComplete="username" autoCapitalize="none" spellCheck={false} placeholder="e.g. ayo.nova" {...register('username')} />}
+        {(a) => (
+          <Input
+            {...a}
+            autoComplete="username"
+            autoCapitalize="none"
+            spellCheck={false}
+            placeholder="e.g. ayo.nova"
+            {...register('username')}
+          />
+        )}
       </Field>
       <Field label="Email" error={errors.email?.message}>
         {(a) => <Input {...a} type="email" autoComplete="email" inputMode="email" placeholder="you@example.com" {...register('email')} />}
@@ -152,11 +170,24 @@ function AccountForm({ primaryUse, onBack }: { primaryUse: PrimaryUse; onBack: (
       <Field label="Password" error={errors.password?.message} hint="At least 8 characters.">
         {(a) => <Input {...a} type="password" autoComplete="new-password" {...register('password')} />}
       </Field>
+      {capability.email === 'unavailable' && <Hint className="mb-4">{EMAIL_UNAVAILABLE_TEXT.register}</Hint>}
 
       <Button type="submit" size="lg" className="w-full" disabled={isSubmitting || usernameStatus === 'taken'}>
         {isSubmitting ? 'Creating your account…' : 'Create account'}
         {!isSubmitting && <ArrowRight />}
       </Button>
+      {/* New tab, so a half-filled form is never lost. Drafts: "read", not "you agree to". */}
+      <p className="mt-4 text-center text-caption text-text-2">
+        Read the draft{' '}
+        <Link to="/terms" target="_blank" rel="noopener" className="font-semibold text-text-1 underline underline-offset-4">
+          Terms<span className="sr-only"> (opens in a new tab)</span>
+        </Link>{' '}
+        and{' '}
+        <Link to="/privacy" target="_blank" rel="noopener" className="font-semibold text-text-1 underline underline-offset-4">
+          Privacy notice<span className="sr-only"> (opens in a new tab)</span>
+        </Link>
+        .
+      </p>
     </form>
   );
 }

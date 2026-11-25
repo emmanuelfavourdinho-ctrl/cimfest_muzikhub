@@ -36,7 +36,10 @@ async function sql(text: string, values: unknown[]) {
 async function signUp(request: APIRequestContext, name: string) {
   const username = `${name.toLowerCase().replace(/[^a-z]/g, '')}.${uid()}`;
   const email = `${username}@example.test`;
-  const res = await request.post('/api/auth/sign-up/email', { headers: { Origin: WEB }, data: { name, username, email, password: 'correct-horse-battery', primaryUse: 'CREATOR' } });
+  const res = await request.post('/api/auth/sign-up/email', {
+    headers: { Origin: WEB },
+    data: { name, username, email, password: 'correct-horse-battery', primaryUse: 'CREATOR' },
+  });
   expect(res.status()).toBe(200);
   await request.post('/api/v1/me/onboarding/complete');
   return { username, email, password: 'correct-horse-battery', name };
@@ -61,7 +64,13 @@ test('admin: enrol in 2FA, sign in with a code, work a report end to end, restri
   const reporterCtx = await browser.newContext({ ...info.project.use });
   const reporter = await reporterCtx.newPage();
   await signUp(reporter.request, 'Careful Reporter');
-  expect((await reporter.request.post('/api/v1/reports', { data: { targetType: 'POST', targetId: post.id, reason: 'SPAM', details: 'Selling followers' } })).status()).toBe(201);
+  expect(
+    (
+      await reporter.request.post('/api/v1/reports', {
+        data: { targetType: 'POST', targetId: post.id, reason: 'SPAM', details: 'Selling followers' },
+      })
+    ).status(),
+  ).toBe(201);
 
   // ── 2FA enrolment is required before the console opens ──
   await page.goto('/admin');
@@ -91,7 +100,8 @@ test('admin: enrol in 2FA, sign in with a code, work a report end to end, restri
   await expect(page).toHaveURL(/\/admin\/reports$/);
 
   // ── Report lifecycle in the UI ──
-  await page.getByRole('link', { name: 'Spam or scam' }).first().click();
+  // This test's own report (other open reports may exist in the shared test database).
+  await page.getByRole('row').filter({ hasText: text }).getByRole('link', { name: 'Spam or scam' }).click();
   await expect(page.getByText(text)).toBeVisible();
   await page.getByRole('button', { name: 'Take this report' }).click();
   await expect(page.getByText('You are reviewing this report')).toBeVisible();
@@ -156,9 +166,13 @@ test('admin pages fit narrow screens', async ({ page }, info) => {
   test.setTimeout(120_000);
   const admin = await signUp(page.request, 'Narrow Admin');
   await sql(`UPDATE "user" SET "platformRole" = 'ADMIN', "emailVerified" = true WHERE email = $1`, [admin.email]);
-  const enabled = await (await page.request.post('/api/auth/two-factor/enable', { headers: { Origin: WEB }, data: { password: admin.password } })).json();
+  const enabled = await (
+    await page.request.post('/api/auth/two-factor/enable', { headers: { Origin: WEB }, data: { password: admin.password } })
+  ).json();
   const secret = new URL(enabled.totpURI).searchParams.get('secret')!;
-  expect((await page.request.post('/api/auth/two-factor/verify-totp', { headers: { Origin: WEB }, data: { code: totp(secret) } })).status()).toBe(200);
+  expect(
+    (await page.request.post('/api/auth/two-factor/verify-totp', { headers: { Origin: WEB }, data: { code: totp(secret) } })).status(),
+  ).toBe(200);
   for (const width of [320, 375, 430]) {
     await page.setViewportSize({ width, height: 800 });
     for (const path of ['/admin', '/admin/reports', '/admin/users', '/admin/content', '/admin/audit']) {

@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
-import { cn } from 'cn';
+import { cn } from '@/lib/cn';
 import { RotateCcw, Upload, X } from 'lucide-react';
+import { useEntitlements } from '@/lib/billing';
 import { formatBytes, MEDIA_RULES, PURPOSE_KINDS, type MediaKind, type MediaPurpose, type MediaView } from '@muzikhub/shared';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
@@ -38,7 +39,10 @@ export function MediaUploader({
   const abort = useRef<AbortController | null>(null);
   const [state, setState] = useState<State>({ kind: 'idle' });
   const accept = kinds.map((k) => MEDIA_RULES[k].accept).join(',');
-  const limits = kinds.map((k) => `${MEDIA_RULES[k].label} up to ${formatBytes(MEDIA_RULES[k].maxBytes)}`).join(' · ');
+  const plan = useEntitlements().data?.limits;
+  const maxBytes = (k: MediaKind) =>
+    plan ? (k === 'IMAGE' ? plan.imageBytes : k === 'AUDIO' ? plan.audioBytes : plan.videoBytes) : MEDIA_RULES[k].maxBytes;
+  const limits = kinds.map((k) => `${MEDIA_RULES[k].label} up to ${formatBytes(maxBytes(k))}`).join(' · ');
 
   async function start(file: File) {
     abort.current = new AbortController();
@@ -46,6 +50,7 @@ export function MediaUploader({
     onBusyChange?.(true);
     try {
       const media = await uploadFile(file, {
+        maxBytes,
         purpose,
         signal: abort.current.signal,
         onProgress: (progress) => setState({ kind: 'uploading', file, progress }),
@@ -95,13 +100,20 @@ export function MediaUploader({
   return (
     <div>
       {state.kind === 'uploading' ? (
-        <div className="rounded-xl border border-[#3a7f60] bg-[#102f24] p-4" aria-live="polite">
+        <div className="rounded-xl border border-control-border bg-surface-overlay p-4" aria-live="polite">
           <div className="mb-2 flex items-center justify-between gap-3 text-xs">
-            <span className="truncate text-[#c2dacc]">Uploading {state.file.name}</span>
-            <span className="shrink-0 font-semibold text-mint">{Math.round(state.progress * 100)}%</span>
+            <span className="truncate text-text-1">Uploading {state.file.name}</span>
+            <span className="shrink-0 font-semibold text-signal">{Math.round(state.progress * 100)}%</span>
           </div>
-          <div className="h-2 overflow-hidden rounded-full bg-forest-700" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(state.progress * 100)} aria-label={`Uploading ${state.file.name}`}>
-            <div className="h-full rounded-full bg-emerald transition-[width]" style={{ width: `${state.progress * 100}%` }} />
+          <div
+            className="h-2 overflow-hidden rounded-full bg-surface-chip"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(state.progress * 100)}
+            aria-label={`Uploading ${state.file.name}`}
+          >
+            <div className="h-full rounded-full bg-signal transition-[width]" style={{ width: `${state.progress * 100}%` }} />
           </div>
           <Button type="button" variant="quiet" size="sm" className="mt-2" onClick={() => abort.current?.abort()}>
             <X /> Cancel
@@ -112,12 +124,12 @@ export function MediaUploader({
           type="button"
           onClick={() => input.current?.click()}
           className={cn(
-            'flex w-full flex-col items-center gap-2 rounded-xl border border-dashed bg-[#102f24] p-5 text-center text-xs text-[#9ecbb3] transition hover:border-mint',
-            state.kind === 'failed' ? 'border-destructive/60' : 'border-[#3a7f60]',
+            'flex w-full flex-col items-center gap-2 rounded-xl border border-dashed bg-surface-overlay p-5 text-center text-xs text-text-2 transition hover:border-signal',
+            state.kind === 'failed' ? 'border-destructive/60' : 'border-control-border',
           )}
         >
-          <Upload className="size-6 text-[#80eab6]" aria-hidden />
-          <strong className="text-sm text-[#d4fce9]">{label}</strong>
+          <Upload className="size-6 text-signal" aria-hidden />
+          <strong className="text-sm text-text-1">{label}</strong>
           <span>{limits}</span>
         </button>
       )}
@@ -136,7 +148,17 @@ export function MediaUploader({
   );
 }
 
-function HiddenInput({ refEl, accept, onPick, label }: { refEl: React.RefObject<HTMLInputElement | null>; accept: string; onPick: (f: File) => void; label: string }) {
+function HiddenInput({
+  refEl,
+  accept,
+  onPick,
+  label,
+}: {
+  refEl: React.RefObject<HTMLInputElement | null>;
+  accept: string;
+  onPick: (f: File) => void;
+  label: string;
+}) {
   return (
     <input
       ref={refEl}

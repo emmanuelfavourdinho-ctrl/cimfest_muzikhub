@@ -1,4 +1,5 @@
-import { cn } from 'cn';
+import { track } from '@/lib/analytics';
+import { cn } from '@/lib/cn';
 import { Globe, Link2 } from 'lucide-react';
 import {
   siApplemusic,
@@ -39,16 +40,17 @@ export function PlatformIcon({ platform, className }: { platform: LinkPlatform; 
   const icon = brandIcons[platform];
   if (icon) {
     return (
-      <svg viewBox="0 0 24 24" aria-hidden className={cn('size-[18px] fill-current', className)}>
+      <svg viewBox="0 0 24 24" aria-hidden className={cn('size-4.5 fill-current', className)}>
         <path d={icon.path} />
       </svg>
     );
   }
   const Fallback = platform === 'WEBSITE' ? Globe : Link2;
-  return <Fallback aria-hidden className={cn('size-[18px]', className)} />;
+  return <Fallback aria-hidden className={cn('size-4.5', className)} />;
 }
 
-export function SocialLinks({ links, className }: { links: ProfileLink[]; className?: string }) {
+/** `trackClicks`: count clicks for the owner's analytics (public profile only, not previews). */
+export function SocialLinks({ links, className, trackClicks }: { links: ProfileLink[]; className?: string; trackClicks?: boolean }) {
   if (links.length === 0) return null;
   return (
     <ul className={cn('flex flex-wrap gap-2', className)} aria-label="External profiles">
@@ -59,11 +61,12 @@ export function SocialLinks({ links, className }: { links: ProfileLink[]; classN
           <li key={link.id}>
             <a
               href={link.url}
+              onClick={trackClicks ? () => track('LINK_CLICK', { subjectType: 'PROFILE_LINK', subjectId: link.id }) : undefined}
               target="_blank"
               rel="noopener noreferrer nofollow"
               title={link.platform === 'WEBSITE' ? host : label}
               aria-label={`${link.platform === 'WEBSITE' ? host : label} (opens in a new tab)`}
-              className="flex size-11 items-center justify-center rounded-full border border-[#2c6750] bg-[#0f2b22] text-[#bdeed6] transition hover:border-mint hover:text-mint focus-visible:border-mint"
+              className="flex size-11 items-center justify-center rounded-full border border-control-border bg-surface-overlay text-text-1 transition hover:border-signal hover:text-signal focus-visible:border-signal"
             >
               <PlatformIcon platform={link.platform} />
             </a>

@@ -52,10 +52,16 @@ dumps/
 supabase/.temp/
 supabase/.branches/
 
-# Original landing photos — served from Cloudinary (manifest in apps/web/src/features/home/hero-photos.json);
-# the local originals stay on disk but out of Git history.
-apps/web/public/assets/landing/
+# Original landing photos (no recorded licence or model release — not used on the site).
+# Kept on disk, outside the deployed public/ folder and out of Git history. Never delete automatically.
+brand-originals/
 
 # Editor / tool settings
 .vscode/
 .claude/settings.local.json
+
+# Lighthouse CI reports
+.lighthouseci/
+
+# Presentation demo credentials written by demo:seed (local only)
+demo-credentials.local.md

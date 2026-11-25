@@ -1,7 +1,7 @@
 /**
  * One-off: uploads the approved landing-page photographs to Cloudinary and writes a
  * manifest the web app reads. Safe to re-run (never overwrites). NEVER deletes the
- * local originals in apps/web/public/assets/landing/ — remove those by hand only after
+ * local originals in brand-originals/landing/ (moved out of the deployed public/ folder) — remove those by hand only after
  * the hosted images are verified.
  *
  *   npm run brand:upload -w @muzikhub/api
@@ -11,8 +11,10 @@ import { join } from 'node:path';
 import { v2 as cloudinary } from 'cloudinary';
 import { env } from '../config/env.js';
 
-const LANDING_DIR = join(import.meta.dirname, '../../../web/public/assets/landing');
-const MANIFEST = join(import.meta.dirname, '../../../web/src/features/home/hero-photos.json');
+const LANDING_DIR = join(import.meta.dirname, '../../../../brand-originals/landing');
+// Written next to the originals (git-ignored): delivery URLs must never be committed again
+// (owner decision 2026-11-24 — the photos have no recorded licence and are not used).
+const MANIFEST = join(LANDING_DIR, 'hero-photos.json');
 const FOLDER = `${env.CLOUDINARY_FOLDER}/brand/landing`;
 
 /** The five approved photographs (2026-11-24), in display order. Slugs describe the shot, not the person. */
@@ -69,7 +71,9 @@ async function main() {
       await res.arrayBuffer();
     }
     manifest.push(entry);
-    console.log(`✓ ${photo.slug}: ${r.width}×${r.height} → ${entry.srcset.map((s) => s.w).join('/')}w${r.existing ? ' (already uploaded)' : ''}`);
+    console.log(
+      `✓ ${photo.slug}: ${r.width}×${r.height} → ${entry.srcset.map((s) => s.w).join('/')}w${r.existing ? ' (already uploaded)' : ''}`,
+    );
   }
 
   writeFileSync(MANIFEST, `${JSON.stringify(manifest, null, 2)}\n`);

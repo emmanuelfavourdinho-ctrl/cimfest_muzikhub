@@ -49,7 +49,9 @@ describe('db:check read-only probe (local test database)', () => {
       await expect(client.query(statement)).rejects.toMatchObject({ code: '25006' }); // read_only_sql_transaction
       await client.query('ROLLBACK');
     }
-    const leftovers = await client.query(`SELECT to_regclass('public.db_check_should_not_exist') AS t, (SELECT count(*)::int FROM "user" WHERE id = 'ro-probe') AS u`);
+    const leftovers = await client.query(
+      `SELECT to_regclass('public.db_check_should_not_exist') AS t, (SELECT count(*)::int FROM "user" WHERE id = 'ro-probe') AS u`,
+    );
     expect(leftovers.rows[0]).toEqual({ t: null, u: 0 });
   });
 });

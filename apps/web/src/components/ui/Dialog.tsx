@@ -15,18 +15,27 @@ export function Dialog({ open, onClose, title, children }: { open: boolean; onCl
   }, [open]);
 
   return (
+    // Backdrop click closes; keyboard users close with Escape (native <dialog> behaviour).
+    // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions
     <dialog
       ref={ref}
       onClose={onClose}
       onClick={(e) => e.target === ref.current && onClose()}
       aria-labelledby="dialog-title"
-      className="m-auto w-[min(480px,calc(100vw-32px))] rounded-[20px] border border-[#448969] bg-[#0e2b21] p-0 text-foreground shadow-[0_20px_80px_#000a] backdrop:bg-[#010a08c7] backdrop:backdrop-blur-sm"
+      className="m-auto w-[min(30rem,calc(100vw_-_2rem))] rounded-panel border border-control-border bg-surface-overlay p-0 text-foreground shadow-e3 backdrop:bg-surface-base/80 backdrop:backdrop-blur-sm"
     >
       {open && (
         <div className="p-5 sm:p-6">
           <div className="mb-3 flex items-center justify-between gap-4">
-            <h2 id="dialog-title" className="text-xl font-bold">{title}</h2>
-            <button type="button" onClick={onClose} aria-label="Close" className="flex size-9 items-center justify-center rounded-lg bg-[#16402f] text-[#d3f1df] hover:brightness-110">
+            <h2 id="dialog-title" className="text-xl font-bold">
+              {title}
+            </h2>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="flex size-9 items-center justify-center rounded-lg bg-surface-chip text-text-1 hover:brightness-110"
+            >
               <X className="size-4" />
             </button>
           </div>

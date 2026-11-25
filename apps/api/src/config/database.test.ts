@@ -40,7 +40,10 @@ describe('resolveDatabaseUrl', () => {
     expect(problems(`${REMOTE}?sslmode=verify-full&sslrootcert=certs/missing.crt`).join()).toMatch(/not found/);
     const dir = mkdtempSync(join(tmpdir(), 'mh-ca-'));
     writeFileSync(join(dir, 'not-pem.crt'), 'hello');
-    writeFileSync(join(dir, 'with-key.crt'), '-----BEGIN CERTIFICATE-----\nx\n-----END CERTIFICATE-----\n-----BEGIN PRIVATE KEY-----\nx\n-----END PRIVATE KEY-----\n');
+    writeFileSync(
+      join(dir, 'with-key.crt'),
+      '-----BEGIN CERTIFICATE-----\nx\n-----END CERTIFICATE-----\n-----BEGIN PRIVATE KEY-----\nx\n-----END PRIVATE KEY-----\n',
+    );
     expect(problems(`${REMOTE}?sslmode=verify-full&sslrootcert=${join(dir, 'not-pem.crt')}`).join()).toMatch(/not a PEM certificate/);
     expect(problems(`${REMOTE}?sslmode=verify-full&sslrootcert=${join(dir, 'with-key.crt')}`).join()).toMatch(/private key/);
   });

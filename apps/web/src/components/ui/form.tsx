@@ -1,9 +1,9 @@
 import { useId, type ComponentProps, type ReactNode } from 'react';
-import { cn } from 'cn';
+import { cn } from '@/lib/cn';
 
 /** Prototype `.control` input styling, shared by inputs, textareas and selects. */
 export const controlClass =
-  'w-full rounded-[9px] border border-[#2b5844] bg-[#081d17] px-3 py-2.5 text-sm text-[#ddf5e7] outline-none placeholder:text-[#62836e] focus:border-mint aria-invalid:border-destructive disabled:opacity-60';
+  'w-full rounded-s border border-control-border bg-surface-raised px-3 py-2.5 text-sm text-text-1 outline-none placeholder:text-text-3 focus:border-signal aria-invalid:border-destructive disabled:opacity-60';
 
 /**
  * Label + control + hint/error, wired up for screen readers
@@ -26,7 +26,7 @@ export function Field({
   const describedBy = error ? `${id}-error` : hint ? `${id}-hint` : undefined;
   return (
     <div className={cn('mb-4', className)}>
-      <label htmlFor={id} className="mb-1.5 block text-xs font-bold text-[#b4dbbf]">
+      <label htmlFor={id} className="mb-1.5 block text-xs font-bold text-text-1">
         {label}
       </label>
       {children({ id, 'aria-invalid': Boolean(error), 'aria-describedby': describedBy })}
@@ -35,7 +35,7 @@ export function Field({
           {error}
         </p>
       ) : hint ? (
-        <p id={`${id}-hint`} className="mt-1.5 text-xs text-sage-dim">
+        <p id={`${id}-hint`} className="mt-1.5 text-xs text-text-3">
           {hint}
         </p>
       ) : null}

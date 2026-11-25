@@ -17,7 +17,10 @@
     "media:cleanup": "tsx src/scripts/media-cleanup.ts",
     "brand:upload": "tsx src/scripts/upload-brand-assets.ts",
     "admin:grant-initial": "tsx src/scripts/admin-grant-initial.ts",
-    "admin:reset-two-factor": "tsx src/scripts/admin-reset-two-factor.ts"
+    "admin:reset-two-factor": "tsx src/scripts/admin-reset-two-factor.ts",
+    "catalogue:seed": "tsx src/scripts/seed-catalogue.ts",
+    "demo:seed": "tsx src/scripts/seed-demo.ts",
+    "payments:reconcile": "tsx src/scripts/reconcile-payments.ts"
   },
   "dependencies": {
     "@muzikhub/shared": "*",
@@ -30,6 +33,7 @@
     "helmet": "^8.3.0",
     "pg": "^8.23.1",
     "resend": "^6.39.0",
+    "socket.io": "^4.8.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {
@@ -39,6 +43,7 @@
     "@types/pg": "^8.23.1",
     "@types/supertest": "^6.0.3",
     "prisma": "7.10.1",
+    "socket.io-client": "^4.8.1",
     "supertest": "^7.3.2",
     "tsx": "^4.23.15",
     "vitest": "^5.1.1"

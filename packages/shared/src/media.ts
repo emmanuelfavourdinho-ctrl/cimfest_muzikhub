@@ -4,7 +4,7 @@ export const MEDIA_KINDS = ['IMAGE', 'AUDIO', 'VIDEO'] as const;
 export type MediaKind = (typeof MEDIA_KINDS)[number];
 
 /** Where an upload will be used. Decides which kinds are allowed. */
-export const MEDIA_PURPOSES = ['AVATAR', 'COVER', 'PORTFOLIO', 'POST'] as const;
+export const MEDIA_PURPOSES = ['AVATAR', 'COVER', 'PORTFOLIO', 'POST', 'COMMUNITY', 'COMPETITION'] as const;
 export type MediaPurpose = (typeof MEDIA_PURPOSES)[number];
 
 const MB = 1024 * 1024;
@@ -46,6 +46,10 @@ export const PURPOSE_KINDS: Record<MediaPurpose, readonly MediaKind[]> = {
   COVER: ['IMAGE'],
   PORTFOLIO: ['IMAGE', 'AUDIO', 'VIDEO'],
   POST: ['IMAGE', 'AUDIO', 'VIDEO'],
+  /** Community cover image. */
+  COMMUNITY: ['IMAGE'],
+  /** Competition cover and entries. */
+  COMPETITION: ['IMAGE', 'AUDIO', 'VIDEO'],
 };
 
 /** Files larger than this are uploaded in chunks (Cloudinary requires chunks ≥ 5 MB). */
@@ -64,12 +68,14 @@ export function formatBytes(bytes: number): string {
 }
 
 /** Validation shared by browser and server. Returns a user-facing message, or null when OK. */
-export function checkUpload(kind: MediaKind, purpose: MediaPurpose, bytes: number): string | null {
+export function checkUpload(kind: MediaKind, purpose: MediaPurpose, bytes: number, maxBytes?: number): string | null {
   if (!PURPOSE_KINDS[purpose].includes(kind)) {
     return `A ${MEDIA_RULES[kind].label} can't be used here.`;
   }
   const rule = MEDIA_RULES[kind];
-  if (bytes > rule.maxBytes) return `This ${rule.label} is ${formatBytes(bytes)}. The limit is ${formatBytes(rule.maxBytes)}.`;
+  // maxBytes: the member's plan limit (entitlements); defaults to the Free limit.
+  const limit = maxBytes ?? rule.maxBytes;
+  if (bytes > limit) return `This ${rule.label} is ${formatBytes(bytes)}. The limit is ${formatBytes(limit)}.`;
   if (bytes <= 0) return 'This file is empty.';
   return null;
 }
@@ -77,7 +83,7 @@ export function checkUpload(kind: MediaKind, purpose: MediaPurpose, bytes: numbe
 // ── Contracts ─────────────────────────────────────────────────
 
 /** POST /api/v1/media/uploads */
-export const createUploadSchema = z.object({
+export const createUploadSchema = z.strictObject({
   kind: z.enum(MEDIA_KINDS),
   purpose: z.enum(MEDIA_PURPOSES),
   bytes: z.number().int().positive(),

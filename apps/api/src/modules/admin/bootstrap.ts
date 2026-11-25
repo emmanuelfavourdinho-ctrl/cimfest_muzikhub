@@ -2,7 +2,10 @@ import { writeAudit } from '../../lib/audit.js';
 import { prisma } from '../../lib/prisma.js';
 
 export class BootstrapError extends Error {
-  constructor(readonly code: string, message: string) {
+  constructor(
+    readonly code: string,
+    message: string,
+  ) {
     super(message);
     this.name = 'BootstrapError';
   }
@@ -18,7 +21,10 @@ export async function grantInitialAdmin(email: string): Promise<{ changed: boole
   if (!normalized.includes('@')) throw new BootstrapError('INVALID_EMAIL', 'Enter the email address of an existing account.');
   return prisma.$transaction(
     async (tx) => {
-      const user = await tx.user.findUnique({ where: { email: normalized }, select: { id: true, platformRole: true, emailVerified: true, status: true } });
+      const user = await tx.user.findUnique({
+        where: { email: normalized },
+        select: { id: true, platformRole: true, emailVerified: true, status: true },
+      });
       if (!user) throw new BootstrapError('NO_ACCOUNT', 'No account uses that email. Register in the app first.');
       if (!user.emailVerified) throw new BootstrapError('EMAIL_NOT_VERIFIED', 'That account has not verified its email address yet.');
       if (user.status !== 'ACTIVE') throw new BootstrapError('NOT_ACTIVE', 'That account is not active.');

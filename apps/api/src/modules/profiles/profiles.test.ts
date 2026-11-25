@@ -16,7 +16,7 @@ describe('/api/v1/me requires authentication', () => {
   ] as const)('%s %s → 401 without a session', async (method, path) => {
     const res = await request(app)[method](path).send({});
     expect(res.status).toBe(401);
-    expect(res.body.error.code).toBe('UNAUTHENTICATED');
+    expect(res.body.code).toBe('UNAUTHENTICATED');
   });
 });
 
@@ -43,7 +43,7 @@ describe('PATCH /api/v1/me/profile (FR-06, FR-08)', () => {
     const { agent } = await signUp(app);
     const badGenre = await agent.patch('/api/v1/me/profile').send({ genres: ['not_a_genre'] });
     expect(badGenre.status).toBe(400);
-    expect(badGenre.body.error.code).toBe('VALIDATION_ERROR');
+    expect(badGenre.body.code).toBe('VALIDATION_ERROR');
 
     // .strict(): server-controlled fields cannot be smuggled in through the profile endpoint.
     const escalation = await agent.patch('/api/v1/me/profile').send({ platformRole: 'ADMIN' });
@@ -69,11 +69,7 @@ describe('PUT /api/v1/me/profile/links (CLAUDE.md §6.2)', () => {
       ],
     });
     expect(res.status).toBe(200);
-    expect(res.body.profile.links.map((l: { platform: string }) => l.platform)).toEqual([
-      'YOUTUBE',
-      'SPOTIFY',
-      'WEBSITE',
-    ]);
+    expect(res.body.profile.links.map((l: { platform: string }) => l.platform)).toEqual(['YOUTUBE', 'SPOTIFY', 'WEBSITE']);
   });
 
   it('rejects unsafe URL schemes', async () => {

@@ -43,7 +43,7 @@ export function LoadFailed({ message, onRetry }: { message: string; onRetry: () 
     <div className="mx-auto max-w-md py-16">
       <Panel className="p-6 text-center">
         <h2 className="text-lg font-bold">We couldn't load this page</h2>
-        <p className="mt-2 mb-5 text-sm text-sage">{message}</p>
+        <p className="mt-2 mb-5 text-sm text-text-2">{message}</p>
         <Button onClick={onRetry}>Try again</Button>
       </Panel>
     </div>

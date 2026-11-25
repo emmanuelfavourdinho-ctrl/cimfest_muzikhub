@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { ImagePlus, Music2, Video, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { MAX_POST_IMAGES, POST_BODY_MAX, type MediaKind, type MediaView } from '@muzikhub/shared';
@@ -40,6 +40,9 @@ export function Composer() {
   const [media, setMedia] = useState<MediaView[]>([]);
   const [posting, setPosting] = useState(false);
   const [uploading, setUploading] = useState(false);
+  // One Idempotency-Key per distinct post: a double tap or a retry after a dropped connection
+  // replays the first result instead of posting twice; edited content gets a fresh key.
+  const attempt = useRef<{ content: string; key: string } | null>(null);
   // Restricted accounts can't post (the server refuses too); the banner explains why.
   if (!me || me.accountStatus !== 'ACTIVE') return null;
 
@@ -52,7 +55,11 @@ export function Composer() {
   async function post() {
     setPosting(true);
     try {
-      await api.createPost({ body: body.trim(), mediaIds: media.map((m) => m.id) });
+      const input = { body: body.trim(), mediaIds: media.map((m) => m.id) };
+      const content = JSON.stringify(input);
+      if (attempt.current?.content !== content) attempt.current = { content, key: crypto.randomUUID() };
+      await api.createPost(input, attempt.current.key);
+      attempt.current = null;
       update('');
       setMedia([]);
       setAttachKind(null);
@@ -75,7 +82,7 @@ export function Composer() {
           maxLength={POST_BODY_MAX}
           onChange={(e) => update(e.target.value)}
           placeholder="What are you working on? Share a clip, a beat or an update…"
-          className="min-h-20 w-full resize-y bg-transparent text-[14px] text-foreground outline-none placeholder:text-[#62836e]"
+          className="min-h-20 w-full resize-y bg-transparent text-sm text-foreground outline-none placeholder:text-text-3"
         />
       </div>
 
@@ -84,7 +91,15 @@ export function Composer() {
           {media.map((m) => (
             <div key={m.id} className="relative">
               <img src={m.urls.small} alt="" className="aspect-square w-full rounded-lg object-cover" />
-              <button type="button" aria-label="Remove image" onClick={() => { void api.deleteUpload(m.id).catch(() => undefined); setMedia(media.filter((x) => x.id !== m.id)); }} className="absolute top-1 right-1 rounded-full bg-black/70 p-1 text-white">
+              <button
+                type="button"
+                aria-label="Remove image"
+                onClick={() => {
+                  void api.deleteUpload(m.id).catch(() => undefined);
+                  setMedia(media.filter((x) => x.id !== m.id));
+                }}
+                className="absolute top-1 right-1 rounded-full bg-black/70 p-1 text-white"
+              >
                 <X className="size-3" />
               </button>
             </div>
@@ -99,15 +114,27 @@ export function Composer() {
             kinds={[attachKind]}
             value={attachKind === 'IMAGE' ? null : (media[0] ?? null)}
             onChange={(m) => setMedia(attachKind === 'IMAGE' ? (m ? [...media, m] : media) : m ? [m] : [])}
-            label={attachKind === 'IMAGE' ? `Add an image (${media.length}/${MAX_POST_IMAGES})` : attachKind === 'AUDIO' ? 'Choose an audio file' : 'Choose a video'}
+            label={
+              attachKind === 'IMAGE'
+                ? `Add an image (${media.length}/${MAX_POST_IMAGES})`
+                : attachKind === 'AUDIO'
+                  ? 'Choose an audio file'
+                  : 'Choose a video'
+            }
             previewTitle={body.slice(0, 60) || 'Your post'}
             onBusyChange={setUploading}
           />
         </div>
       )}
 
-      <div className="mt-3 flex flex-wrap items-center gap-1 border-t border-line pt-3">
-        {([['IMAGE', ImagePlus, 'Images'], ['AUDIO', Music2, 'Audio'], ['VIDEO', Video, 'Video']] as const).map(([kind, Icon, label]) => (
+      <div className="mt-3 flex flex-wrap items-center gap-1 border-t border-hairline-strong pt-3">
+        {(
+          [
+            ['IMAGE', ImagePlus, 'Images'],
+            ['AUDIO', Music2, 'Audio'],
+            ['VIDEO', Video, 'Video'],
+          ] as const
+        ).map(([kind, Icon, label]) => (
           <Button
             key={kind}
             type="button"
@@ -120,7 +147,7 @@ export function Composer() {
             <Icon /> {label}
           </Button>
         ))}
-        <span className="ml-auto text-[11px] text-sage-dim">{body.length > POST_BODY_MAX - 200 && `${body.length}/${POST_BODY_MAX}`}</span>
+        <span className="ml-auto text-xs text-text-3">{body.length > POST_BODY_MAX - 200 && `${body.length}/${POST_BODY_MAX}`}</span>
         <Button size="sm" disabled={posting || uploading || (!body.trim() && media.length === 0)} onClick={() => void post()}>
           {posting ? 'Posting…' : uploading ? 'Uploading…' : 'Post'}
         </Button>

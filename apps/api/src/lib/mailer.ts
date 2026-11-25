@@ -13,7 +13,7 @@ export interface EmailMessage extends RenderedEmail {
 
 /** Where emails go. Exactly one is active, chosen by EMAIL_TRANSPORT (see config/env.ts). */
 export interface EmailTransport {
-  readonly name: 'capture' | 'console' | 'resend';
+  readonly name: 'capture' | 'console' | 'resend' | 'disabled';
   send(message: EmailMessage): Promise<{ id: string | null }>;
 }
 
@@ -27,6 +27,18 @@ export class EmailDeliveryError extends Error {
     // The code comes from Resend's fixed error vocabulary; no recipient, content or key.
     super(`Email delivery failed (${code})`);
     this.name = 'EmailDeliveryError';
+  }
+}
+
+/**
+ * Thrown when something tries to send while email is unavailable (restricted-email mode).
+ * Callers must not treat the message as sent; flows that need email are refused before this.
+ */
+export class EmailUnavailableError extends Error {
+  readonly code = 'EMAIL_UNAVAILABLE';
+  constructor(readonly kind: EmailMessage['kind']) {
+    super(`Email is unavailable: a ${kind} email cannot be sent`);
+    this.name = 'EmailUnavailableError';
   }
 }
 
@@ -52,10 +64,23 @@ export const captureTransport: EmailTransport = {
 export const consoleTransport: EmailTransport = {
   name: 'console',
   async send(message) {
+    // Printing the email IS this transport's job (development only, never sent).
+    // oxlint-disable-next-line no-console
     console.log(
       `\n──── EMAIL (dev console transport — not sent) ────\nTo: ${message.to}\nSubject: ${message.subject}\n\n${message.text}\n──────────────────────────────────────────────────\n`,
     );
     return { id: null };
+  },
+};
+
+/**
+ * Restricted-email mode: there is no sender. Every send fails loudly with a typed error rather
+ * than being dropped, so nothing can ever be reported as sent.
+ */
+export const disabledTransport: EmailTransport = {
+  name: 'disabled',
+  async send(message) {
+    throw new EmailUnavailableError(message.kind);
   },
 };
 
@@ -100,6 +125,8 @@ function defaultTransport(): EmailTransport {
     case 'resend':
       // env.ts guarantees both are present when EMAIL_TRANSPORT is "resend".
       return resendTransport(new Resend(env.RESEND_API_KEY), env.EMAIL_FROM!);
+    case 'disabled':
+      return disabledTransport;
   }
 }
 
@@ -107,6 +134,10 @@ let transport: EmailTransport | null = null;
 export function emailTransport(): EmailTransport {
   transport ??= defaultTransport();
   return transport;
+}
+/** False in restricted-email mode: password reset and email confirmation are then unavailable. */
+export function emailAvailable(): boolean {
+  return emailTransport().name !== 'disabled';
 }
 /** For tests: swap in a transport (e.g. resendTransport with a fake client). */
 export function setEmailTransport(next: EmailTransport | null) {
@@ -149,6 +180,7 @@ export function resetRecipientLimits() {
  * probe accounts. Delivery failures throw EmailDeliveryError.
  */
 export async function sendEmail(message: EmailMessage): Promise<boolean> {
+  if (!emailAvailable()) throw new EmailUnavailableError(message.kind);
   if (!allowRecipient(message.to, message.kind)) {
     console.warn(`[email] ${message.kind} to ${maskEmail(message.to)} skipped: per-recipient limit reached`);
     return false;

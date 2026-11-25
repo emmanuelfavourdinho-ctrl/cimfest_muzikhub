@@ -1,13 +1,5 @@
-import { existsSync, readFileSync } from 'node:fs';
-import { parseEnv } from 'node:util';
 import { defineConfig, devices } from '@playwright/test';
-
-/** Real Cloudinary for browser uploads — ONLY the CLOUDINARY_* values from apps/api/.env. */
-const cloudinaryEnv: Record<string, string> = existsSync('apps/api/.env')
-  ? Object.fromEntries(
-      Object.entries(parseEnv(readFileSync('apps/api/.env', 'utf8')) as Record<string, string>).filter(([k]) => k.startsWith('CLOUDINARY_')),
-    )
-  : {};
+import { cloudinaryEnv } from './e2e/cloudinary-env';
 
 /**
  * End-to-end tests drive a real browser against a real API and database.
@@ -16,8 +8,7 @@ const cloudinaryEnv: Record<string, string> = existsSync('apps/api/.env')
  * Prerequisite: `npm run db:up`.
  */
 const TEST_DATABASE_URL =
-  process.env.TEST_DATABASE_URL ??
-  'postgresql://muzikhub:muzikhub_dev_password@localhost:5435/muzikhub_test?schema=public';
+  process.env.TEST_DATABASE_URL ?? 'postgresql://muzikhub:muzikhub_dev_password@localhost:5435/muzikhub_test?schema=public';
 const WEB_URL = 'http://localhost:5273';
 
 export default defineConfig({
@@ -36,7 +27,7 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: 'npx prisma migrate deploy && npx tsx src/server.ts',
+      command: 'npx prisma migrate deploy && npx tsx src/scripts/seed-catalogue.ts && npx tsx src/server.ts',
       cwd: './apps/api',
       url: 'http://localhost:4100/api/v1/health',
       reuseExistingServer: false,
@@ -49,6 +40,8 @@ export default defineConfig({
         CORS_ORIGINS: WEB_URL,
         WEB_APP_URL: WEB_URL,
         PRISMA_HIDE_UPDATE_MESSAGE: '1',
+        // TEST PROVIDER only (no network, no money). Live payments are unreachable in code.
+        PAYMENTS_MODE: 'sandbox',
         ...cloudinaryEnv,
       },
     },

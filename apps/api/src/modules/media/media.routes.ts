@@ -3,13 +3,14 @@ import { createUploadSchema } from '@muzikhub/shared';
 import { currentUserId, requireAuth, requireFullAccess } from '../../middleware/require-auth.js';
 import { validateBody } from '../../middleware/validate.js';
 import * as media from './media.service.js';
+import { limits } from '../../lib/rate-limit.js';
 
 /** /api/v1/media — signed direct uploads to Cloudinary. */
 export function mediaRouter(): Router {
   const router = Router();
   router.use(requireAuth);
 
-  router.post('/uploads', requireFullAccess, validateBody(createUploadSchema), async (req, res) => {
+  router.post('/uploads', limits.upload, requireFullAccess, validateBody(createUploadSchema), async (req, res) => {
     res.status(201).json(await media.createUpload(currentUserId(res.locals), req.body));
   });
 

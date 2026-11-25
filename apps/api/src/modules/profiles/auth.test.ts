@@ -38,10 +38,7 @@ describe('registration (FR-01, FR-03)', () => {
 
   it('rejects reserved, malformed, and duplicate usernames (case-insensitive)', async () => {
     for (const username of ['admin', 'a', 'bad name']) {
-      const res = await request(app)
-        .post('/api/auth/sign-up/email')
-        .set('Origin', ORIGIN)
-        .send(newUserInput({ username }));
+      const res = await request(app).post('/api/auth/sign-up/email').set('Origin', ORIGIN).send(newUserInput({ username }));
       expect(res.status, username).toBe(400);
     }
 
@@ -163,7 +160,7 @@ describe('account status enforcement', () => {
 
     const me = await agent.get('/api/v1/me');
     expect(me.status).toBe(403);
-    expect(me.body.error.code).toBe('ACCOUNT_INACTIVE');
+    expect(me.body.code).toBe('ACCOUNT_INACTIVE');
 
     const signIn = await request(app)
       .post('/api/auth/sign-in/email')

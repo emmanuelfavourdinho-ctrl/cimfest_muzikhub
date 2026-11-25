@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { cn } from 'cn';
-import { Plus } from 'lucide-react';
+import { cn } from '@/lib/cn';
+import { ChartColumn, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { InfiniteList } from '@/components/ui/InfiniteList';
 import { PageHeader, PageLoading, Panel } from '@/components/ui/primitives';
@@ -30,21 +30,31 @@ export function StudioPage() {
         title="Your portfolio"
         description="Showcase your music and creative work. Drafts and archived work are only visible to you."
         actions={
-          <Button asChild>
-            <Link to="/studio/new">
-              <Plus /> Add work
-            </Link>
-          </Button>
+          <>
+            <Button asChild variant="outline">
+              <Link to="/studio/analytics">
+                <ChartColumn /> Analytics
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link to="/studio/new">
+                <Plus /> Add work
+              </Link>
+            </Button>
+          </>
         }
       />
-      <div role="tablist" aria-label="Filter by status" className="mb-5 flex gap-1 overflow-x-auto border-b border-[#264b3d]">
+      <div role="tablist" aria-label="Filter by status" className="mb-5 flex gap-1 overflow-x-auto border-b border-hairline-strong">
         {tabs.map((t) => (
           <button
             key={t.label}
             role="tab"
             aria-selected={status === t.key}
             onClick={() => setStatus(t.key)}
-            className={cn('min-h-11 border-b-2 px-4 text-xs font-bold whitespace-nowrap', status === t.key ? 'border-[#26ed9f] text-[#76f5bc]' : 'border-transparent text-[#9ac2b0] hover:text-foreground')}
+            className={cn(
+              'min-h-11 border-b-2 px-4 text-xs font-bold whitespace-nowrap',
+              status === t.key ? 'border-signal text-signal' : 'border-transparent text-text-2 hover:text-foreground',
+            )}
           >
             {t.label}
           </button>
@@ -58,7 +68,7 @@ export function StudioPage() {
       ) : items.length === 0 ? (
         <Panel className="p-8 text-center">
           <h2 className="text-lg font-bold">{status ? 'Nothing here yet' : 'Start your portfolio'}</h2>
-          <p className="mx-auto mt-1 mb-5 max-w-sm text-sm text-sage">
+          <p className="mx-auto mt-1 mb-5 max-w-sm text-sm text-text-2">
             Upload a track, a beat, a performance video or artwork — or add a project with links to where it lives.
           </p>
           <Button asChild>
@@ -68,7 +78,12 @@ export function StudioPage() {
           </Button>
         </Panel>
       ) : (
-        <InfiniteList hasNextPage={query.hasNextPage} isFetchingNextPage={query.isFetchingNextPage} fetchNextPage={() => void query.fetchNextPage()} isError={query.isError}>
+        <InfiniteList
+          hasNextPage={query.hasNextPage}
+          isFetchingNextPage={query.isFetchingNextPage}
+          fetchNextPage={() => void query.fetchNextPage()}
+          isError={query.isError}
+        >
           <PortfolioGrid>
             {items.map((item) => (
               <PortfolioCard key={item.id} item={item} showStatus />

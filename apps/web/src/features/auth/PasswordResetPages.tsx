@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { useForm } from 'react-hook-form';
+import { useQueryClient } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
@@ -10,11 +11,33 @@ import { Field, FormError, Input } from '@/components/ui/form';
 import { Eyebrow, Hint, Panel } from '@/components/ui/primitives';
 import { errorMessage } from '@/lib/api';
 import { authClient, unwrap } from '@/lib/auth-client';
+import { capabilityKeys, useEmailCapability } from '@/lib/capabilities';
 import { AuthLayout } from './AuthLayout';
+import { RecoveryUnavailable } from './EmailUnavailable';
+
+/** Capability still loading or unreachable: never assume email works, never show the form. */
+function CapabilityPending({ failed, onRetry }: { failed: boolean; onRetry: () => void }) {
+  if (!failed)
+    return (
+      <p className="mt-4 text-sm text-text-2" role="status">
+        Checking whether password reset is available…
+      </p>
+    );
+  return (
+    <>
+      <FormError message="We couldn't check whether password reset is available. Check your connection and try again." />
+      <Button variant="outline" className="w-full" onClick={onRetry}>
+        Try again
+      </Button>
+    </>
+  );
+}
 
 const emailSchema = z.object({ email: z.email('Enter a valid email address').trim() });
 
 export function ForgotPasswordPage() {
+  const capability = useEmailCapability();
+  const qc = useQueryClient();
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const { register, handleSubmit, formState } = useForm<z.infer<typeof emailSchema>>({ resolver: zodResolver(emailSchema) });
@@ -26,6 +49,8 @@ export function ForgotPasswordPage() {
       setSentTo(email);
     } catch (error) {
       setFormError(errorMessage(error));
+      // If email became unavailable (503 EMAIL_UNAVAILABLE), re-check so the page explains why.
+      void qc.invalidateQueries({ queryKey: capabilityKeys.all });
     }
   });
 
@@ -34,7 +59,11 @@ export function ForgotPasswordPage() {
       <Panel className="p-5 sm:p-7">
         <Eyebrow>Account recovery</Eyebrow>
         <h1 className="mt-2 mb-2 text-2xl font-bold">Reset your password</h1>
-        {sentTo ? (
+        {capability.email === 'unavailable' ? (
+          <RecoveryUnavailable />
+        ) : capability.email === 'unknown' ? (
+          <CapabilityPending failed={capability.isError} onRetry={() => void capability.refetch()} />
+        ) : sentTo ? (
           <>
             {/* The same message whether or not the account exists, so emails can't be probed. */}
             <Hint className="mt-4">
@@ -46,7 +75,7 @@ export function ForgotPasswordPage() {
           </>
         ) : (
           <form onSubmit={onSubmit} noValidate>
-            <p className="mb-5 text-sm text-sage">Enter the email address on your account and we'll send you a reset link.</p>
+            <p className="mb-5 text-sm text-text-2">Enter the email address on your account and we'll send you a reset link.</p>
             <FormError message={formError} />
             <Field label="Email" error={formState.errors.email?.message}>
               {(a) => <Input {...a} type="email" autoComplete="email" inputMode="email" {...register('email')} />}
@@ -55,7 +84,9 @@ export function ForgotPasswordPage() {
               {formState.isSubmitting ? 'Sending…' : 'Send reset link'}
             </Button>
             <p className="mt-6 text-center text-sm">
-              <Link to="/login" className="font-semibold text-mint-soft hover:underline">Back to sign in</Link>
+              <Link to="/login" className="font-semibold text-signal hover:underline">
+                Back to sign in
+              </Link>
             </p>
           </form>
         )}
@@ -72,6 +103,7 @@ const newPasswordSchema = z
   .refine((v) => v.password === v.confirm, { path: ['confirm'], message: "Passwords don't match" });
 
 export function ResetPasswordPage() {
+  const capability = useEmailCapability();
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const token = params.get('token');
@@ -97,13 +129,22 @@ export function ResetPasswordPage() {
         <Eyebrow>Account recovery</Eyebrow>
         <h1 className="mt-2 mb-5 text-2xl font-bold">Choose a new password</h1>
         {!token || linkError ? (
-          <>
-            <FormError message="This reset link is invalid or has expired." />
-            <Button asChild className="w-full">
-              <Link to="/forgot-password">Request a new link</Link>
-            </Button>
-          </>
+          capability.email === 'unavailable' ? (
+            // A new link can't be sent, so don't offer to request one.
+            <>
+              <FormError message="This reset link is invalid or has expired." />
+              <RecoveryUnavailable />
+            </>
+          ) : (
+            <>
+              <FormError message="This reset link is invalid or has expired." />
+              <Button asChild className="w-full">
+                <Link to="/forgot-password">Request a new link</Link>
+              </Button>
+            </>
+          )
         ) : (
+          // A link that was actually delivered earlier still works, even if email is unavailable now.
           <form onSubmit={onSubmit} noValidate>
             <FormError message={formError} />
             <Field label="New password" error={formState.errors.password?.message} hint={`At least ${PASSWORD_MIN} characters.`}>
@@ -112,7 +153,7 @@ export function ResetPasswordPage() {
             <Field label="Confirm new password" error={formState.errors.confirm?.message}>
               {(a) => <Input {...a} type="password" autoComplete="new-password" {...register('confirm')} />}
             </Field>
-            <p className="mb-4 text-xs text-sage-dim">For your security, you'll be signed out on all other devices.</p>
+            <p className="mb-4 text-xs text-text-3">For your security, you'll be signed out on all other devices.</p>
             <Button type="submit" size="lg" className="w-full" disabled={formState.isSubmitting}>
               {formState.isSubmitting ? 'Saving…' : 'Update password'}
             </Button>
