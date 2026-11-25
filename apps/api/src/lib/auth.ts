@@ -6,7 +6,7 @@ import { PASSWORD_MAX, PASSWORD_MIN, PRIMARY_USE_KEYS, USERNAME_MAX, USERNAME_MI
 import { env } from '../config/env.js';
 import { createHash } from 'node:crypto';
 import { passwordResetEmail, verificationEmail } from './email-templates.js';
-import { sendEmail } from './mailer.js';
+import { emailAvailable, EmailUnavailableError, sendEmail } from './mailer.js';
 import { prisma } from './prisma.js';
 import { isVisibleStatus, reinstateExpiredSuspensions } from './account-status.js';
 import { betterAuthPassword } from './password.js';
@@ -24,6 +24,15 @@ function withWebReturn(url: string): string {
   link.searchParams.set('callbackURL', new URL(VERIFIED_RETURN_PATH, env.WEB_APP_URL).toString());
   return link.toString();
 }
+
+/**
+ * Better Auth endpoints that only work by sending an email. In restricted-email mode they are
+ * refused with 503 EMAIL_UNAVAILABLE in a before-hook — i.e. before Better Auth looks the
+ * address up — so the answer is identical for every address and reveals nothing about accounts.
+ */
+export const EMAIL_DEPENDENT_AUTH_PATHS = ['/request-password-reset', '/send-verification-email'] as const;
+export const EMAIL_UNAVAILABLE_MESSAGE =
+  'Email isn’t available on MuzikHub yet, so password reset and email confirmation can’t be used right now.';
 
 /**
  * Better Auth handles registration, sign-in, sessions (HTTP-only cookies),
@@ -59,6 +68,8 @@ export const auth = betterAuth({
     // Better Auth catches errors thrown here and logs them; the HTTP response is identical
     // either way, so a failed or rate-limited send never reveals whether an account exists.
     sendResetPassword: async ({ user, url, token }) => {
+      // Unreachable in restricted-email mode (the before-hook refuses the request); guarded anyway.
+      if (!emailAvailable()) throw new EmailUnavailableError('password-reset');
       await sendEmail({
         to: user.email,
         kind: 'password-reset',
@@ -71,10 +82,13 @@ export const auth = betterAuth({
   emailVerification: {
     // Approved 2026-11-24: verification is OPTIONAL for the hackathon stage
     // (requireEmailVerification stays false). Users see a banner and can resend.
-    sendOnSignUp: true,
+    // Restricted-email mode: sign-up sends nothing (and the UI never claims it did).
+    sendOnSignUp: env.EMAIL_TRANSPORT !== 'disabled',
     autoSignInAfterVerification: true,
     expiresIn: 60 * 60,
     sendVerificationEmail: async ({ user, url, token }) => {
+      // No email can be delivered: skip on sign-up; the resend endpoint is refused by the before-hook.
+      if (!emailAvailable()) return;
       await sendEmail({
         to: user.email,
         kind: 'email-verification',
@@ -98,6 +112,9 @@ export const auth = betterAuth({
 
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
+      if (!emailAvailable() && (EMAIL_DEPENDENT_AUTH_PATHS as readonly string[]).includes(ctx.path ?? '')) {
+        throw new APIError('SERVICE_UNAVAILABLE', { code: 'EMAIL_UNAVAILABLE', message: EMAIL_UNAVAILABLE_MESSAGE });
+      }
       // "Trust this device" would let a second factor be skipped for 30 days. MuzikHub
       // doesn't offer it: every sign-in of a 2FA account asks for a code.
       if (ctx.path?.startsWith('/two-factor/verify') && (ctx.body as { trustDevice?: unknown } | undefined)?.trustDevice) {

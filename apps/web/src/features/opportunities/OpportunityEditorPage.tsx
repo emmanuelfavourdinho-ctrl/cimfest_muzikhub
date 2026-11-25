@@ -7,12 +7,7 @@ import { Field, FormError, Input, Select, Textarea } from '@/components/ui/form'
 import { EmptyState, PageHeader, PageLoading, Panel } from '@/components/ui/primitives';
 import { LoadFailed } from '@/features/auth/guards';
 import { api, errorMessage } from '@/lib/api';
-
-const MISSING_TEXT = {
-  ADMIN_APPROVAL: 'approval from a MuzikHub administrator',
-  VERIFIED_EMAIL: 'a verified email address',
-  PROFESSIONAL_ACCOUNT: 'an "Industry professional" account',
-} as const;
+import { OrganiserAccessNeeded } from './OrganiserAccessNeeded';
 
 /** Create (/opportunities/new) or edit (/opportunities/:id/edit). */
 export function OpportunityEditorPage() {
@@ -25,18 +20,11 @@ export function OpportunityEditorPage() {
   if (existing.isError) return <LoadFailed message={errorMessage(existing.error)} onRetry={() => void existing.refetch()} />;
   if (!id && !status.data.canOrganise) {
     return (
-      <div className="mx-auto max-w-xl">
-        <EmptyState
-          title="Organiser access needed"
-          action={
-            <Button asChild variant="outline">
-              <Link to="/opportunities">Browse opportunities</Link>
-            </Button>
-          }
-        >
-          Publishing opportunities needs {status.data.missing.map((m) => MISSING_TEXT[m]).join(', ')}.
-        </EmptyState>
-      </div>
+      <OrganiserAccessNeeded
+        missing={status.data.missing}
+        what="Publishing opportunities"
+        back={{ to: '/opportunities', label: 'Browse opportunities' }}
+      />
     );
   }
   if (existing.data && !existing.data.isOwner) {

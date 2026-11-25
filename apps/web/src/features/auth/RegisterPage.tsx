@@ -8,11 +8,13 @@ import { ArrowLeft, ArrowRight, Briefcase, Headphones, Mic } from 'lucide-react'
 import { PRIMARY_USES, registerSchema, usernameSchema, type PrimaryUse, type RegisterInput } from '@muzikhub/shared';
 import { Button } from '@/components/ui/button';
 import { Field, FormError, Input } from '@/components/ui/form';
-import { Eyebrow, Panel } from '@/components/ui/primitives';
+import { Eyebrow, Hint, Panel } from '@/components/ui/primitives';
 import { authClient, unwrap } from '@/lib/auth-client';
 import { errorMessage } from '@/lib/api';
 import { queryKeys } from '@/lib/queries';
+import { useEmailCapability } from '@/lib/capabilities';
 import { AuthLayout } from './AuthLayout';
+import { EMAIL_UNAVAILABLE_TEXT } from './EmailUnavailable';
 
 const useIcons: Record<PrimaryUse, typeof Mic> = { CREATOR: Mic, FAN: Headphones, PROFESSIONAL: Briefcase };
 
@@ -83,6 +85,7 @@ function AccountForm({ primaryUse, onBack }: { primaryUse: PrimaryUse; onBack: (
   const queryClient = useQueryClient();
   const [formError, setFormError] = useState<string | null>(null);
   const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>('idle');
+  const capability = useEmailCapability();
 
   const { register, handleSubmit, watch, formState } = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
@@ -167,6 +170,7 @@ function AccountForm({ primaryUse, onBack }: { primaryUse: PrimaryUse; onBack: (
       <Field label="Password" error={errors.password?.message} hint="At least 8 characters.">
         {(a) => <Input {...a} type="password" autoComplete="new-password" {...register('password')} />}
       </Field>
+      {capability.email === 'unavailable' && <Hint className="mb-4">{EMAIL_UNAVAILABLE_TEXT.register}</Hint>}
 
       <Button type="submit" size="lg" className="w-full" disabled={isSubmitting || usernameStatus === 'taken'}>
         {isSubmitting ? 'Creating your account…' : 'Create account'}

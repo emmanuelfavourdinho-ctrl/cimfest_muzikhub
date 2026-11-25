@@ -15,3 +15,4 @@ export * from './communities.js';
 export * from './messaging.js';
 export * from './collaboration.js';
 export * from './competitions.js';
+export * from './capabilities.js';

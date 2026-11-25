@@ -31,9 +31,19 @@ const envSchema = z
     WEB_APP_URL: z.url().default('http://localhost:5173'),
     /**
      * Email delivery: "capture" (tests: kept in memory), "console" (dev: printed, not sent),
-     * "resend" (sent through Resend). Defaults by NODE_ENV — see emailTransportDefault.
+     * "resend" (sent through Resend), "disabled" (restricted-email mode: nothing can be sent,
+     * and the features that need email are switched off honestly). Defaults by NODE_ENV —
+     * see emailTransportDefault. "disabled" is never a default: it must be chosen explicitly.
      */
-    EMAIL_TRANSPORT: z.enum(['capture', 'console', 'resend']).optional(),
+    EMAIL_TRANSPORT: z.enum(['capture', 'console', 'resend', 'disabled']).optional(),
+    /**
+     * Production refuses EMAIL_TRANSPORT=disabled unless this is "true": running without email
+     * means no password recovery and no email confirmation, so it must be a deliberate choice.
+     */
+    ALLOW_EMAIL_DISABLED_IN_PRODUCTION: z
+      .enum(['true', 'false'])
+      .default('false')
+      .transform((v) => v === 'true'),
     /**
      * When true, publishing (posts, comments, publishing work) — and later messaging and calls —
      * require a verified email. Off until a Resend sending domain is verified (decision C2):
@@ -92,9 +102,7 @@ const envSchema = z
     const db = resolveDatabaseUrl(e.DATABASE_URL);
     if (!db.ok) for (const message of db.problems) ctx.addIssue({ code: 'custom', path: ['DATABASE_URL'], message });
     for (const message of paymentsConfigProblems(e)) ctx.addIssue({ code: 'custom', path: ['PAYMENTS_MODE'], message });
-    if (e.NODE_ENV === 'production' && e.EMAIL_TRANSPORT !== 'resend') {
-      ctx.addIssue({ code: 'custom', path: ['EMAIL_TRANSPORT'], message: 'production must send email through "resend"' });
-    }
+    for (const issue of emailConfigProblems(e)) ctx.addIssue({ code: 'custom', path: [issue.path], message: issue.message });
     if (e.EMAIL_TRANSPORT === 'resend') {
       if (!e.RESEND_API_KEY) ctx.addIssue({ code: 'custom', path: ['RESEND_API_KEY'], message: 'required to send email with Resend' });
       if (!e.EMAIL_FROM)
@@ -134,6 +142,39 @@ function paymentsConfigProblems(e: {
     for (const name of ['NOTCHPAY_PUBLIC_KEY', 'NOTCHPAY_PRIVATE_KEY', 'NOTCHPAY_WEBHOOK_SECRET'] as const) {
       if (!e[name]?.trim()) problems.push(`PAYMENTS_MODE=live requires ${name}`);
     }
+  }
+  return problems;
+}
+
+/** Startup rules for email (restricted-email mode included). Messages only; never values. */
+export function emailConfigProblems(e: {
+  NODE_ENV: string;
+  EMAIL_TRANSPORT: 'capture' | 'console' | 'resend' | 'disabled';
+  ALLOW_EMAIL_DISABLED_IN_PRODUCTION: boolean;
+  REQUIRE_EMAIL_VERIFICATION: boolean;
+}): { path: string; message: string }[] {
+  const problems: { path: string; message: string }[] = [];
+  const production = e.NODE_ENV === 'production';
+  if (production && e.EMAIL_TRANSPORT !== 'resend' && e.EMAIL_TRANSPORT !== 'disabled') {
+    problems.push({ path: 'EMAIL_TRANSPORT', message: 'production must send email through "resend" (or run restricted with "disabled")' });
+  }
+  if (production && e.EMAIL_TRANSPORT === 'disabled' && !e.ALLOW_EMAIL_DISABLED_IN_PRODUCTION) {
+    problems.push({
+      path: 'EMAIL_TRANSPORT',
+      message: 'EMAIL_TRANSPORT=disabled is refused in production unless ALLOW_EMAIL_DISABLED_IN_PRODUCTION=true',
+    });
+  }
+  if (production && e.ALLOW_EMAIL_DISABLED_IN_PRODUCTION && e.EMAIL_TRANSPORT !== 'disabled') {
+    problems.push({
+      path: 'ALLOW_EMAIL_DISABLED_IN_PRODUCTION',
+      message: 'is set but EMAIL_TRANSPORT is not "disabled"; remove it so the configuration is unambiguous',
+    });
+  }
+  if (e.EMAIL_TRANSPORT === 'disabled' && e.REQUIRE_EMAIL_VERIFICATION) {
+    problems.push({
+      path: 'REQUIRE_EMAIL_VERIFICATION',
+      message: 'cannot be true while EMAIL_TRANSPORT=disabled: nobody could ever verify, so everyone would be locked out',
+    });
   }
   return problems;
 }

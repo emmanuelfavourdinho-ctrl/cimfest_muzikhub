@@ -8,6 +8,7 @@ import { auth } from './lib/auth.js';
 import { prisma } from './lib/prisma.js';
 import { errorHandler, notFound } from './middleware/error-handler.js';
 import type { DatabaseCheck } from './modules/health/health.service.js';
+import { capabilitiesRouter } from './modules/capabilities/capabilities.routes.js';
 import { healthRouter } from './modules/health/health.routes.js';
 import { meRouter, profilesRouter } from './modules/profiles/profiles.routes.js';
 import { mediaRouter } from './modules/media/media.routes.js';
@@ -88,6 +89,7 @@ export function createApp(overrides: Partial<AppDependencies> = {}): Express {
   // CSRF: state-changing requests must come from an allowed web origin (see origin-check.ts).
   v1.use(originCheck(env.CORS_ORIGINS));
   v1.use('/health', healthRouter(deps.checkDatabase));
+  v1.use('/capabilities', capabilitiesRouter());
   // OpenAPI 3.1 description of this API (generated from openapi/operations.ts).
   v1.get('/openapi.json', (_req, res) => {
     res.json(openApiDocument());

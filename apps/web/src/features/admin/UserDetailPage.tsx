@@ -8,6 +8,7 @@ import { Field, Input, Select } from '@/components/ui/form';
 import { Avatar, PageLoading } from '@/components/ui/primitives';
 import { LoadFailed } from '@/features/auth/guards';
 import { errorMessage } from '@/lib/api';
+import { useEmailCapability } from '@/lib/capabilities';
 import { adminApi, type AdminUserDetail } from './admin-api';
 import { describeAction } from './AuditPage';
 import { AdminHeader, Ago, ReasonDialog, ReportStatusTag, RoleTag, Section, Stat, StatusTag, Tag, useAdminAction } from './ui';
@@ -26,6 +27,9 @@ type Dialog = null | 'restrict' | 'suspend' | 'ban' | 'reinstate' | 'role' | 're
 const inDays = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
 
 function UserWorkspace({ u }: { u: AdminUserDetail }) {
+  const { email: emailState } = useEmailCapability();
+  // Restricted-email mode: this account can't confirm its email, so organiser access and staff roles can't take effect.
+  const emailBlocked = emailState === 'unavailable' && !u.emailVerified;
   const act = useAdminAction();
   const [dialog, setDialog] = useState<Dialog>(null);
   const [until, setUntil] = useState(inDays(7));
@@ -201,6 +205,11 @@ function UserWorkspace({ u }: { u: AdminUserDetail }) {
                     Reset two-step verification
                   </Button>
                 )}
+                {emailBlocked && a.changeRole && (
+                  <p className="text-xs text-warning">
+                    This account’s email isn’t confirmed, and email isn’t set up on MuzikHub yet, so it can’t be given a staff role.
+                  </p>
+                )}
                 <p className="text-xs text-text-3">
                   Role changes and resets need a recent sign-in. Staff must set up two-step verification before using the console.
                 </p>
@@ -214,6 +223,12 @@ function UserWorkspace({ u }: { u: AdminUserDetail }) {
                   {u.isOrganiser ? 'Can publish opportunities and competitions' : 'Cannot publish opportunities or competitions'} (also
                   needs a verified email and an industry-professional account).
                 </p>
+                {emailBlocked && (
+                  <p className="text-xs text-warning">
+                    This account’s email isn’t confirmed, and email isn’t set up on MuzikHub yet, so organiser access won’t take effect even
+                    if granted.
+                  </p>
+                )}
                 <Button size="sm" variant={u.isOrganiser ? 'outline' : 'primary'} onClick={() => setDialog('organiser')}>
                   {u.isOrganiser ? 'Revoke organiser access' : 'Grant organiser access'}
                 </Button>

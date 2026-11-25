@@ -19,7 +19,8 @@ import { Button } from '@/components/ui/button';
 import { Field, FormError, Input, Select, Textarea } from '@/components/ui/form';
 import { EmptyState, PageHeader, PageLoading, Panel } from '@/components/ui/primitives';
 import { LoadFailed } from '@/features/auth/guards';
-import { errorMessage } from '@/lib/api';
+import { api, errorMessage } from '@/lib/api';
+import { OrganiserAccessNeeded } from '@/features/opportunities/OrganiserAccessNeeded';
 import { compApi, compKeys } from '@/lib/competitions';
 
 /** datetime-local value in the viewer's time zone. */
@@ -32,6 +33,18 @@ const local = (iso: string) => {
 export function CompetitionEditorPage() {
   const { slug } = useParams();
   const existing = useQuery({ queryKey: compKeys.detail(slug ?? ''), queryFn: () => compApi.detail(slug!), enabled: Boolean(slug) });
+  const status = useQuery({ queryKey: ['opportunities', 'organiser-status'], queryFn: api.organiserStatus, enabled: !slug });
+  if (!slug && status.isPending) return <PageLoading />;
+  if (!slug && status.isError) return <LoadFailed message={errorMessage(status.error)} onRetry={() => void status.refetch()} />;
+  if (!slug && status.data && !status.data.canOrganise) {
+    return (
+      <OrganiserAccessNeeded
+        missing={status.data.missing}
+        what="Running competitions"
+        back={{ to: '/competitions', label: 'Browse competitions' }}
+      />
+    );
+  }
   if (slug && existing.isPending) return <PageLoading />;
   if (slug && existing.isError) return <LoadFailed message={errorMessage(existing.error)} onRetry={() => void existing.refetch()} />;
   if (existing.data && !existing.data.viewer.isOrganiser) return <EmptyState title="Only the organiser can edit this competition" />;

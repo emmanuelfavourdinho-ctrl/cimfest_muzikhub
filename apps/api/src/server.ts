@@ -16,6 +16,9 @@ const app = createApp();
 
 const server = app.listen(env.PORT, () => {
   console.log(`MuzikHub API listening on http://localhost:${env.PORT} (${env.NODE_ENV})`);
+  if (env.EMAIL_TRANSPORT === 'disabled') {
+    console.warn('email: DISABLED (restricted-email mode): password reset and email confirmation are unavailable');
+  }
 });
 // Real-time push (messages, notifications) on the same server: /api/realtime.
 attachRealtime(server);

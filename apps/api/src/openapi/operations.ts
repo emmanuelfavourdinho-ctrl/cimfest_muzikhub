@@ -102,6 +102,7 @@ const op = (
 
 export const operations: Operation[] = [
   op('GET', '/health', 'System', 'Service and database health', 'public'),
+  op('GET', '/capabilities', 'System', 'What this deployment can do now (e.g. whether email is available); no secrets', 'public'),
   op('GET', '/openapi.json', 'System', 'This OpenAPI document', 'public'),
 
   op('GET', '/me', 'Me', 'The signed-in user, profile and links', 'member'),

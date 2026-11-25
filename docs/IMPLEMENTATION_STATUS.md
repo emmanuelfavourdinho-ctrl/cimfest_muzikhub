@@ -86,6 +86,8 @@ Monorepo, Postgres + Prisma migrations, API conventions, prototype design system
 | Per-recipient limit (3 per kind per hour) on top of Better Auth's per-IP limits | ✅ | Unit + API tests. In memory (single instance) |
 | Idempotency key per one-time token | ✅ | Unit test |
 | Live send through Resend | ✅ | Opt-in test: Resend accepted it and reported **delivered to the `delivered@resend.dev` test sink**. No real person was emailed |
+| Restricted-email mode (`EMAIL_TRANSPORT=disabled`): startup rules, 503 `EMAIL_UNAVAILABLE` before account lookup, silent-free sign-up, `GET /api/v1/capabilities`, honest web screens | ✅ 2026-11-25 | `email-env.test.ts`, `restricted-email.test.ts`, e2e `restricted-email.spec.ts`. ARCHITECTURE §5d |
+| Operator email attestation (`admin:attest-email`) | ⛔ not built | Stopped: the audit log can't record an authenticated operator for a CLI action. Options are in the 2026-11-25 report; needs your decision |
 | Production sending domain, DNS verification, production `EMAIL_FROM` | ⏳ pending | The Resend account has 0 domains (checked 2026-11-24). Steps in ARCHITECTURE §5d |
 
 ### Database — Supabase PostgreSQL
@@ -164,7 +166,8 @@ Monorepo, Postgres + Prisma migrations, API conventions, prototype design system
 
 | Needed | Blocks |
 |---|---|
-| Verified Resend sending domain + production `EMAIL_FROM` | Real-recipient email |
+| Verified Resend sending domain + production `EMAIL_FROM` (needs a custom domain) | Real-recipient email; until then restricted-email mode: no password reset, no email confirmation, no organisers, no first admin |
+| Decision on operator identity for email attestation | `admin:attest-email` |
 | TURN service | Reliable calls |
 | Supabase project, CA certificate, approval to deploy | Production database |
 | Approval of proposed prices | Real billing |

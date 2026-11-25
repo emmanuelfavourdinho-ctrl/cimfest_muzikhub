@@ -95,7 +95,7 @@ server.ts             Starts listening; graceful shutdown
 Better Auth hook (sendResetPassword / sendVerificationEmail)
   → email-templates.ts   (escaped HTML + plain text)
   → mailer.sendEmail     (per-recipient limit: 3 per kind per hour)
-  → transport            capture (tests) | console (dev) | resend (production)
+  → transport            capture (tests) | console (dev) | resend (production) | disabled (restricted-email mode)
 ```
 
 - **One mailer**, three transports chosen by `EMAIL_TRANSPORT` (defaults: test → capture, development → console, production → resend). In development you can opt in with `EMAIL_TRANSPORT=resend`, which requires `RESEND_API_KEY` and `EMAIL_FROM`.
@@ -106,6 +106,19 @@ Better Auth hook (sendResetPassword / sendVerificationEmail)
 - **Tokens (Better Auth, unchanged):** reset tokens are single-use (atomically consumed) and expire after 1 hour; reset revokes other sessions. Verification tokens are signed JWTs that expire after 1 hour; reuse within that hour is harmless.
 - **Verification return flow:** the server rewrites the link's `callbackURL` to `WEB_APP_URL/email-verified`, so it always lands in the web app (`?error=…` for invalid or expired links). The web app shows a banner with a **Resend** action (60-second cooldown) to unverified users.
 - **Limits:** the per-recipient limit is in memory, which is fine for one API instance; move it to the database or Redis if the API scales out. Better Auth's per-IP limits also apply.
+
+### Restricted-email mode (2026-11-25)
+
+There's no custom domain yet, so Resend can't send to real users. The API can run in an explicitly enabled **restricted-email mode** instead of pretending.
+
+- **Enable:** `EMAIL_TRANSPORT=disabled`. In production this also needs `ALLOW_EMAIL_DISABLED_IN_PRODUCTION=true`; without it the API refuses to start. `RESEND_API_KEY` and `EMAIL_FROM` aren't needed in this mode. Startup also refuses `REQUIRE_EMAIL_VERIFICATION=true` with `disabled` (nobody could ever verify), and the opt-in flag set while email *isn't* disabled (contradictory). Production still defaults to `resend`; `disabled` is never a default. The API logs `email: DISABLED (restricted-email mode)` at startup.
+- **Transport:** `disabledTransport` throws `EmailUnavailableError` (`code: 'EMAIL_UNAVAILABLE'`) on every send; nothing is dropped silently. `emailAvailable()` is the single switch the rest of the code reads.
+- **Better Auth:** sign-up sends nothing (`sendOnSignUp` is off, and the callback is guarded). `POST /api/auth/request-password-reset` and `POST /api/auth/send-verification-email` return **503 `{ code: "EMAIL_UNAVAILABLE" }`** from a before-hook, i.e. before any account lookup, so the response is identical for every address. No reset tokens are created. Links that were really delivered earlier still work (`/reset-password`, `/verify-email`); they can't be created now. Sign-in, sessions, two-factor (TOTP), CSRF checks and permissions are untouched. Other email flows (change email, delete account, two-factor codes by email) aren't enabled in this app.
+- **Capabilities:** `GET /api/v1/capabilities` → `{ email: { available, unavailableFeatures } }` (shared `capabilitiesSchema`; public; no values or provider names). The web app reads it through `useEmailCapability()`; while it's loading or if it fails, the state is `unknown` and is **never** treated as available.
+- **Web app in this mode:** forgot-password and reset pages explain that reset is unavailable (no form, no "we sent a link", no "request a new link"); registration tells people to keep their password safe; the unconfirmed-email banner says confirmation isn't available and has no Resend button; organiser and admin screens say why a confirmed email can't be met.
+- **Unavailable until a verified sender exists:** password reset; email confirmation; everything gated on a confirmed email: organiser access (posting opportunities, running competitions), staff roles and the first-administrator bootstrap (`admin:grant-initial` requires a verified email). No route grants these another way.
+- **Switching Resend back on:** verify a sending domain in Resend, set `EMAIL_TRANSPORT=resend` (or remove it: production defaults to `resend`), `RESEND_API_KEY`, `EMAIL_FROM`, remove `ALLOW_EMAIL_DISABLED_IN_PRODUCTION`, restart. The capability flips to available and every screen returns to the normal flow; no code changes.
+- **Another provider later:** implement `EmailTransport` (`send(message)`), add its name to `EMAIL_TRANSPORT` and `defaultTransport()`, and add its startup checks to `emailConfigProblems`.
 
 **Current state of the Resend account (checked 2026-11-24):** the API key is valid, and **0 sending domains** are configured. Until a domain is verified, production email cannot go to real recipients. The opt-in live test uses Resend's documented test sender with the `delivered@resend.dev` sink.
 
