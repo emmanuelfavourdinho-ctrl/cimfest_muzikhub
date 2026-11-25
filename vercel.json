@@ -24,7 +24,7 @@
     },
     {
       "src": "/api/(.*)",
-      "dest": "https://REPLACE-WITH-YOUR-RENDER-SERVICE.onrender.com/api/$1",
+      "dest": "https://muzikhub-api.onrender.com/api/$1",
       "transforms": [
         {
           "type": "request.headers",
